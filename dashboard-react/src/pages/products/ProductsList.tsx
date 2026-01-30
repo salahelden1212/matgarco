@@ -1,0 +1,416 @@
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import {
+  Plus,
+  Search,
+  Filter,
+  Grid3x3,
+  List,
+  Edit,
+  Trash2,
+  Eye,
+  Package,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
+import { productAPI } from '../../lib/api';
+
+type ViewMode = 'grid' | 'list';
+type FilterStatus = 'all' | 'active' | 'draft' | 'out_of_stock';
+
+export const ProductsList: React.FC = () => {
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Fetch products
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['products', currentPage, searchQuery, statusFilter],
+    queryFn: () =>
+      productAPI.getAll({
+        page: currentPage,
+        limit: 12,
+        search: searchQuery || undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+      }),
+  });
+
+  const products = data?.data?.data?.products || [];
+  const pagination = data?.data?.data?.pagination || {
+    currentPage: 1,
+    totalPages: 1,
+    totalProducts: 0,
+  };
+
+  const handleDelete = async (productId: string) => {
+    if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+      try {
+        await productAPI.delete(productId);
+        // Refetch products
+        window.location.reload();
+      } catch (error) {
+        console.error('Error deleting product:', error);
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">المنتجات</h1>
+          <p className="text-gray-600 mt-1">
+            إدارة منتجات متجرك ({pagination.totalProducts} منتج)
+          </p>
+        </div>
+
+        <Link
+          to="/dashboard/products/new"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="w-5 h-5" />
+          <span>إضافة منتج</span>
+        </Link>
+      </div>
+
+      {/* Filters & Search */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="ابحث عن منتج..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as FilterStatus)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="all">جميع الحالات</option>
+            <option value="active">نشط</option>
+            <option value="draft">مسودة</option>
+            <option value="out_of_stock">نفذ من المخزون</option>
+          </select>
+
+          {/* View Mode Toggle */}
+          <div className="flex gap-2 border border-gray-300 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded ${
+                viewMode === 'grid'
+                  ? 'bg-blue-100 text-blue-600'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Grid3x3 className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded ${
+                viewMode === 'list'
+                  ? 'bg-blue-100 text-blue-600'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <List className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 animate-pulse"
+            >
+              <div className="aspect-square bg-gray-200 rounded-lg mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+          <p className="text-red-700">حدث خطأ في تحميل المنتجات</p>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && !error && products.length === 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+          <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            لا توجد منتجات
+          </h3>
+          <p className="text-gray-600 mb-6">
+            {searchQuery
+              ? 'لم يتم العثور على منتجات مطابقة لبحثك'
+              : 'ابدأ بإضافة منتجك الأول'}
+          </p>
+          {!searchQuery && (
+            <Link
+              to="/dashboard/products/new"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              <span>إضافة منتج جديد</span>
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* Products Grid */}
+      {!isLoading && !error && products.length > 0 && viewMode === 'grid' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {products.map((product: any) => (
+            <div
+              key={product._id}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group"
+            >
+              {/* Product Image */}
+              <div className="relative aspect-square bg-gray-100">
+                {product.images?.[0] ? (
+                  <img
+                    src={product.images[0]}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package className="w-16 h-16 text-gray-300" />
+                  </div>
+                )}
+
+                {/* Quick Actions Overlay */}
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                  <Link
+                    to={`/dashboard/products/${product._id}`}
+                    className="p-2 bg-white rounded-lg hover:bg-gray-100 transition-colors"
+                    title="عرض"
+                  >
+                    <Eye className="w-5 h-5 text-gray-700" />
+                  </Link>
+                  <Link
+                    to={`/dashboard/products/${product._id}/edit`}
+                    className="p-2 bg-white rounded-lg hover:bg-gray-100 transition-colors"
+                    title="تعديل"
+                  >
+                    <Edit className="w-5 h-5 text-blue-600" />
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(product._id)}
+                    className="p-2 bg-white rounded-lg hover:bg-gray-100 transition-colors"
+                    title="حذف"
+                  >
+                    <Trash2 className="w-5 h-5 text-red-600" />
+                  </button>
+                </div>
+
+                {/* Status Badge */}
+                {product.status !== 'active' && (
+                  <div className="absolute top-2 left-2">
+                    <span className="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
+                      {product.status === 'draft' ? 'مسودة' : 'غير نشط'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Stock Badge */}
+                {product.stock <= 0 && (
+                  <div className="absolute top-2 right-2">
+                    <span className="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800">
+                      نفذ من المخزون
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Product Info */}
+              <div className="p-4">
+                <h3 className="font-semibold text-gray-900 mb-1 truncate">
+                  {product.name}
+                </h3>
+                <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                  {product.description || 'لا يوجد وصف'}
+                </p>
+
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                  <div>
+                    <span className="text-lg font-bold text-blue-600">
+                      {product.price} جنيه
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    المخزون: {product.stock}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Products List View */}
+      {!isLoading && !error && products.length > 0 && viewMode === 'list' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  المنتج
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  السعر
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  المخزون
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  الحالة
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  الإجراءات
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {products.map((product: any) => (
+                <tr key={product._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {product.images?.[0] ? (
+                          <img
+                            src={product.images[0]}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Package className="w-6 h-6 text-gray-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 truncate">
+                          {product.name}
+                        </p>
+                        <p className="text-sm text-gray-500 truncate">
+                          {product.sku || 'لا يوجد SKU'}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="font-semibold text-gray-900">
+                      {product.price} جنيه
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`font-medium ${
+                        product.stock <= 0
+                          ? 'text-red-600'
+                          : product.stock <= 10
+                          ? 'text-yellow-600'
+                          : 'text-gray-900'
+                      }`}
+                    >
+                      {product.stock}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-medium rounded ${
+                        product.status === 'active'
+                          ? 'bg-green-100 text-green-800'
+                          : product.status === 'draft'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {product.status === 'active'
+                        ? 'نشط'
+                        : product.status === 'draft'
+                        ? 'مسودة'
+                        : 'غير نشط'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to={`/dashboard/products/${product._id}`}
+                        className="p-1 text-gray-600 hover:text-blue-600"
+                        title="عرض"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </Link>
+                      <Link
+                        to={`/dashboard/products/${product._id}/edit`}
+                        className="p-1 text-gray-600 hover:text-blue-600"
+                        title="تعديل"
+                      >
+                        <Edit className="w-5 h-5" />
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(product._id)}
+                        className="p-1 text-gray-600 hover:text-red-600"
+                        title="حذف"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {!isLoading && !error && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white rounded-xl shadow-sm border border-gray-200 px-6 py-4">
+          <p className="text-sm text-gray-600">
+            صفحة {pagination.currentPage} من {pagination.totalPages}
+          </p>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === pagination.totalPages}
+              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

@@ -1,0 +1,104 @@
+import axios from './axios';
+
+// Auth API
+export const authAPI = {
+  register: (data: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    role?: string;
+  }) => axios.post('/auth/register', data),
+
+  login: (data: { email: string; password: string }) =>
+    axios.post('/auth/login', data),
+
+  logout: () => axios.post('/auth/logout'),
+
+  getCurrentUser: () => axios.get('/auth/me'),
+
+  forgotPassword: (email: string) =>
+    axios.post('/auth/forgot-password', { email }),
+
+  resetPassword: (token: string, password: string) =>
+    axios.post('/auth/reset-password', { token, password }),
+};
+
+// Merchant API
+export const merchantAPI = {
+  create: (data: {
+    name: string;
+    subdomain: string;
+    description?: string;
+  }) => axios.post('/merchants', data),
+
+  getById: (id: string) => axios.get(`/merchants/${id}`),
+
+  update: (id: string, data: any) => axios.patch(`/merchants/${id}`, data),
+
+  getStats: (id: string) => axios.get(`/merchants/${id}/stats`),
+
+  checkSubdomain: (subdomain: string) =>
+    axios.get(`/merchants/check-subdomain/${subdomain}`),
+};
+
+// Product API
+export const productAPI = {
+  getAll: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    status?: string;
+  }) => axios.get('/products', { params }),
+
+  getById: (id: string) => axios.get(`/products/${id}`),
+
+  create: (data: any) => axios.post('/products', data),
+
+  update: (id: string, data: any) => axios.patch(`/products/${id}`, data),
+
+  delete: (id: string) => axios.delete(`/products/${id}`),
+
+  duplicate: (id: string) => axios.post(`/products/${id}/duplicate`),
+};
+
+// Order API
+export const orderAPI = {
+  getAll: (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    paymentStatus?: string;
+    search?: string;
+  }) => axios.get('/orders', { params }),
+
+  getById: (id: string) => axios.get(`/orders/${id}`),
+
+  updateStatus: (id: string, orderStatus: string, note?: string) =>
+    axios.patch(`/orders/${id}/status`, { orderStatus, note }),
+
+  updatePayment: (id: string, paymentStatus: string, transactionId?: string) =>
+    axios.patch(`/orders/${id}/payment`, { paymentStatus, transactionId }),
+
+  cancel: (id: string, reason?: string) =>
+    axios.post(`/orders/${id}/cancel`, { reason }),
+
+  updateTracking: (id: string, trackingNumber: string, shippingProvider: string) =>
+    axios.patch(`/orders/${id}/tracking`, { trackingNumber, shippingProvider }),
+};
+
+// Customer API
+export const customerAPI = {
+  getAll: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) => axios.get('/customers', { params }),
+
+  getById: (id: string) => axios.get(`/customers/${id}`),
+
+  update: (id: string, data: any) => axios.patch(`/customers/${id}`, data),
+
+  getOrders: (id: string) => axios.get(`/customers/${id}/orders`),
+};
