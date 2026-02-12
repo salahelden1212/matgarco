@@ -152,6 +152,16 @@ export const createProduct = asyncHandler(
 
     const { name, ...rest } = req.body;
 
+    // Transform images array if it's array of strings
+    let images = rest.images || [];
+    if (images.length > 0 && typeof images[0] === 'string') {
+      images = images.map((url: string, index: number) => ({
+        url,
+        alt: name,
+        isPrimary: index === 0,
+      }));
+    }
+
     // Generate slug
     let slug = generateSlug(name);
     
@@ -169,6 +179,7 @@ export const createProduct = asyncHandler(
       name,
       slug,
       ...rest,
+      images,
     });
 
     // Update merchant stats
