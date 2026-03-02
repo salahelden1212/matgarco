@@ -1,17 +1,24 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
+import { orderAPI } from '../../lib/api';
+import { usePermissions } from '../../hooks/usePermissions';
+import { PermissionKey } from '../../lib/permissions';
+import { NotificationBell } from '../NotificationPanel';
+import SearchBar from '../SearchBar';
 import {
   LayoutDashboard,
   Package,
   ShoppingCart,
   Users,
   Settings,
+  BarChart2,
   LogOut,
   Menu,
   X,
-  Bell,
-  Search,
+  UserRound,
+  Palette,
 } from 'lucide-react';
 
 export default function DashboardLayout() {
@@ -19,19 +26,46 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const { user, clearAuth } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { can, isOwner } = usePermissions();
 
   const handleLogout = () => {
     clearAuth();
     navigate('/login');
   };
 
-  const menuItems = [
-    { name: 'لوحة التحكم', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'المنتجات', path: '/dashboard/products', icon: Package },
-    { name: 'الطلبات', path: '/dashboard/orders', icon: ShoppingCart },
-    { name: 'العملاء', path: '/dashboard/customers', icon: Users },
-    { name: 'الإعدادات', path: '/dashboard/settings', icon: Settings },
+  // Fetch pending orders count for badge
+  const { data: pendingData } = useQuery({
+    queryKey: ['orders-pending-count'],
+    queryFn: () => orderAPI.getAll({ status: 'pending', limit: 1 }),
+    refetchInterval: 60000, // refresh every 60s
+  });
+  const pendingCount: number = pendingData?.data?.data?.pagination?.total || 0;
+
+  interface MenuItem {
+    name: string;
+    path: string;
+    icon: React.ElementType;
+    badge: number;
+    permission?: PermissionKey;
+    ownerOnly?: boolean;
+  }
+
+  const allMenuItems: MenuItem[] = [
+    { name: 'لوحة التحكم', path: '/dashboard', icon: LayoutDashboard, badge: 0 },
+    { name: 'المنتجات', path: '/dashboard/products', icon: Package, badge: 0, permission: 'products.view' },
+    { name: 'الطلبات', path: '/dashboard/orders', icon: ShoppingCart, badge: pendingCount, permission: 'orders.view' },
+    { name: 'العملاء', path: '/dashboard/customers', icon: Users, badge: 0, permission: 'customers.view' },
+    { name: 'تصميم المتجر', path: '/dashboard/store-design', icon: Palette, badge: 0 },
+    { name: 'التقارير', path: '/dashboard/reports', icon: BarChart2, badge: 0, permission: 'reports.view' },
+    { name: 'الإعدادات', path: '/dashboard/settings', icon: Settings, badge: 0, permission: 'settings.view' },
+    { name: 'الموظفون', path: '/dashboard/staff', icon: UserRound, badge: 0, permission: 'staff.view' as PermissionKey },
   ];
+
+  const menuItems = allMenuItems.filter((item) => {
+    if (item.ownerOnly) return isOwner;
+    if (!item.permission) return true;
+    return can(item.permission);
+  });
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
@@ -66,7 +100,9 @@ export default function DashboardLayout() {
           <nav className="mt-8 flex-1 px-4 space-y-1">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.path;
+              const isActive = item.path === '/dashboard'
+                ? location.pathname === item.path
+                : location.pathname.startsWith(item.path);
               
               return (
                 <Link
@@ -78,8 +114,13 @@ export default function DashboardLayout() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  <Icon className="ml-3 h-5 w-5" />
-                  {item.name}
+                  <Icon className="ml-3 h-5 w-5 flex-shrink-0" />
+                  <span className="flex-1">{item.name}</span>
+                  {item.badge > 0 && (
+                    <span className="mr-auto bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -114,7 +155,9 @@ export default function DashboardLayout() {
             <nav className="flex-1 px-4 mt-6 space-y-1">
               {menuItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = location.pathname === item.path;
+                const isActive = item.path === '/dashboard'
+                  ? location.pathname === item.path
+                  : location.pathname.startsWith(item.path);
                 
                 return (
                   <Link
@@ -127,8 +170,13 @@ export default function DashboardLayout() {
                         : 'text-gray-700 hover:bg-gray-100'
                     }`}
                   >
-                    <Icon className="ml-3 h-5 w-5" />
-                    {item.name}
+                    <Icon className="ml-3 h-5 w-5 flex-shrink-0" />
+                    <span className="flex-1">{item.name}</span>
+                    {item.badge > 0 && (
+                      <span className="mr-auto bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -162,22 +210,10 @@ export default function DashboardLayout() {
               </button>
 
               {/* Search bar */}
-              <div className="flex-1 max-w-lg mx-4">
-                <div className="relative">
-                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="بحث..."
-                    className="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
+              <SearchBar />
 
               {/* Notifications */}
-              <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
-                <Bell className="h-6 w-6" />
-                <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
-              </button>
+              <NotificationBell />
             </div>
           </div>
         </header>

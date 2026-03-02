@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
   Plus,
   Search,
@@ -14,11 +15,87 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  ChevronRight as ArrowRight,
+  ChevronLeft as ArrowLeft,
+  Download,
+  CheckSquare,
+  Square,
+  X,
+  ToggleLeft,
+  ToggleRight,
 } from 'lucide-react';
 import { productAPI } from '../../lib/api';
+import { downloadCSV } from '../../lib/exportCSV';
 
 type ViewMode = 'grid' | 'list';
 type FilterStatus = 'all' | 'active' | 'draft' | 'out_of_stock';
+
+// Image Carousel Component for Product Cards
+const ProductImageCarousel: React.FC<{ images: any[], productName: string }> = ({ images, productName }) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const hasMultipleImages = images && images.length > 1;
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const getImageUrl = (img: any) => {
+    if (!img) return null;
+    return typeof img === 'string' ? img : img.url;
+  };
+
+  return (
+    <div className="relative aspect-square bg-gray-100">
+      {images && images.length > 0 ? (
+        <>
+          <img
+            src={getImageUrl(images[currentImageIndex])}
+            alt={productName}
+            className="w-full h-full object-cover"
+          />
+          
+          {/* Navigation Arrows */}
+          {hasMultipleImages && (
+            <>
+              <button
+                onClick={prevImage}
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 bg-white/90 hover:bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                title="الصورة السابقة"
+              >
+                <ArrowLeft className="w-4 h-4 text-gray-700" />
+              </button>
+              <button
+                onClick={nextImage}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-white/90 hover:bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                title="الصورة التالية"
+              >
+                <ArrowRight className="w-4 h-4 text-gray-700" />
+              </button>
+              
+              {/* Image Counter */}
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-black/60 text-white text-xs rounded-full">
+                {currentImageIndex + 1} / {images.length}
+              </div>
+            </>
+          )}
+        </>
+      ) : (
+        <div className="w-full h-full flex items-center justify-center">
+          <Package className="w-16 h-16 text-gray-300" />
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const ProductsList: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -26,6 +103,8 @@ export const ProductsList: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const queryClient = useQueryClient();
 
   // Fetch products
   const { data, isLoading, error } = useQuery({
@@ -46,16 +125,78 @@ export const ProductsList: React.FC = () => {
     totalProducts: 0,
   };
 
-  const handleDelete = async (productId: string) => {
+  const deleteMutation = useMutation({
+    mutationFn: (productId: string) => productAPI.delete(productId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast.success('تم حذف المنتج بنجاح');
+    },
+    onError: () => {
+      toast.error('فشل حذف المنتج');
+    },
+  });
+
+  const handleDelete = (productId: string) => {
     if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
-      try {
-        await productAPI.delete(productId);
-        // Refetch products
-        window.location.reload();
-      } catch (error) {
-        console.error('Error deleting product:', error);
-      }
+      deleteMutation.mutate(productId);
     }
+  };
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) =>
+      Promise.all(ids.map((id) => productAPI.delete(id))),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast.success(`تم حذف ${selectedIds.size} منتج`);
+      setSelectedIds(new Set());
+    },
+    onError: () => toast.error('فشل الحذف المجمع'),
+  });
+
+  const bulkStatusMutation = useMutation({
+    mutationFn: ({ ids, status }: { ids: string[]; status: string }) =>
+      Promise.all(ids.map((id) => productAPI.update(id, { status }))),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast.success(`تم تحديث ${vars.ids.length} منتج`);
+      setSelectedIds(new Set());
+    },
+    onError: () => toast.error('فشل تحديث الحالة'),
+  });
+
+  const handleBulkDelete = () => {
+    if (confirm(`هل أنت متأكد من حذف ${selectedIds.size} منتج؟`)) {
+      bulkDeleteMutation.mutate([...selectedIds]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === products.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(products.map((p: any) => p._id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const exportProducts = () => {
+    const rows = products.map((p: any) => ({
+      الاسم: p.name,
+      SKU: p.sku || '',
+      السعر: p.price,
+      المخزون: p.stock ?? 0,
+      الحالة: p.status === 'active' ? 'نشط' : p.status === 'draft' ? 'مسودة' : 'غير نشط',
+      الفئة: p.category || '',
+      تاريخ_الإضافة: p.createdAt ? new Date(p.createdAt).toLocaleDateString('ar-EG') : '',
+    }));
+    downloadCSV(`منتجات-${new Date().toISOString().slice(0, 10)}`, rows);
   };
 
   return (
@@ -69,13 +210,23 @@ export const ProductsList: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          to="/dashboard/products/new"
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          <span>إضافة منتج</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={exportProducts}
+            disabled={products.length === 0}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-40"
+          >
+            <Download className="w-4 h-4" />
+            <span>تصدير CSV</span>
+          </button>
+          <Link
+            to="/dashboard/products/new"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            <span>إضافة منتج</span>
+          </Link>
+        </div>
       </div>
 
       {/* Filters & Search */}
@@ -131,6 +282,47 @@ export const ProductsList: React.FC = () => {
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+          <span className="text-sm font-medium text-blue-700">
+            {selectedIds.size} منتج محدد
+          </span>
+          <div className="flex items-center gap-2 mr-auto">
+            <button
+              onClick={() => bulkStatusMutation.mutate({ ids: [...selectedIds], status: 'active' })}
+              disabled={bulkStatusMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+            >
+              <ToggleRight className="w-4 h-4" />
+              تفعيل
+            </button>
+            <button
+              onClick={() => bulkStatusMutation.mutate({ ids: [...selectedIds], status: 'draft' })}
+              disabled={bulkStatusMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50"
+            >
+              <ToggleLeft className="w-4 h-4" />
+              مسودة
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleteMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+            >
+              <Trash2 className="w-4 h-4" />
+              حذف المحدد
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="p-1.5 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Loading State */}
       {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -185,21 +377,27 @@ export const ProductsList: React.FC = () => {
           {products.map((product: any) => (
             <div
               key={product._id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group"
+              className={`bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow group ${
+                selectedIds.has(product._id) ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-200'
+              }`}
             >
-              {/* Product Image */}
-              <div className="relative aspect-square bg-gray-100">
-                {product.images?.[0] ? (
-                  <img
-                    src={product.images[0]}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Package className="w-16 h-16 text-gray-300" />
-                  </div>
-                )}
+              {/* Product Image with Carousel */}
+              <div className="relative">
+                {/* Checkbox overlay */}
+                <button
+                  onClick={() => toggleSelect(product._id)}
+                  className="absolute top-2 right-2 z-20 p-0.5 bg-white rounded shadow"
+                >
+                  {selectedIds.has(product._id) ? (
+                    <CheckSquare className="w-5 h-5 text-blue-600" />
+                  ) : (
+                    <Square className="w-5 h-5 text-gray-400" />
+                  )}
+                </button>
+                <ProductImageCarousel
+                  images={product.images}
+                  productName={product.name}
+                />
 
                 {/* Quick Actions Overlay */}
                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
@@ -236,7 +434,7 @@ export const ProductsList: React.FC = () => {
                 )}
 
                 {/* Stock Badge */}
-                {product.stock <= 0 && (
+                {typeof product.stock === 'number' && product.stock <= 0 && (
                   <div className="absolute top-2 right-2">
                     <span className="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800">
                       نفذ من المخزون
@@ -261,7 +459,7 @@ export const ProductsList: React.FC = () => {
                     </span>
                   </div>
                   <div className="text-sm text-gray-500">
-                    المخزون: {product.stock}
+                    المخزون: {typeof product.stock === 'number' ? product.stock : '0'}
                   </div>
                 </div>
               </div>
@@ -276,6 +474,15 @@ export const ProductsList: React.FC = () => {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="px-4 py-3 w-10">
+                  <button onClick={handleSelectAll}>
+                    {selectedIds.size === products.length && products.length > 0 ? (
+                      <CheckSquare className="w-5 h-5 text-blue-600" />
+                    ) : (
+                      <Square className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                   المنتج
                 </th>
@@ -295,13 +502,25 @@ export const ProductsList: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {products.map((product: any) => (
-                <tr key={product._id} className="hover:bg-gray-50">
+                <tr
+                  key={product._id}
+                  className={`hover:bg-gray-50 ${selectedIds.has(product._id) ? 'bg-blue-50' : ''}`}
+                >
+                  <td className="px-4 py-4">
+                    <button onClick={() => toggleSelect(product._id)}>
+                      {selectedIds.has(product._id) ? (
+                        <CheckSquare className="w-5 h-5 text-blue-600" />
+                      ) : (
+                        <Square className="w-5 h-5 text-gray-400" />
+                      )}
+                    </button>
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {product.images?.[0] ? (
+                        {product.images && product.images.length > 0 ? (
                           <img
-                            src={product.images[0]}
+                            src={typeof product.images[0] === 'string' ? product.images[0] : product.images[0]?.url}
                             alt={product.name}
                             className="w-full h-full object-cover"
                           />

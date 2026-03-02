@@ -1,7 +1,8 @@
 import { Response, NextFunction } from 'express';
-import { AuthRequest, UserRole } from '../types';
+import { AuthRequest, UserRole, PermissionKey } from '../types';
 import { verifyAccessToken } from '../services/jwt.service';
 import { AppError } from './error.middleware';
+import User from '../models/User';
 
 /**
  * Authenticate user with JWT
@@ -24,9 +25,26 @@ export const authenticate = async (
     // Verify token
     const decoded = verifyAccessToken(token);
     
-    // Attach user to request
+    // Attach base JWT payload to request
     req.user = decoded;
-    
+
+    // For staff users, load fresh permissions from DB
+    if (decoded.role === 'merchant_staff') {
+      const userDoc = await User.findById(decoded.userId).select('permissions staffRole staffRoleLabel isActive').lean();
+      if (!userDoc) {
+        throw new AppError('Account not found', 401);
+      }
+      if (userDoc.isActive === false) {
+        throw new AppError('Account is deactivated', 403);
+      }
+      const permissionsObj: Record<string, boolean> = {};
+      if (userDoc.permissions && typeof userDoc.permissions === 'object') {
+        Object.assign(permissionsObj, userDoc.permissions);
+      }
+      req.user.permissions = permissionsObj;
+      req.user.staffRole = (userDoc.staffRole as string) || 'staff';
+    }
+
     next();
   } catch (error: any) {
     if (error.name === 'TokenExpiredError') {
@@ -95,4 +113,29 @@ export const isMerchantOwner = (
   }
   
   next();
+};
+
+/**
+ * Check that the authenticated user has a specific permission.
+ * - merchant_owner and super_admin always pass.
+ * - merchant_staff must have the permission set to true in their permissions map.
+ */
+export const checkPermission = (permission: PermissionKey) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(new AppError('Authentication required', 401));
+    }
+
+    // Owners and super-admins have all permissions
+    if (req.user.role === 'merchant_owner' || req.user.role === 'super_admin') {
+      return next();
+    }
+
+    // Staff: check specific permission
+    if (req.user.permissions?.[permission] === true) {
+      return next();
+    }
+
+    return next(new AppError('ليس لديك صلاحية للقيام بهذا الإجراء', 403));
+  };
 };

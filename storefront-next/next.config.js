@@ -2,22 +2,27 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['res.cloudinary.com'],
+    remotePatterns: [
+      { protocol: 'https', hostname: '**' },
+      { protocol: 'http',  hostname: 'localhost' },
+    ],
   },
-  // Enable handling of multiple domains/subdomains
   async headers() {
     return [
       {
-        source: '/:path*',
+        // Allow the dashboard (port 3002) to embed preview iframes
+        source: '/store/:path*',
         headers: [
           {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' http://localhost:3002 https://*.matgarco.com",
           },
+          // Remove the default X-Frame-Options for store pages
+          // so the CSP frame-ancestors directive takes precedence
         ],
       },
-    ]
+    ];
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

@@ -14,27 +14,78 @@ export default function Login() {
   });
   const [error, setError] = useState('');
 
+  // Check for error in URL params
+  useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const errorParam = params.get('error');
+    
+    if (errorParam === 'merchant_required') {
+      setError('يرجى تسجيل الدخول مرة أخرى لتحديث بيانات الحساب');
+    }
+  });
+
   const loginMutation = useMutation({
     mutationFn: authAPI.login,
     onSuccess: (response) => {
       const { user, accessToken } = response.data.data;
       setAuth(user, accessToken);
       
-      // Redirect based on role
+      // Redirect based on role / onboarding state
       if (user.role === 'super_admin') {
         navigate('/admin');
+      } else if (user.onboardingCompleted === false) {
+        navigate('/onboarding');
       } else {
         navigate('/dashboard');
       }
     },
     onError: (error: any) => {
-      setError(error.response?.data?.message || 'Login failed');
+      console.error('Login error:', error);
+      
+      // Extract error message from different possible response formats
+      let errorMessage = 'فشل تسجيل الدخول';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'الحساب غير موجود';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Show Arabic-friendly messages
+      if (errorMessage.toLowerCase().includes('invalid credentials')) {
+        errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+      } else if (errorMessage.toLowerCase().includes('user not found')) {
+        errorMessage = 'الحساب غير موجود';
+      } else if (errorMessage.toLowerCase().includes('network')) {
+        errorMessage = 'خطأ في الاتصال. تأكد من تشغيل الخادم';
+      }
+      
+      setError(errorMessage);
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent any bubbling
     setError('');
+    
+    // Basic client-side validation
+    if (!formData.email.trim()) {
+      setError('البريد الإلكتروني مطلوب');
+      return;
+    }
+    
+    if (!formData.password) {
+      setError('كلمة المرور مطلوبة');
+      return;
+    }
+    
     loginMutation.mutate(formData);
   };
 

@@ -8,6 +8,11 @@ interface User {
   lastName: string;
   role: string;
   merchantId?: string;
+  subdomain?: string;
+  onboardingCompleted?: boolean;
+  staffRole?: string;
+  staffRoleLabel?: string;
+  permissions?: Record<string, boolean>;
 }
 
 interface AuthState {

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import User from '../models/User';
+import Merchant from '../models/Merchant';
 import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../services/jwt.service';
 import { generateToken } from '../utils/helpers';
@@ -128,6 +129,18 @@ export const login = asyncHandler(
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
     
+    // Fetch merchant to check onboarding status + subdomain
+    let onboardingCompleted = true;
+    let subdomain = '';
+    if (user.merchantId) {
+      const merchant = await Merchant.findById(user.merchantId).select('onboardingCompleted subdomain').lean();
+      onboardingCompleted = (merchant as any)?.onboardingCompleted ?? true;
+      subdomain = (merchant as any)?.subdomain || '';
+    } else {
+      // User has no merchant → they need to complete onboarding
+      onboardingCompleted = false;
+    }
+
     res.status(200).json({
       success: true,
       message: 'Login successful',
@@ -140,8 +153,13 @@ export const login = asyncHandler(
           lastName: user.lastName,
           role: user.role,
           merchantId: user.merchantId,
+          subdomain,
           avatar: user.avatar,
           emailVerified: user.emailVerified,
+          onboardingCompleted,
+          staffRole: user.staffRole,
+          staffRoleLabel: user.staffRoleLabel,
+          permissions: user.permissions ?? {},
         },
       },
     });
@@ -224,6 +242,13 @@ export const getCurrentUser = asyncHandler(
       throw new AppError('User not found', 404);
     }
     
+    // Fetch subdomain from merchant
+    let subdomain = '';
+    if (user.merchantId) {
+      const merchant = await Merchant.findById(user.merchantId).select('subdomain').lean();
+      subdomain = (merchant as any)?.subdomain || '';
+    }
+
     res.status(200).json({
       success: true,
       data: {
@@ -234,9 +259,13 @@ export const getCurrentUser = asyncHandler(
         phone: user.phone,
         role: user.role,
         merchantId: user.merchantId,
+        subdomain,
         avatar: user.avatar,
         emailVerified: user.emailVerified,
         lastLogin: user.lastLogin,
+        staffRole: user.staffRole,
+        staffRoleLabel: user.staffRoleLabel,
+        permissions: user.permissions ?? {},
       },
     });
   }
@@ -297,6 +326,76 @@ export const forgotPassword = asyncHandler(
     res.status(200).json({
       success: true,
       message: 'If an account exists, a password reset email has been sent.',
+    });
+  }
+);
+
+/**
+ * Update profile
+ * PATCH /api/auth/me
+ */
+export const updateProfile = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const userId = req.user?.userId;
+    if (!userId) throw new AppError('Not authenticated', 401);
+
+    const { firstName, lastName, phone } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { firstName, lastName, phone },
+      { new: true, runValidators: true }
+    );
+
+    if (!user) throw new AppError('User not found', 404);
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated',
+      data: {
+        user: {
+          id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phone: user.phone,
+          role: user.role,
+          merchantId: user.merchantId,
+        },
+      },
+    });
+  }
+);
+
+/**
+ * Change password
+ * POST /api/auth/change-password
+ */
+export const changePassword = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const userId = req.user?.userId;
+    if (!userId) throw new AppError('Not authenticated', 401);
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      throw new AppError('Current and new password are required', 400);
+    }
+    if (newPassword.length < 8) {
+      throw new AppError('New password must be at least 8 characters', 400);
+    }
+
+    const user = await User.findById(userId).select('+password');
+    if (!user) throw new AppError('User not found', 404);
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) throw new AppError('كلمة المرور الحالية غير صحيحة', 400);
+
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Password changed successfully',
     });
   }
 );

@@ -150,7 +150,12 @@ export const createProduct = asyncHandler(
       }
     }
 
-    const { name, ...rest } = req.body;
+    const { name, stock, ...rest } = req.body;
+
+    // Map stock to quantity for model compatibility
+    if (stock !== undefined) {
+      rest.quantity = stock;
+    }
 
     // Transform images array if it's array of strings
     let images = rest.images || [];
@@ -204,6 +209,23 @@ export const updateProduct = asyncHandler(
     const { id } = req.params;
     const merchantId = req.user?.merchantId;
     const updates = req.body;
+
+    // Map stock to quantity for model compatibility
+    if (updates.stock !== undefined) {
+      updates.quantity = updates.stock;
+      delete updates.stock;
+    }
+
+    // Transform images array if it's array of strings
+    if (updates.images && Array.isArray(updates.images) && updates.images.length > 0) {
+      if (typeof updates.images[0] === 'string') {
+        updates.images = updates.images.map((url: string, index: number) => ({
+          url,
+          alt: updates.name || 'Product image',
+          isPrimary: index === 0,
+        }));
+      }
+    }
 
     // If name is updated, regenerate slug
     if (updates.name) {

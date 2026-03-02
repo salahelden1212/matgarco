@@ -239,8 +239,6 @@ const merchantSchema = new Schema<IMerchant>(
   }
 );
 
-// Index for subdomain lookup
-merchantSchema.index({ subdomain: 1 });
 
 // Set trial end date before saving
 merchantSchema.pre('save', function (next) {

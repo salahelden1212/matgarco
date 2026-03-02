@@ -31,8 +31,33 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle 403 Forbidden - merchant access issues
+    if (error.response?.status === 403) {
+      const errorMessage = error.response?.data?.error || '';
+      
+      // If the error is about missing merchant, logout and redirect
+      if (errorMessage.includes('merchant') || errorMessage.includes('Merchant')) {
+        console.error('Merchant access error. Logging out...');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        localStorage.removeItem('auth-storage');
+        
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login?error=merchant_required';
+        }
+        
+        return Promise.reject(error);
+      }
+    }
+
     // If 401 and not already retried, try refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // BUT: Don't try refresh for login/register endpoints
+    if (
+      error.response?.status === 401 && 
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/login') &&
+      !originalRequest.url?.includes('/auth/register')
+    ) {
       originalRequest._retry = true;
 
       try {
@@ -52,7 +77,13 @@ axiosInstance.interceptors.response.use(
         // Refresh failed - logout
         localStorage.removeItem('accessToken');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        localStorage.removeItem('auth-storage');
+        
+        // Only redirect if we're not already on login page
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+        
         return Promise.reject(refreshError);
       }
     }

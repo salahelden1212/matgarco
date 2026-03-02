@@ -48,8 +48,8 @@ export default function Register() {
           description: formData.description,
         });
         
-        // Success! Navigate to dashboard
-        navigate('/dashboard');
+        // Success! Navigate to onboarding wizard
+        navigate('/onboarding');
       } catch (error: any) {
         console.error('Merchant creation error:', error.response?.data);
         
@@ -63,9 +63,9 @@ export default function Register() {
           merchant: errorMessage + ' تم إنشاء حسابك بنجاح. يمكنك تسجيل الدخول.' 
         });
         
-        // After 3 seconds, navigate to dashboard anyway
+        // After 3 seconds, navigate to onboarding anyway
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate('/onboarding');
         }, 3000);
       }
     },
@@ -76,16 +76,33 @@ export default function Register() {
       if (error.response?.data?.details && Array.isArray(error.response.data.details)) {
         const validationErrors: any = {};
         error.response.data.details.forEach((detail: any) => {
-          const field = detail.field.replace('body.', '');
-          validationErrors[field] = detail.message;
+          const field = detail.field?.replace('body.', '') || detail.path?.join('.') || 'unknown';
+          const message = detail.message || detail.msg || 'خطأ في التحقق';
+          validationErrors[field] = message;
+          console.log('Validation error:', field, '=', message);
         });
         setErrors(validationErrors);
       } else {
         // Show user-friendly error message
-        const errorMessage = error.response?.data?.error || 
-                            error.response?.data?.message || 
-                            error.response?.data?.details ||
-                            'Registration failed';
+        let errorMessage = 'فشل التسجيل. حاول مرة أخرى.';
+        
+        if (error.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        // Translate common errors to Arabic
+        if (errorMessage.toLowerCase().includes('email already')) {
+          errorMessage = 'البريد الإلكتروني مسجل بالفعل';
+        } else if (errorMessage.toLowerCase().includes('password')) {
+          errorMessage = 'كلمة المرور يجب أن تحتوي على 8 أحرف، حرف كبير، حرف صغير، ورقم';
+        } else if (errorMessage.toLowerCase().includes('network')) {
+          errorMessage = 'خطأ في الاتصال. تأكد من تشغيل الخادم';
+        }
+        
         setErrors({ register: errorMessage });
       }
     },
@@ -111,8 +128,19 @@ export default function Register() {
     if (!formData.firstName) newErrors.firstName = 'الاسم الأول مطلوب';
     if (!formData.lastName) newErrors.lastName = 'اسم العائلة مطلوب';
     if (!formData.email) newErrors.email = 'البريد الإلكتروني مطلوب';
-    if (!formData.password) newErrors.password = 'كلمة المرور مطلوبة';
-    if (formData.password.length < 8) newErrors.password = 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
+    
+    if (!formData.password) {
+      newErrors.password = 'كلمة المرور مطلوبة';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
+    } else if (!/[A-Z]/.test(formData.password)) {
+      newErrors.password = 'كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل';
+    } else if (!/[a-z]/.test(formData.password)) {
+      newErrors.password = 'كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل';
+    } else if (!/[0-9]/.test(formData.password)) {
+      newErrors.password = 'كلمة المرور يجب أن تحتوي على رقم واحد على الأقل';
+    }
+    
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'كلمات المرور غير متطابقة';
     }
@@ -140,6 +168,7 @@ export default function Register() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     
     if (validateStep2()) {
       registerMutation.mutate({

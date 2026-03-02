@@ -17,6 +17,12 @@ export const authAPI = {
 
   getCurrentUser: () => axios.get('/auth/me'),
 
+  updateProfile: (data: { firstName: string; lastName: string; phone?: string }) =>
+    axios.patch('/auth/me', data),
+
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    axios.post('/auth/change-password', data),
+
   forgotPassword: (email: string) =>
     axios.post('/auth/forgot-password', { email }),
 
@@ -40,6 +46,9 @@ export const merchantAPI = {
 
   checkSubdomain: (subdomain: string) =>
     axios.get(`/merchants/check-subdomain/${subdomain}`),
+
+  completeOnboarding: (id: string) =>
+    axios.post(`/merchants/${id}/complete-onboarding`),
 };
 
 // Product API
@@ -101,4 +110,70 @@ export const customerAPI = {
   update: (id: string, data: any) => axios.patch(`/customers/${id}`, data),
 
   getOrders: (id: string) => axios.get(`/customers/${id}/orders`),
+};
+
+// Staff API
+export const staffAPI = {
+  getAll: () => axios.get('/staff'),
+
+  create: (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    phone?: string;
+    staffRole?: string;
+    staffRoleLabel?: string;
+    permissions?: Record<string, boolean>;
+  }) => axios.post('/staff', data),
+
+  update: (
+    id: string,
+    data: {
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+      staffRole?: string;
+      staffRoleLabel?: string;
+      permissions?: Record<string, boolean>;
+      isActive?: boolean;
+    }
+  ) => axios.patch(`/staff/${id}`, data),
+
+  delete: (id: string) => axios.delete(`/staff/${id}`),
+
+  resetPassword: (id: string, newPassword: string) =>
+    axios.post(`/staff/${id}/reset-password`, { newPassword }),
+};
+
+// Notification API
+export const notificationAPI = {
+  getAll: () => axios.get('/notifications'),
+  markRead: (id: string) => axios.patch(`/notifications/${id}/read`),
+  markAllRead: () => axios.patch('/notifications/read-all'),
+  delete: (id: string) => axios.delete(`/notifications/${id}`),
+};
+
+// Search API
+export const searchAPI = {
+  query: (q: string) => axios.get('/search', { params: { q } }),
+};
+
+// Theme API
+export const themeAPI = {
+  // Get current theme (returns both published and draft)
+  get: () => axios.get('/theme'),
+
+  // Save draft changes (partial update)
+  saveDraft: (data: Record<string, any>) => axios.patch('/theme/draft', data),
+
+  // Publish draft → live
+  publish: () => axios.post('/theme/publish'),
+
+  // Reset draft to match published
+  resetDraft: () => axios.post('/theme/reset-draft'),
+
+  // Apply a template preset (resets draft to template defaults)
+  applyTemplate: (templateId: string) =>
+    axios.post('/theme/apply-template', { templateId }),
 };

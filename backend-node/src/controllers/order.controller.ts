@@ -7,6 +7,12 @@ import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { AuthRequest } from '../types';
 import { generateOrderNumber, calculateCommission } from '../utils/helpers';
 import { SUBSCRIPTION_PLANS } from '../utils/constants';
+import {
+  notifyNewOrder,
+  notifyOrderStatusChanged,
+  notifyOrderCancelled,
+  notifyLowStock,
+} from '../services/notification.service';
 
 /**
  * Get all orders (merchant)
@@ -151,6 +157,10 @@ export const createOrder = asyncHandler(
         product.quantity! -= item.quantity;
         product.sales += item.quantity;
         await product.save();
+        // Notify low stock (threshold: 5)
+        if (product.quantity! <= 5) {
+          notifyLowStock(merchantId, product.name, product._id.toString(), product.quantity!);
+        }
       }
     }
 
@@ -222,6 +232,9 @@ export const createOrder = asyncHandler(
       },
     });
 
+    // Notify merchant of new order
+    notifyNewOrder(merchantId, orderNumber, order._id.toString(), total);
+
     res.status(201).json({
       success: true,
       message: 'Order created successfully',
@@ -261,6 +274,14 @@ export const updateOrderStatus = asyncHandler(
     }
 
     await order.save();
+
+    // Notify merchant of status change
+    notifyOrderStatusChanged(
+      merchantId!,
+      order.orderNumber,
+      order._id.toString(),
+      orderStatus
+    );
 
     res.status(200).json({
       success: true,
@@ -347,6 +368,9 @@ export const cancelOrder = asyncHandler(
     });
 
     await order.save();
+
+    // Notify merchant of cancellation
+    notifyOrderCancelled(merchantId!, order.orderNumber, order._id.toString());
 
     // Update merchant stats
     await Merchant.findByIdAndUpdate(merchantId, {

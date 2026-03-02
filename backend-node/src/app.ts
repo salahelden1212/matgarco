@@ -1,4 +1,5 @@
 import express, { Application } from 'express';
+import 'express-async-errors';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -13,6 +14,11 @@ import productRoutes from './routes/product.routes';
 import orderRoutes from './routes/order.routes';
 import customerRoutes from './routes/customer.routes';
 import uploadRoutes from './routes/upload.routes';
+import staffRoutes from './routes/staff.routes';
+import notificationRoutes from './routes/notification.routes';
+import searchRoutes from './routes/search.routes';
+import themeRoutes from './routes/theme.routes';
+import storefrontRoutes from './routes/storefront.routes';
 
 const app: Application = express();
 
@@ -69,6 +75,11 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/staff', staffRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/theme', themeRoutes);
+app.use('/api/storefront', storefrontRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

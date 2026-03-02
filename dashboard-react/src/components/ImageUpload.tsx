@@ -1,9 +1,11 @@
-import React, { useState, useRef } from 'react';
-import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Upload, X, Image as ImageIcon, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
 import axios from '../lib/axios';
 
 interface ImageUploadProps {
   onImageUploaded: (url: string, publicId: string) => void;
+  onImageRemoved?: (index: number, url: string) => void;
+  onImagesReordered?: (images: string[]) => void;
   maxImages?: number;
   currentImages?: string[];
   folder?: string;
@@ -11,6 +13,8 @@ interface ImageUploadProps {
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({
   onImageUploaded,
+  onImageRemoved,
+  onImagesReordered,
   maxImages = 5,
   currentImages = [],
   folder = 'products',
@@ -19,6 +23,11 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const [preview, setPreview] = useState<string[]>(currentImages);
   const [error, setError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync preview with currentImages prop changes
+  useEffect(() => {
+    setPreview(currentImages);
+  }, [currentImages]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -48,6 +57,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       
       if (files.length === 1) {
         formData.append('image', files[0]);
+        formData.append('folder', folder);
         const response = await axios.post('/upload/single', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
@@ -84,9 +94,37 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   };
 
   const removeImage = (index: number) => {
+    const imageUrl = preview[index];
     const newPreview = [...preview];
     newPreview.splice(index, 1);
     setPreview(newPreview);
+    
+    // Notify parent component
+    if (onImageRemoved) {
+      onImageRemoved(index, imageUrl);
+    }
+  };
+
+  const moveImageUp = (index: number) => {
+    if (index === 0) return;
+    const newPreview = [...preview];
+    [newPreview[index - 1], newPreview[index]] = [newPreview[index], newPreview[index - 1]];
+    setPreview(newPreview);
+    
+    if (onImagesReordered) {
+      onImagesReordered(newPreview);
+    }
+  };
+
+  const moveImageDown = (index: number) => {
+    if (index === preview.length - 1) return;
+    const newPreview = [...preview];
+    [newPreview[index], newPreview[index + 1]] = [newPreview[index + 1], newPreview[index]];
+    setPreview(newPreview);
+    
+    if (onImagesReordered) {
+      onImagesReordered(newPreview);
+    }
   };
 
   return (
@@ -150,11 +188,38 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
                 className="w-full h-full object-cover rounded-lg border-2 border-gray-200"
               />
               
+              {/* Reorder buttons */}
+              {preview.length > 1 && (
+                <div className="absolute top-2 left-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {index > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => moveImageUp(index)}
+                      className="p-1 bg-blue-500 text-white rounded-full hover:bg-blue-600"
+                      title="تحريك لأعلى"
+                    >
+                      <ArrowUp className="w-3 h-3" />
+                    </button>
+                  )}
+                  {index < preview.length - 1 && (
+                    <button
+                      type="button"
+                      onClick={() => moveImageDown(index)}
+                      className="p-1 bg-blue-500 text-white rounded-full hover:bg-blue-600"
+                      title="تحريك لأسفل"
+                    >
+                      <ArrowDown className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              )}
+              
               {/* Remove button */}
               <button
                 type="button"
                 onClick={() => removeImage(index)}
-                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                title="حذف"
               >
                 <X className="w-4 h-4" />
               </button>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { X, Save, Loader2, Plus, Trash2 } from 'lucide-react';
 import { productAPI } from '../../lib/api';
 import { ImageUpload } from '../../components/ImageUpload';
@@ -42,18 +43,24 @@ export const AddProduct: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: productAPI.create,
     onSuccess: () => {
+      toast.success('تمت إضافة المنتج بنجاح ✅');
       navigate('/dashboard/products');
     },
     onError: (error: any) => {
-      console.error('Create product error:', error);
-      const errorMessage =
-        error.response?.data?.message || 'فشل في إضافة المنتج';
+      let errorMessage = 'فشل في إضافة المنتج';
+      if (error.response?.data?.details && Array.isArray(error.response.data.details)) {
+        errorMessage = error.response.data.details.map((d: any) => d.message).join(', ');
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      toast.error(errorMessage);
       setErrors({ submit: errorMessage });
     },
   });
 
   const handleSubmit = (e: React.FormEvent, isDraft: boolean = false) => {
     e.preventDefault();
+    e.stopPropagation();
     setErrors({});
 
     // Validation
@@ -66,11 +73,26 @@ export const AddProduct: React.FC = () => {
       return;
     }
 
-    // Submit
-    createMutation.mutate({
-      ...formData,
+    // Prepare data
+    const productData = {
+      name: formData.name,
+      description: formData.description || '',
+      price: formData.price,
+      compareAtPrice: formData.compareAtPrice || undefined,
+      cost: formData.cost || undefined,
+      sku: formData.sku || undefined,
+      barcode: formData.barcode || undefined,
+      stock: formData.stock || 0,
+      lowStockThreshold: formData.lowStockThreshold || undefined,
+      category: formData.category || undefined,
+      tags: formData.tags || [],
+      images: formData.images || [],
+      imagePublicIds: formData.imagePublicIds || [],
       status: isDraft ? 'draft' : formData.status,
-    });
+    };
+
+    // Submit
+    createMutation.mutate(productData);
   };
 
   const handleImageUploaded = (url: string, publicId: string) => {
@@ -78,6 +100,25 @@ export const AddProduct: React.FC = () => {
       ...formData,
       images: [...formData.images, url],
       imagePublicIds: [...formData.imagePublicIds, publicId],
+    });
+  };
+
+  const handleImageRemoved = (index: number, url: string) => {
+    const newImages = [...formData.images];
+    const newImagePublicIds = [...formData.imagePublicIds];
+    newImages.splice(index, 1);
+    newImagePublicIds.splice(index, 1);
+    setFormData({
+      ...formData,
+      images: newImages,
+      imagePublicIds: newImagePublicIds,
+    });
+  };
+
+  const handleImagesReordered = (reorderedImages: string[]) => {
+    setFormData({
+      ...formData,
+      images: reorderedImages,
     });
   };
 
@@ -167,6 +208,8 @@ export const AddProduct: React.FC = () => {
           </h2>
           <ImageUpload
             onImageUploaded={handleImageUploaded}
+            onImageRemoved={handleImageRemoved}
+            onImagesReordered={handleImagesReordered}
             maxImages={5}
             currentImages={formData.images}
           />

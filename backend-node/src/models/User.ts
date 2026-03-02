@@ -13,6 +13,11 @@ export interface IUser extends Document {
   phone?: string;
   avatar?: string;
   
+  // Staff
+  staffRole?: string;        // template: 'owner' | 'manager' | 'staff' | 'accountant' | custom
+  staffRoleLabel?: string;   // display name (custom label)
+  permissions?: Record<string, boolean>;
+  
   // Relations
   merchantId?: mongoose.Types.ObjectId;
   
@@ -78,6 +83,19 @@ const userSchema = new Schema<IUser>(
     },
     avatar: {
       type: String,
+    },
+    
+    // Staff
+    staffRole: {
+      type: String,
+      default: 'owner',
+    },
+    staffRoleLabel: {
+      type: String,
+    },
+    permissions: {
+      type: Schema.Types.Mixed,
+      default: {},
     },
     
     // Relations

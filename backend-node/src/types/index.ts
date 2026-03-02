@@ -3,6 +3,17 @@ import { Request } from 'express';
 // User roles
 export type UserRole = 'super_admin' | 'merchant_owner' | 'merchant_staff' | 'customer';
 
+// Staff permission keys
+export type PermissionKey =
+  | 'products.view' | 'products.create' | 'products.edit' | 'products.delete'
+  | 'orders.view' | 'orders.updateStatus' | 'orders.cancel'
+  | 'customers.view' | 'customers.edit'
+  | 'reports.view'
+  | 'settings.view' | 'settings.edit' | 'settings.editSubscription'
+  | 'staff.view' | 'staff.create' | 'staff.edit' | 'staff.delete';
+
+export type StaffPermissions = Record<PermissionKey, boolean>;
+
 // Subscription plans
 export type SubscriptionPlan = 'free_trial' | 'starter' | 'professional' | 'business';
 
@@ -26,6 +37,8 @@ export interface AuthRequest extends Request {
     email: string;
     role: UserRole;
     merchantId?: string;
+    permissions?: Record<string, boolean>;
+    staffRole?: string;
   };
 }
 

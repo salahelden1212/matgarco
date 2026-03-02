@@ -5,6 +5,8 @@ import {
   refreshAccessToken,
   logout,
   getCurrentUser,
+  updateProfile,
+  changePassword,
   verifyEmail,
   forgotPassword,
   resetPassword,
@@ -59,6 +61,8 @@ router.post('/login', validate(loginSchema), login);
 router.post('/refresh', refreshAccessToken);
 router.post('/logout', authenticate, logout);
 router.get('/me', authenticate, getCurrentUser);
+router.patch('/me', authenticate, updateProfile);
+router.post('/change-password', authenticate, changePassword);
 router.post('/verify-email', validate(verifyEmailSchema), verifyEmail);
 router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
 router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
