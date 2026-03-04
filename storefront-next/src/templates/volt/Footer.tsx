@@ -1,8 +1,15 @@
 import Link from 'next/link';
 import type { ThemeData } from '@/types/theme';
-import { Instagram, Twitter, Facebook, Zap } from 'lucide-react';
+import { Instagram, Twitter, Facebook, Youtube, Music2, MessageCircle, Zap } from 'lucide-react';
 
-const SOCIAL_ICONS: Record<string, any> = { instagram: Instagram, twitter: Twitter, facebook: Facebook };
+const SOCIAL_ICONS: Record<string, any> = {
+  instagram: Instagram,
+  twitter: Twitter,
+  facebook: Facebook,
+  youtube: Youtube,
+  tiktok: Music2,
+  whatsapp: MessageCircle,
+};
 
 interface Props { theme: ThemeData; merchant: { storeName: string; subdomain: string } }
 

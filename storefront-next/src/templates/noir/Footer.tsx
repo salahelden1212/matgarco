@@ -1,5 +1,15 @@
 import Link from 'next/link';
 import type { ThemeData } from '@/types/theme';
+import { Instagram, Twitter, Facebook, Youtube, Music2, MessageCircle } from 'lucide-react';
+
+const SOCIAL_ICONS: Record<string, React.ComponentType<any>> = {
+  instagram: Instagram,
+  twitter: Twitter,
+  facebook: Facebook,
+  youtube: Youtube,
+  tiktok: Music2,
+  whatsapp: MessageCircle,
+};
 
 interface Props { theme: ThemeData; merchant: { storeName: string; subdomain: string } }
 
@@ -29,6 +39,24 @@ export default function NoirFooter({ theme, merchant }: Props) {
               <p className="text-xs text-gray-500">{theme.store.email}</p>
             </>
           )}
+          {(() => {
+            const socials = Object.entries(theme.social || {}).filter(([, v]) => v);
+            return socials.length > 0 && (
+              <div className="flex gap-2 mt-6">
+                {socials.map(([platform, url]) => {
+                  const Icon = SOCIAL_ICONS[platform];
+                  if (!Icon || !url) return null;
+                  return (
+                    <a key={platform} href={url as string} target="_blank" rel="noopener noreferrer"
+                      className="p-2 rounded transition-colors hover:bg-white/10"
+                      style={{ color: theme.colors.primary }}>
+                      <Icon className="w-3.5 h-3.5" />
+                    </a>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       </div>
       <div className="border-t py-5 text-center text-[10px] text-gray-700 uppercase tracking-widest" style={{ borderColor: '#222' }}>

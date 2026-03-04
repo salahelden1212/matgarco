@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { ThemeData } from '@/types/theme';
-import { Instagram, Twitter, Facebook, Youtube } from 'lucide-react';
+import { Instagram, Twitter, Facebook, Youtube, Music2, MessageCircle } from 'lucide-react';
 
 interface Props {
   theme: ThemeData;
@@ -12,6 +12,8 @@ const SOCIAL_ICONS: Record<string, React.ComponentType<any>> = {
   twitter: Twitter,
   facebook: Facebook,
   youtube: Youtube,
+  tiktok: Music2,
+  whatsapp: MessageCircle,
 };
 
 export default function Footer({ theme, merchant }: Props) {

@@ -1,6 +1,15 @@
 import Link from 'next/link';
 import type { ThemeData } from '@/types/theme';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, Instagram, Twitter, Facebook, Youtube, Music2, MessageCircle } from 'lucide-react';
+
+const SOCIAL_ICONS: Record<string, React.ComponentType<any>> = {
+  instagram: Instagram,
+  twitter: Twitter,
+  facebook: Facebook,
+  youtube: Youtube,
+  tiktok: Music2,
+  whatsapp: MessageCircle,
+};
 
 interface Props { theme: ThemeData; merchant: { storeName: string; subdomain: string } }
 
@@ -27,6 +36,24 @@ export default function MosaicFooter({ theme, merchant }: Props) {
               <p className="text-xs" style={{ color: theme.colors.textMuted }}>{theme.store.email}</p>
             </>
           )}
+          {(() => {
+            const socials = Object.entries(theme.social || {}).filter(([, v]) => v);
+            return socials.length > 0 && (
+              <div className="flex gap-2 mt-4">
+                {socials.map(([platform, url]) => {
+                  const Icon = SOCIAL_ICONS[platform];
+                  if (!Icon || !url) return null;
+                  return (
+                    <a key={platform} href={url as string} target="_blank" rel="noopener noreferrer"
+                      className="p-1.5 rounded-lg transition-colors hover:opacity-70"
+                      style={{ color: theme.colors.primary }}>
+                      <Icon className="w-4 h-4" />
+                    </a>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       </div>
       <div className="mt-8 pt-4 border-t text-xs text-center" style={{ borderColor: theme.colors.border, color: theme.colors.textMuted }}>
