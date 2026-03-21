@@ -134,13 +134,13 @@ export default function CartPageClient({ subdomain, theme }: Props) {
             <span style={{ color: theme.colors.primary }}>{totalPrice.toLocaleString()} {theme.store?.currency || 'ج'}</span>
           </div>
 
-          <button
-            className="w-full mt-4 py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
+          <Link
+            href={`/store/${subdomain}/checkout`}
+            className="block w-full mt-4 py-3 rounded-xl font-bold text-white text-sm text-center transition-opacity hover:opacity-90"
             style={{ backgroundColor: theme.colors.primary }}
-            onClick={() => alert('قريباً: نظام الدفع والشراء')}
           >
             إتمام الشراء →
-          </button>
+          </Link>
 
           <Link
             href={`/store/${subdomain}/products`}

@@ -1,8 +1,8 @@
 # Matgarco - Complete Project Documentation
 
-**Version:** 1.0  
-**Date:** January 30, 2026  
-**Status:** Planning Phase
+**Version:** 2.0  
+**Date:** March 17, 2026  
+**Status:** Phase 3 (Storefront) 80% Complete — Phase 4 (Payment) Next
 
 ---
 
@@ -16,10 +16,12 @@
 6. [Project Structure](#6-project-structure)
 7. [Features Breakdown](#7-features-breakdown)
 8. [Subscription Plans](#8-subscription-plans)
-9. [AI Capabilities](#9-ai-capabilities)
-10. [Development Roadmap](#10-development-roadmap)
-11. [Deployment Strategy](#11-deployment-strategy)
-12. [Security & Best Practices](#12-security--best-practices)
+9. [Payment & Shipping Model](#9-payment--shipping-model)
+10. [AI Capabilities](#10-ai-capabilities)
+11. [Development Roadmap](#11-development-roadmap)
+12. [Deployment Strategy](#12-deployment-strategy)
+13. [Security & Best Practices](#13-security--best-practices)
+14. [Development Notes](#14-development-notes)
 
 ---
 
@@ -57,56 +59,56 @@
 
 ### Frontend
 
-| Component | Technology | Version | Reason |
-|-----------|-----------|---------|--------|
-| **Landing Page** | Next.js (App Router) | 14.x | SEO, Static pages, Marketing |
-| **Storefront** | Next.js (App Router) | 14.x | SEO, Dynamic routing, PWA |
-| **Merchant Dashboard** | React.js (SPA) | 18.x | Complex UI, Charts, Real-time |
-| **Super Admin** | React.js (SPA) | 18.x | Internal tool, Heavy data |
-| **Language** | TypeScript | 5.x | Type safety, Better DX |
-| **Styling** | Tailwind CSS | 3.x | Rapid development, Consistency |
-| **State Management** | Zustand / React Query | Latest | Simple, Efficient |
-| **Charts** | Recharts | Latest | Dashboard analytics |
+| Component              | Technology            | Version | Reason                         |
+| ---------------------- | --------------------- | ------- | ------------------------------ |
+| **Landing Page**       | Next.js (App Router)  | 14.x    | SEO, Static pages, Marketing   |
+| **Storefront**         | Next.js (App Router)  | 14.x    | SEO, Dynamic routing, PWA      |
+| **Merchant Dashboard** | React.js (SPA)        | 18.x    | Complex UI, Charts, Real-time  |
+| **Super Admin**        | React.js (SPA)        | 18.x    | Internal tool, Heavy data      |
+| **Language**           | TypeScript            | 5.x     | Type safety, Better DX         |
+| **Styling**            | Tailwind CSS          | 3.x     | Rapid development, Consistency |
+| **State Management**   | Zustand / React Query | Latest  | Simple, Efficient              |
+| **Charts**             | Recharts              | Latest  | Dashboard analytics            |
 
 ### Backend
 
-| Component | Technology | Version | Reason |
-|-----------|-----------|---------|--------|
-| **Runtime** | Node.js | 20.x LTS | Stable, Wide support |
-| **Framework** | Express.js | 4.x | Simple, Flexible, Battle-tested |
-| **Language** | TypeScript | 5.x | Type safety across stack |
-| **Database** | MongoDB | 7.x | Document-based, Flexible schema |
-| **ODM** | Mongoose | Latest | Schema validation, Middleware |
-| **Authentication** | JWT + Refresh Tokens | - | Stateless, Scalable |
-| **Validation** | Zod | Latest | TypeScript-first validation |
-| **File Upload** | Multer | Latest | Handling images |
-| **Email** | Nodemailer | Latest | Verification, Reset password |
+| Component          | Technology           | Version  | Reason                          |
+| ------------------ | -------------------- | -------- | ------------------------------- |
+| **Runtime**        | Node.js              | 20.x LTS | Stable, Wide support            |
+| **Framework**      | Express.js           | 4.x      | Simple, Flexible, Battle-tested |
+| **Language**       | TypeScript           | 5.x      | Type safety across stack        |
+| **Database**       | MongoDB              | 7.x      | Document-based, Flexible schema |
+| **ODM**            | Mongoose             | Latest   | Schema validation, Middleware   |
+| **Authentication** | JWT + Refresh Tokens | -        | Stateless, Scalable             |
+| **Validation**     | Zod                  | Latest   | TypeScript-first validation     |
+| **File Upload**    | Multer               | Latest   | Handling images                 |
+| **Email**          | Nodemailer           | Latest   | Verification, Reset password    |
 
 ### AI Service
 
-| Component | Technology | Reason |
-|-----------|-----------|--------|
-| **Runtime** | Python | 3.11+ |
-| **Framework** | FastAPI | Fast, Async, Auto docs |
-| **AI Models** | Ollama (Local) | Free, Privacy, No API costs |
-| **Models** | Llama 3 / Mistral | Product descriptions, SEO |
-| **Image** | Pillow | Image optimization |
+| Component     | Technology        | Reason                      |
+| ------------- | ----------------- | --------------------------- |
+| **Runtime**   | Python            | 3.11+                       |
+| **Framework** | FastAPI           | Fast, Async, Auto docs      |
+| **AI Models** | Ollama (Local)    | Free, Privacy, No API costs |
+| **Models**    | Llama 3 / Mistral | Product descriptions, SEO   |
+| **Image**     | Pillow            | Image optimization          |
 
 ### Storage & Media
 
-| Service | Purpose | Plan |
-|---------|---------|------|
-| **Cloudinary** | Images (products, logos) | Free tier (25GB) |
-| **MongoDB Atlas** | Database hosting | Free tier (512MB) → Paid |
+| Service           | Purpose                  | Plan                     |
+| ----------------- | ------------------------ | ------------------------ |
+| **Cloudinary**    | Images (products, logos) | Free tier (25GB)         |
+| **MongoDB Atlas** | Database hosting         | Free tier (512MB) → Paid |
 
 ### Deployment
 
-| Component | Platform | Cost |
-|-----------|----------|------|
-| **Landing + Storefront** | Vercel | Free tier → Pro |
-| **Backend API** | Railway / Render | Free tier → Paid |
-| **AI Service** | Your local server / Railway | Free initially |
-| **Database** | MongoDB Atlas | Free → Paid |
+| Component                | Platform                    | Cost             |
+| ------------------------ | --------------------------- | ---------------- |
+| **Landing + Storefront** | Vercel                      | Free tier → Pro  |
+| **Backend API**          | Railway / Render            | Free tier → Paid |
+| **AI Service**           | Your local server / Railway | Free initially   |
+| **Database**             | MongoDB Atlas               | Free → Paid      |
 
 ---
 
@@ -194,19 +196,19 @@ Product.find({ merchantId: req.user.merchantId })
 
 #### Domain Structure:
 
-| Type | Domain | Purpose |
-|------|--------|---------|
-| Landing | `matgarco.com` | Marketing, Sign up |
-| Store | `merchant.matgarco.com` | Customer shopping |
+| Type      | Domain                   | Purpose             |
+| --------- | ------------------------ | ------------------- |
+| Landing   | `matgarco.com`           | Marketing, Sign up  |
+| Store     | `merchant.matgarco.com`  | Customer shopping   |
 | Dashboard | `dashboard.matgarco.com` | Merchant management |
-| Admin | `admin.matgarco.com` | Super admin |
+| Admin     | `admin.matgarco.com`     | Super admin         |
 
 #### How Subdomains Work:
 
 1. **DNS Setup:** Wildcard record `*.matgarco.com` → Server IP
 2. **Backend Detection:**
    ```javascript
-   const subdomain = req.hostname.split('.')[0];
+   const subdomain = req.hostname.split(".")[0];
    const merchant = await Merchant.findOne({ subdomain });
    ```
 3. **Frontend Routing:** Next.js middleware checks subdomain
@@ -239,27 +241,27 @@ Product.find({ merchantId: req.user.merchantId })
   email: string, // unique, indexed
   password: string, // bcrypt hashed
   role: "super_admin" | "merchant_owner" | "merchant_staff" | "customer",
-  
+
   // Profile
   firstName: string,
   lastName: string,
   phone?: string,
   avatar?: string,
-  
+
   // Relations
   merchantId?: ObjectId, // if merchant/staff
-  
+
   // Auth
   emailVerified: boolean,
   verificationToken?: string,
   resetPasswordToken?: string,
   resetPasswordExpires?: Date,
   refreshToken?: string,
-  
+
   // OAuth
   googleId?: string,
   facebookId?: string,
-  
+
   // Meta
   lastLogin?: Date,
   isActive: boolean,
@@ -269,6 +271,7 @@ Product.find({ merchantId: req.user.merchantId })
 ```
 
 **Indexes:**
+
 - `email` (unique)
 - `role`
 - `merchantId`
@@ -280,18 +283,18 @@ Product.find({ merchantId: req.user.merchantId })
 ```typescript
 {
   _id: ObjectId,
-  
+
   // Store Identity
   storeName: string, // "Tech Shop"
   subdomain: string, // "techshop" → techshop.matgarco.com (unique, indexed)
   customDomain?: string, // "shop.example.com"
-  
+
   // Business Info
   businessName?: string,
   businessType?: string, // "retail", "wholesale", "services"
   description?: string,
   logo?: string, // Cloudinary URL
-  
+
   // Contact
   email: string,
   phone?: string,
@@ -302,25 +305,25 @@ Product.find({ merchantId: req.user.merchantId })
     country: string,
     postalCode: string
   },
-  
+
   // Owner
   ownerId: ObjectId, // ref: users
-  
+
   // Subscription
   subscriptionPlan: "free_trial" | "starter" | "professional" | "business",
   subscriptionStatus: "active" | "expired" | "suspended" | "cancelled",
   subscriptionStartDate: Date,
   subscriptionEndDate: Date,
   trialEndsAt?: Date,
-  
+
   // Settings
   currency: string, // "EGP", "USD"
   language: string, // "ar", "en"
   timezone: string,
-  
+
   // Store Config
   templateId: ObjectId, // ref: templates
-  
+
   // Features Limits (based on plan)
   limits: {
     maxProducts: number,
@@ -328,7 +331,7 @@ Product.find({ merchantId: req.user.merchantId })
     aiCreditsPerMonth: number,
     aiCreditsUsed: number
   },
-  
+
   // Stats
   stats: {
     totalOrders: number,
@@ -336,11 +339,11 @@ Product.find({ merchantId: req.user.merchantId })
     totalProducts: number,
     totalCustomers: number
   },
-  
+
   // Status
   isActive: boolean,
   suspensionReason?: string,
-  
+
   // Meta
   onboardingCompleted: boolean,
   createdAt: Date,
@@ -349,6 +352,7 @@ Product.find({ merchantId: req.user.merchantId })
 ```
 
 **Indexes:**
+
 - `subdomain` (unique)
 - `ownerId`
 - `subscriptionStatus`
@@ -362,25 +366,25 @@ Product.find({ merchantId: req.user.merchantId })
 {
   _id: ObjectId,
   merchantId: ObjectId, // indexed
-  
+
   // Basic Info
   name: string,
   slug: string, // URL-friendly (indexed with merchantId)
   description: string,
   shortDescription?: string,
-  
+
   // Pricing
   price: number,
   compareAtPrice?: number, // Original price for discounts
   costPerItem?: number, // For profit tracking
-  
+
   // Inventory
   sku?: string,
   barcode?: string,
   trackQuantity: boolean,
   quantity?: number,
   lowStockThreshold?: number,
-  
+
   // Media
   images: [
     {
@@ -389,11 +393,11 @@ Product.find({ merchantId: req.user.merchantId })
       isPrimary: boolean
     }
   ],
-  
+
   // Organization
   category?: string,
   tags?: string[],
-  
+
   // Variants (e.g., sizes, colors)
   hasVariants: boolean,
   variants?: [
@@ -410,31 +414,31 @@ Product.find({ merchantId: req.user.merchantId })
       }
     }
   ],
-  
+
   // SEO
   seo: {
     title?: string,
     description?: string,
     keywords?: string[]
   },
-  
+
   // Status
   status: "draft" | "active" | "archived",
   isVisible: boolean,
   isFeatured: boolean,
-  
+
   // AI Generated
   aiGenerated: {
     description: boolean,
     seo: boolean
   },
-  
+
   // Stats
   views: number,
   sales: number,
   averageRating?: number,
   reviewCount: number,
-  
+
   // Meta
   createdAt: Date,
   updatedAt: Date
@@ -442,6 +446,7 @@ Product.find({ merchantId: req.user.merchantId })
 ```
 
 **Indexes:**
+
 - `merchantId`
 - `merchantId + slug` (compound, unique)
 - `status`
@@ -457,7 +462,7 @@ Product.find({ merchantId: req.user.merchantId })
   _id: ObjectId,
   merchantId: ObjectId, // indexed
   orderNumber: string, // "ORD-2026-0001" (unique)
-  
+
   // Customer
   customerId?: ObjectId, // ref: users (null for guest)
   customerInfo: {
@@ -466,7 +471,7 @@ Product.find({ merchantId: req.user.merchantId })
     lastName: string,
     phone: string
   },
-  
+
   // Items
   items: [
     {
@@ -480,14 +485,14 @@ Product.find({ merchantId: req.user.merchantId })
       subtotal: number
     }
   ],
-  
+
   // Pricing
   subtotal: number,
   tax: number,
   shippingCost: number,
   discount: number,
   total: number,
-  
+
   // Shipping Address
   shippingAddress: {
     firstName: string,
@@ -499,35 +504,35 @@ Product.find({ merchantId: req.user.merchantId })
     country: string,
     postalCode: string
   },
-  
+
   // Billing (can be same as shipping)
   billingAddress?: { /* same structure */ },
-  
+
   // Status
   orderStatus: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled" | "refunded",
   paymentStatus: "pending" | "paid" | "failed" | "refunded",
   fulfillmentStatus: "unfulfilled" | "partial" | "fulfilled",
-  
+
   // Payment
   paymentMethod: "cash" | "card" | "paymob" | "wallet",
   paymentGateway?: string,
   paymentTransactionId?: string,
-  
+
   // Platform Commission (for Starter plan)
   platformCommission: {
     percentage: number,
     amount: number
   },
-  
+
   // Shipping
   shippingMethod?: string,
   trackingNumber?: string,
   shippingProvider?: string,
-  
+
   // Notes
   customerNotes?: string,
   merchantNotes?: string,
-  
+
   // Timeline
   timeline: [
     {
@@ -536,7 +541,7 @@ Product.find({ merchantId: req.user.merchantId })
       note?: string
     }
   ],
-  
+
   // Meta
   createdAt: Date,
   updatedAt: Date
@@ -544,6 +549,7 @@ Product.find({ merchantId: req.user.merchantId })
 ```
 
 **Indexes:**
+
 - `merchantId`
 - `orderNumber` (unique)
 - `customerId`
@@ -559,13 +565,13 @@ Product.find({ merchantId: req.user.merchantId })
   _id: ObjectId,
   merchantId: ObjectId, // indexed
   userId?: ObjectId, // ref: users (if registered)
-  
+
   // Basic Info
   email: string,
   firstName: string,
   lastName: string,
   phone?: string,
-  
+
   // Addresses (saved for quick checkout)
   addresses: [
     {
@@ -579,7 +585,7 @@ Product.find({ merchantId: req.user.merchantId })
       postalCode: string
     }
   ],
-  
+
   // Stats
   stats: {
     totalOrders: number,
@@ -587,10 +593,10 @@ Product.find({ merchantId: req.user.merchantId })
     averageOrderValue: number,
     lastOrderDate?: Date
   },
-  
+
   // Marketing
   acceptsMarketing: boolean,
-  
+
   // Meta
   createdAt: Date,
   updatedAt: Date
@@ -598,6 +604,7 @@ Product.find({ merchantId: req.user.merchantId })
 ```
 
 **Indexes:**
+
 - `merchantId`
 - `merchantId + email` (compound)
 - `userId`
@@ -610,29 +617,29 @@ Product.find({ merchantId: req.user.merchantId })
 {
   _id: ObjectId,
   merchantId: ObjectId, // indexed
-  
+
   // Plan Details
   plan: "free_trial" | "starter" | "professional" | "business",
   billingCycle: "monthly" | "annual",
-  
+
   // Pricing
   amount: number, // in EGP
   currency: "EGP",
   commissionRate?: number, // for Starter plan (2%)
-  
+
   // Period
   startDate: Date,
   endDate: Date,
-  
+
   // Status
   status: "active" | "cancelled" | "expired" | "suspended",
   autoRenew: boolean,
-  
+
   // Payment
   paymentMethod?: string,
   lastPaymentDate?: Date,
   nextBillingDate?: Date,
-  
+
   // Invoices
   invoices: [
     {
@@ -644,15 +651,15 @@ Product.find({ merchantId: req.user.merchantId })
       receiptUrl?: string
     }
   ],
-  
+
   // Trial
   isTrialPeriod: boolean,
   trialEndsAt?: Date,
-  
+
   // Cancellation
   cancelledAt?: Date,
   cancellationReason?: string,
-  
+
   // Meta
   createdAt: Date,
   updatedAt: Date
@@ -660,6 +667,7 @@ Product.find({ merchantId: req.user.merchantId })
 ```
 
 **Indexes:**
+
 - `merchantId`
 - `status`
 - `nextBillingDate`
@@ -671,19 +679,19 @@ Product.find({ merchantId: req.user.merchantId })
 ```typescript
 {
   _id: ObjectId,
-  
+
   // Template Info
   name: string, // "Modern Store"
   slug: string, // "modern-store"
   description: string,
-  
+
   // Preview
   thumbnail: string, // Screenshot
   demoUrl?: string,
-  
+
   // Type
   type: "modern" | "minimal" | "luxury",
-  
+
   // Default Config
   defaultConfig: {
     colors: {
@@ -703,14 +711,14 @@ Product.find({ merchantId: req.user.merchantId })
       buttonShape: "rounded" | "sharp"
     }
   },
-  
+
   // Features
   features: string[], // ["hero_section", "featured_products", "categories"]
-  
+
   // Status
   isActive: boolean,
   isPremium: boolean, // Requires higher plan
-  
+
   // Meta
   createdAt: Date,
   updatedAt: Date
@@ -726,7 +734,7 @@ Product.find({ merchantId: req.user.merchantId })
   _id: ObjectId,
   merchantId: ObjectId, // unique index
   templateId: ObjectId,
-  
+
   // Branding
   branding: {
     logo?: string,
@@ -734,7 +742,7 @@ Product.find({ merchantId: req.user.merchantId })
     storeName: string,
     tagline?: string
   },
-  
+
   // Colors
   colors: {
     primary: string,
@@ -743,13 +751,13 @@ Product.find({ merchantId: req.user.merchantId })
     background: string,
     text: string
   },
-  
+
   // Typography
   fonts: {
     heading: string,
     body: string
   },
-  
+
   // Layout
   layout: {
     style: "grid" | "list",
@@ -757,7 +765,7 @@ Product.find({ merchantId: req.user.merchantId })
     buttonShape: "rounded" | "sharp",
     headerStyle: "classic" | "minimal" | "centered"
   },
-  
+
   // Homepage Sections
   homepageSections: {
     hero: {
@@ -782,7 +790,7 @@ Product.find({ merchantId: req.user.merchantId })
       content?: string
     }
   },
-  
+
   // Footer
   footer: {
     aboutText?: string,
@@ -794,7 +802,7 @@ Product.find({ merchantId: req.user.merchantId })
     },
     showPaymentMethods: boolean
   },
-  
+
   // Features Toggle
   features: {
     showReviews: boolean,
@@ -802,20 +810,21 @@ Product.find({ merchantId: req.user.merchantId })
     showProductStock: boolean,
     enableWishlist: boolean
   },
-  
+
   // SEO
   seo: {
     metaTitle?: string,
     metaDescription?: string,
     keywords?: string[]
   },
-  
+
   // Meta
   updatedAt: Date
 }
 ```
 
 **Indexes:**
+
 - `merchantId` (unique)
 
 ---
@@ -828,19 +837,19 @@ Product.find({ merchantId: req.user.merchantId })
   merchantId: ObjectId, // indexed
   productId: ObjectId, // indexed
   customerId?: ObjectId,
-  
+
   // Review Content
   rating: number, // 1-5
   title?: string,
   comment: string,
-  
+
   // Customer Info (snapshot)
   customerName: string,
   customerEmail?: string,
-  
+
   // Status
   status: "pending" | "approved" | "rejected",
-  
+
   // Meta
   helpful: number, // How many found it helpful
   createdAt: Date,
@@ -849,6 +858,7 @@ Product.find({ merchantId: req.user.merchantId })
 ```
 
 **Indexes:**
+
 - `merchantId`
 - `productId`
 - `status`
@@ -862,14 +872,14 @@ Product.find({ merchantId: req.user.merchantId })
   _id: ObjectId,
   merchantId: ObjectId, // indexed
   date: Date, // Daily aggregation (indexed)
-  
+
   // Sales
   sales: {
     totalOrders: number,
     totalRevenue: number,
     averageOrderValue: number
   },
-  
+
   // Products
   products: {
     totalViews: number,
@@ -877,26 +887,27 @@ Product.find({ merchantId: req.user.merchantId })
       { productId: ObjectId, views: number, sales: number }
     ]
   },
-  
+
   // Customers
   customers: {
     newCustomers: number,
     returningCustomers: number
   },
-  
+
   // Traffic
   traffic: {
     visits: number,
     uniqueVisitors: number,
     pageViews: number
   },
-  
+
   // Meta
   createdAt: Date
 }
 ```
 
 **Indexes:**
+
 - `merchantId + date` (compound)
 
 ---
@@ -907,17 +918,17 @@ Product.find({ merchantId: req.user.merchantId })
 {
   _id: ObjectId,
   merchantId: ObjectId, // indexed
-  
+
   // Usage Type
   type: "product_description" | "seo_optimization" | "category_suggestion",
-  
+
   // Request
   input: string,
   output: string,
-  
+
   // Credits
   creditsUsed: number,
-  
+
   // Meta
   model?: string,
   responseTime?: number, // ms
@@ -926,6 +937,7 @@ Product.find({ merchantId: req.user.merchantId })
 ```
 
 **Indexes:**
+
 - `merchantId`
 - `createdAt`
 
@@ -948,171 +960,234 @@ Authorization: Bearer <JWT_TOKEN>
 
 ### 5.1 Auth Routes (`/api/auth`)
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/register` | Register new merchant | ❌ |
-| POST | `/login` | Login user | ❌ |
-| POST | `/logout` | Logout & invalidate refresh token | ✅ |
-| POST | `/refresh` | Get new access token | ❌ |
-| POST | `/verify-email` | Verify email with token | ❌ |
-| POST | `/resend-verification` | Resend verification email | ❌ |
-| POST | `/forgot-password` | Request password reset | ❌ |
-| POST | `/reset-password` | Reset password with token | ❌ |
-| GET | `/me` | Get current user | ✅ |
-| PATCH | `/me` | Update current user | ✅ |
-| POST | `/google` | OAuth Google login | ❌ |
-| POST | `/facebook` | OAuth Facebook login | ❌ |
+| Method | Endpoint               | Description                       | Auth |
+| ------ | ---------------------- | --------------------------------- | ---- |
+| POST   | `/register`            | Register new merchant             | ❌   |
+| POST   | `/login`               | Login user                        | ❌   |
+| POST   | `/logout`              | Logout & invalidate refresh token | ✅   |
+| POST   | `/refresh`             | Get new access token              | ❌   |
+| POST   | `/verify-email`        | Verify email with token           | ❌   |
+| POST   | `/resend-verification` | Resend verification email         | ❌   |
+| POST   | `/forgot-password`     | Request password reset            | ❌   |
+| POST   | `/reset-password`      | Reset password with token         | ❌   |
+| GET    | `/me`                  | Get current user                  | ✅   |
+| PATCH  | `/me`                  | Update current user               | ✅   |
+| POST   | `/google`              | OAuth Google login                | ❌   |
+| POST   | `/facebook`            | OAuth Facebook login              | ❌   |
 
 ---
 
 ### 5.2 Merchant Routes (`/api/merchants`)
 
-| Method | Endpoint | Description | Auth | Role |
-|--------|----------|-------------|------|------|
-| POST | `/` | Create merchant (during signup) | ✅ | - |
-| GET | `/:id` | Get merchant details | ✅ | Owner/Admin |
-| PATCH | `/:id` | Update merchant | ✅ | Owner/Admin |
-| DELETE | `/:id` | Delete merchant | ✅ | Owner/Admin |
-| GET | `/:id/stats` | Get merchant statistics | ✅ | Owner |
-| POST | `/:id/suspend` | Suspend merchant | ✅ | Admin |
-| POST | `/:id/activate` | Activate merchant | ✅ | Admin |
-| GET | `/subdomain/:subdomain` | Get merchant by subdomain | ❌ | - |
+| Method | Endpoint                | Description                     | Auth | Role        |
+| ------ | ----------------------- | ------------------------------- | ---- | ----------- |
+| POST   | `/`                     | Create merchant (during signup) | ✅   | -           |
+| GET    | `/:id`                  | Get merchant details            | ✅   | Owner/Admin |
+| PATCH  | `/:id`                  | Update merchant                 | ✅   | Owner/Admin |
+| DELETE | `/:id`                  | Delete merchant                 | ✅   | Owner/Admin |
+| GET    | `/:id/stats`            | Get merchant statistics         | ✅   | Owner       |
+| POST   | `/:id/suspend`          | Suspend merchant                | ✅   | Admin       |
+| POST   | `/:id/activate`         | Activate merchant               | ✅   | Admin       |
+| GET    | `/subdomain/:subdomain` | Get merchant by subdomain       | ❌   | -           |
 
 ---
 
 ### 5.3 Product Routes (`/api/products`)
 
-| Method | Endpoint | Description | Auth | Role |
-|--------|----------|-------------|------|------|
-| GET | `/` | List products (filtered by merchant) | ✅ | Merchant |
-| POST | `/` | Create product | ✅ | Merchant |
-| GET | `/:id` | Get product details | ❌ | - |
-| PATCH | `/:id` | Update product | ✅ | Merchant |
-| DELETE | `/:id` | Delete product | ✅ | Merchant |
-| POST | `/:id/variants` | Add product variant | ✅ | Merchant |
-| PATCH | `/:id/variants/:variantId` | Update variant | ✅ | Merchant |
-| DELETE | `/:id/variants/:variantId` | Delete variant | ✅ | Merchant |
-| GET | `/slug/:slug` | Get product by slug | ❌ | - |
-| POST | `/:id/duplicate` | Duplicate product | ✅ | Merchant |
+| Method | Endpoint                   | Description                          | Auth | Role     |
+| ------ | -------------------------- | ------------------------------------ | ---- | -------- |
+| GET    | `/`                        | List products (filtered by merchant) | ✅   | Merchant |
+| POST   | `/`                        | Create product                       | ✅   | Merchant |
+| GET    | `/:id`                     | Get product details                  | ❌   | -        |
+| PATCH  | `/:id`                     | Update product                       | ✅   | Merchant |
+| DELETE | `/:id`                     | Delete product                       | ✅   | Merchant |
+| POST   | `/:id/variants`            | Add product variant                  | ✅   | Merchant |
+| PATCH  | `/:id/variants/:variantId` | Update variant                       | ✅   | Merchant |
+| DELETE | `/:id/variants/:variantId` | Delete variant                       | ✅   | Merchant |
+| GET    | `/slug/:slug`              | Get product by slug                  | ❌   | -        |
+| POST   | `/:id/duplicate`           | Duplicate product                    | ✅   | Merchant |
 
 ---
 
 ### 5.4 Order Routes (`/api/orders`)
 
-| Method | Endpoint | Description | Auth | Role |
-|--------|----------|-------------|------|------|
-| GET | `/` | List orders | ✅ | Merchant |
-| POST | `/` | Create order (checkout) | ❌ | - |
-| GET | `/:id` | Get order details | ✅ | Merchant/Customer |
-| PATCH | `/:id/status` | Update order status | ✅ | Merchant |
-| PATCH | `/:id/payment` | Update payment status | ✅ | Merchant |
-| POST | `/:id/cancel` | Cancel order | ✅ | Merchant/Customer |
-| POST | `/:id/refund` | Refund order | ✅ | Merchant |
-| GET | `/:id/invoice` | Download invoice PDF | ✅ | Merchant/Customer |
+| Method | Endpoint       | Description             | Auth | Role              |
+| ------ | -------------- | ----------------------- | ---- | ----------------- |
+| GET    | `/`            | List orders             | ✅   | Merchant          |
+| POST   | `/`            | Create order (checkout) | ❌   | -                 |
+| GET    | `/:id`         | Get order details       | ✅   | Merchant/Customer |
+| PATCH  | `/:id/status`  | Update order status     | ✅   | Merchant          |
+| PATCH  | `/:id/payment` | Update payment status   | ✅   | Merchant          |
+| POST   | `/:id/cancel`  | Cancel order            | ✅   | Merchant/Customer |
+| POST   | `/:id/refund`  | Refund order            | ✅   | Merchant          |
+| GET    | `/:id/invoice` | Download invoice PDF    | ✅   | Merchant/Customer |
 
 ---
 
 ### 5.5 Customer Routes (`/api/customers`)
 
-| Method | Endpoint | Description | Auth | Role |
-|--------|----------|-------------|------|------|
-| GET | `/` | List customers | ✅ | Merchant |
-| GET | `/:id` | Get customer details | ✅ | Merchant |
-| PATCH | `/:id` | Update customer | ✅ | Merchant |
-| DELETE | `/:id` | Delete customer | ✅ | Merchant |
-| GET | `/:id/orders` | Get customer orders | ✅ | Merchant |
+| Method | Endpoint      | Description          | Auth | Role     |
+| ------ | ------------- | -------------------- | ---- | -------- |
+| GET    | `/`           | List customers       | ✅   | Merchant |
+| GET    | `/:id`        | Get customer details | ✅   | Merchant |
+| PATCH  | `/:id`        | Update customer      | ✅   | Merchant |
+| DELETE | `/:id`        | Delete customer      | ✅   | Merchant |
+| GET    | `/:id/orders` | Get customer orders  | ✅   | Merchant |
 
 ---
 
 ### 5.6 Subscription Routes (`/api/subscriptions`)
 
-| Method | Endpoint | Description | Auth | Role |
-|--------|----------|-------------|------|------|
-| GET | `/plans` | List available plans | ❌ | - |
-| GET | `/my-subscription` | Get current subscription | ✅ | Merchant |
-| POST | `/subscribe` | Subscribe to plan | ✅ | Merchant |
-| POST | `/upgrade` | Upgrade plan | ✅ | Merchant |
-| POST | `/cancel` | Cancel subscription | ✅ | Merchant |
-| GET | `/invoices` | List invoices | ✅ | Merchant |
-| GET | `/invoices/:id` | Download invoice | ✅ | Merchant |
+| Method | Endpoint           | Description              | Auth | Role     |
+| ------ | ------------------ | ------------------------ | ---- | -------- |
+| GET    | `/plans`           | List available plans     | ❌   | -        |
+| GET    | `/my-subscription` | Get current subscription | ✅   | Merchant |
+| POST   | `/subscribe`       | Subscribe to plan        | ✅   | Merchant |
+| POST   | `/upgrade`         | Upgrade plan             | ✅   | Merchant |
+| POST   | `/cancel`          | Cancel subscription      | ✅   | Merchant |
+| GET    | `/invoices`        | List invoices            | ✅   | Merchant |
+| GET    | `/invoices/:id`    | Download invoice         | ✅   | Merchant |
 
 ---
 
 ### 5.7 Template Routes (`/api/templates`)
 
-| Method | Endpoint | Description | Auth | Role |
-|--------|----------|-------------|------|------|
-| GET | `/` | List templates | ❌ | - |
-| GET | `/:id` | Get template details | ❌ | - |
+| Method | Endpoint | Description          | Auth | Role |
+| ------ | -------- | -------------------- | ---- | ---- |
+| GET    | `/`      | List templates       | ❌   | -    |
+| GET    | `/:id`   | Get template details | ❌   | -    |
 
 ---
 
 ### 5.8 Store Config Routes (`/api/store-config`)
 
-| Method | Endpoint | Description | Auth | Role |
-|--------|----------|-------------|------|------|
-| GET | `/` | Get store config | ✅ | Merchant |
-| PATCH | `/` | Update store config | ✅ | Merchant |
-| POST | `/upload-logo` | Upload logo | ✅ | Merchant |
-| POST | `/upload-favicon` | Upload favicon | ✅ | Merchant |
+| Method | Endpoint          | Description         | Auth | Role     |
+| ------ | ----------------- | ------------------- | ---- | -------- |
+| GET    | `/`               | Get store config    | ✅   | Merchant |
+| PATCH  | `/`               | Update store config | ✅   | Merchant |
+| POST   | `/upload-logo`    | Upload logo         | ✅   | Merchant |
+| POST   | `/upload-favicon` | Upload favicon      | ✅   | Merchant |
 
 ---
 
 ### 5.9 Review Routes (`/api/reviews`)
 
-| Method | Endpoint | Description | Auth | Role |
-|--------|----------|-------------|------|------|
-| GET | `/product/:productId` | Get product reviews | ❌ | - |
-| POST | `/product/:productId` | Create review | ✅ | Customer |
-| PATCH | `/:id/approve` | Approve review | ✅ | Merchant |
-| PATCH | `/:id/reject` | Reject review | ✅ | Merchant |
-| DELETE | `/:id` | Delete review | ✅ | Merchant |
+| Method | Endpoint              | Description         | Auth | Role     |
+| ------ | --------------------- | ------------------- | ---- | -------- |
+| GET    | `/product/:productId` | Get product reviews | ❌   | -        |
+| POST   | `/product/:productId` | Create review       | ✅   | Customer |
+| PATCH  | `/:id/approve`        | Approve review      | ✅   | Merchant |
+| PATCH  | `/:id/reject`         | Reject review       | ✅   | Merchant |
+| DELETE | `/:id`                | Delete review       | ✅   | Merchant |
 
 ---
 
 ### 5.10 Analytics Routes (`/api/analytics`)
 
-| Method | Endpoint | Description | Auth | Role |
-|--------|----------|-------------|------|------|
-| GET | `/dashboard` | Dashboard overview | ✅ | Merchant |
-| GET | `/sales` | Sales analytics | ✅ | Merchant |
-| GET | `/products` | Product analytics | ✅ | Merchant |
-| GET | `/customers` | Customer analytics | ✅ | Merchant |
-| GET | `/export` | Export analytics (CSV) | ✅ | Merchant |
+| Method | Endpoint     | Description            | Auth | Role     |
+| ------ | ------------ | ---------------------- | ---- | -------- |
+| GET    | `/dashboard` | Dashboard overview     | ✅   | Merchant |
+| GET    | `/sales`     | Sales analytics        | ✅   | Merchant |
+| GET    | `/products`  | Product analytics      | ✅   | Merchant |
+| GET    | `/customers` | Customer analytics     | ✅   | Merchant |
+| GET    | `/export`    | Export analytics (CSV) | ✅   | Merchant |
 
 ---
 
 ### 5.11 AI Routes (`/api/ai`)
 
-| Method | Endpoint | Description | Auth | Role |
-|--------|----------|-------------|------|------|
-| POST | `/generate-description` | Generate product description | ✅ | Merchant |
-| POST | `/optimize-seo` | Optimize product SEO | ✅ | Merchant |
-| POST | `/suggest-categories` | Suggest product categories | ✅ | Merchant |
-| GET | `/usage` | Get AI usage stats | ✅ | Merchant |
+| Method | Endpoint                | Description                  | Auth | Role     |
+| ------ | ----------------------- | ---------------------------- | ---- | -------- |
+| POST   | `/generate-description` | Generate product description | ✅   | Merchant |
+| POST   | `/optimize-seo`         | Optimize product SEO         | ✅   | Merchant |
+| POST   | `/suggest-categories`   | Suggest product categories   | ✅   | Merchant |
+| GET    | `/usage`                | Get AI usage stats           | ✅   | Merchant |
 
 ---
 
 ### 5.12 Super Admin Routes (`/api/admin`)
 
-| Method | Endpoint | Description | Auth | Role |
-|--------|----------|-------------|------|------|
-| GET | `/dashboard` | Admin dashboard stats | ✅ | Admin |
-| GET | `/merchants` | List all merchants | ✅ | Admin |
-| GET | `/merchants/:id` | Get merchant details | ✅ | Admin |
-| POST | `/merchants/:id/suspend` | Suspend merchant | ✅ | Admin |
-| POST | `/merchants/:id/activate` | Activate merchant | ✅ | Admin |
-| GET | `/revenue` | Revenue analytics | ✅ | Admin |
-| GET | `/subscriptions` | All subscriptions | ✅ | Admin |
+| Method | Endpoint                  | Description           | Auth | Role  |
+| ------ | ------------------------- | --------------------- | ---- | ----- |
+| GET    | `/dashboard`              | Admin dashboard stats | ✅   | Admin |
+| GET    | `/merchants`              | List all merchants    | ✅   | Admin |
+| GET    | `/merchants/:id`          | Get merchant details  | ✅   | Admin |
+| POST   | `/merchants/:id/suspend`  | Suspend merchant      | ✅   | Admin |
+| POST   | `/merchants/:id/activate` | Activate merchant     | ✅   | Admin |
+| GET    | `/revenue`                | Revenue analytics     | ✅   | Admin |
+| GET    | `/subscriptions`          | All subscriptions     | ✅   | Admin |
 
 ---
 
 ### 5.13 Media Routes (`/api/media`)
 
-| Method | Endpoint | Description | Auth | Role |
-|--------|----------|-------------|------|------|
-| POST | `/upload` | Upload image to Cloudinary | ✅ | Merchant |
-| DELETE | `/delete` | Delete image from Cloudinary | ✅ | Merchant |
+| Method | Endpoint  | Description                  | Auth | Role     |
+| ------ | --------- | ---------------------------- | ---- | -------- |
+| POST   | `/upload` | Upload image to Cloudinary   | ✅   | Merchant |
+| DELETE | `/delete` | Delete image from Cloudinary | ✅   | Merchant |
+
+---
+
+### 5.14 Theme Settings Routes (`/api/theme`) — ✅ BUILT
+
+| Method | Endpoint                             | Description                              | Auth | Role     |
+| ------ | ------------------------------------ | ---------------------------------------- | ---- | -------- |
+| GET    | `/`                                  | Get merchant's theme (draft + published) | ✅   | Merchant |
+| PATCH  | `/draft`                             | Save draft changes                       | ✅   | Merchant |
+| POST   | `/publish`                           | Publish draft to live storefront         | ✅   | Merchant |
+| POST   | `/reset-draft`                       | Reset draft back to published version    | ✅   | Merchant |
+| POST   | `/apply-template`                    | Apply a template preset (colors/fonts)   | ✅   | Merchant |
+| GET    | `/storefront/:subdomain`             | Get published theme (public)             | ❌   | -        |
+| GET    | `/storefront/:subdomain/preview`     | Get preview/draft theme                  | ❌   | -        |
+
+---
+
+### 5.15 Staff Management Routes (`/api/staff`) — ✅ BUILT
+
+| Method | Endpoint              | Description          | Auth | Permission    |
+| ------ | --------------------- | -------------------- | ---- | ------------- |
+| GET    | `/`                   | List staff members   | ✅   | `staff.view`  |
+| POST   | `/`                   | Create staff member  | ✅   | `staff.create`|
+| PATCH  | `/:id`                | Update staff member  | ✅   | `staff.edit`  |
+| DELETE | `/:id`                | Delete staff member  | ✅   | `staff.delete`|
+| POST   | `/:id/reset-password` | Reset staff password | ✅   | `staff.edit`  |
+
+**Available RBAC Permissions:**
+- `products.view`, `products.create`, `products.edit`, `products.delete`
+- `orders.view`, `orders.edit`
+- `customers.view`, `customers.edit`
+- `reports.view`
+- `settings.view`, `settings.edit`
+- `staff.view`, `staff.create`, `staff.edit`, `staff.delete`
+
+---
+
+### 5.16 Notification Routes (`/api/notifications`) — ✅ BUILT
+
+| Method | Endpoint     | Description           | Auth | Role     |
+| ------ | ------------ | --------------------- | ---- | -------- |
+| GET    | `/`          | List notifications    | ✅   | Merchant |
+| PATCH  | `/:id/read`  | Mark as read          | ✅   | Merchant |
+| PATCH  | `/read-all`  | Mark all as read      | ✅   | Merchant |
+| DELETE | `/:id`       | Delete notification   | ✅   | Merchant |
+
+---
+
+### 5.17 Search Routes (`/api/search`) — ✅ BUILT
+
+| Method | Endpoint | Description                                     | Auth | Role     |
+| ------ | -------- | ----------------------------------------------- | ---- | -------- |
+| GET    | `/`      | Global search (products, orders, customers)     | ✅   | Merchant |
+
+---
+
+### 5.18 Storefront Routes (`/api/storefront`) — ✅ BUILT
+
+| Method | Endpoint                                   | Description                           | Auth | Role |
+| ------ | ------------------------------------------ | ------------------------------------- | ---- | ---- |
+| GET    | `/:subdomain/products`                     | Get store products (search, sort, paginate) | ❌   | -    |
+| GET    | `/:subdomain/products/slug/:slug`          | Get product + related products        | ❌   | -    |
+| GET    | `/:subdomain/categories`                   | Get store categories                  | ❌   | -    |
 
 ---
 
@@ -1330,6 +1405,7 @@ matgarco/
 ### 7.1 Landing Page Features
 
 ✅ **MVP (Phase 1)**
+
 - [ ] Hero section with CTA
 - [ ] Features overview
 - [ ] Pricing table
@@ -1338,6 +1414,7 @@ matgarco/
 - [ ] Contact form
 
 🔄 **Phase 2**
+
 - [ ] Blog section
 - [ ] Success stories
 - [ ] Video demo
@@ -1348,21 +1425,23 @@ matgarco/
 
 ### 7.2 Storefront Features
 
-✅ **MVP (Phase 1)**
-- [ ] Product listing (grid/list)
-- [ ] Product detail page
-- [ ] Shopping cart
-- [ ] Checkout flow
-- [ ] Order confirmation
-- [ ] Template switching
-- [ ] Responsive design
+✅ **MVP (Phase 1)** — COMPLETE ✅
+
+- [x] Product listing (grid/list)
+- [x] Product detail page
+- [x] Shopping cart
+- [x] Checkout flow
+- [x] Order confirmation
+- [x] Template switching (6 templates: Spark, Volt, Épure, Bloom, Noir, Mosaic)
+- [x] Responsive design
 
 🔄 **Phase 2**
-- [ ] Product search & filters
+
+- [x] Product search & filters ✅
 - [ ] Product reviews
 - [ ] Wishlist
 - [ ] Product zoom
-- [ ] Related products
+- [x] Related products ✅
 - [ ] Quick view
 - [ ] Order tracking
 - [ ] PWA features
@@ -1371,23 +1450,25 @@ matgarco/
 
 ### 7.3 Merchant Dashboard Features
 
-✅ **MVP (Phase 1)**
-- [ ] Authentication (Login/Register)
-- [ ] Dashboard overview (stats)
-- [ ] Product management (CRUD)
-- [ ] Order management (view, update status)
-- [ ] Basic analytics (sales chart)
-- [ ] Store settings (name, logo, colors)
-- [ ] Template selection
+✅ **MVP (Phase 1)** — COMPLETE ✅
 
-🔄 **Phase 2**
-- [ ] Customer management
-- [ ] Advanced analytics
+- [x] Authentication (Login/Register — 2-step registration + auto-login)
+- [x] Dashboard overview (stats cards + Revenue chart + Orders chart + recent orders)
+- [x] Product management (CRUD + image upload + variants + SEO + categories)
+- [x] Order management (view, update status, tracking, timeline, cancel)
+- [x] Basic analytics (sales chart + revenue chart)
+- [x] Store settings (name, logo, colors + comprehensive settings page)
+- [x] Template selection (6 templates)
+
+🔄 **Phase 2** — MOSTLY COMPLETE ✅
+
+- [x] Customer management ✅
+- [x] Advanced analytics (Reports page — full analytics) ✅
 - [ ] AI product description generator
 - [ ] AI SEO optimizer
 - [ ] Discount & coupon system
 - [ ] Shipping settings
-- [ ] Staff user management
+- [x] Staff user management (CRUD + RBAC permissions) ✅
 - [ ] Reports export (PDF/CSV)
 - [ ] Subscription management
 - [ ] Email marketing
@@ -1397,6 +1478,7 @@ matgarco/
 ### 7.4 Super Admin Features
 
 ✅ **MVP (Phase 1)**
+
 - [ ] Admin dashboard (KPIs)
 - [ ] Merchant list
 - [ ] Merchant details
@@ -1404,6 +1486,7 @@ matgarco/
 - [ ] Revenue analytics
 
 🔄 **Phase 2**
+
 - [ ] Subscription management
 - [ ] System health monitoring
 - [ ] User support tickets
@@ -1415,15 +1498,114 @@ matgarco/
 ### 7.5 AI Features
 
 ✅ **MVP (Phase 1)**
+
 - [ ] Product description generation
 - [ ] Basic SEO optimization
 
 🔄 **Phase 2**
+
 - [ ] Category suggestions
 - [ ] Image alt text generation
 - [ ] Marketing copy generation
 - [ ] Sales predictions
 - [ ] Customer insights
+
+---
+
+## 9. Payment & Shipping Model (Tiered)
+
+### 💳 Tiered Payment Model
+
+The platform uses a **tiered payment model** — similar to Shopify Payments. Simpler plans use the platform's central Paymob account (plug-and-play for the merchant), while higher plans allow merchants to integrate their own payment gateway.
+
+```
+Customer pays → Matgarco Paymob Account → Deduct commission → Transfer to merchant
+```
+
+| Tier | Payment Provider | Who Handles Setup? | Commission |
+|------|----------------|-------------------|------------|
+| **Free Trial** | Matgarco account only (central Paymob) | لا شيء — تلقائي، التاجر ميعملش حاجة | 3% |
+| **Starter** | Matgarco account only | لا شيء — تلقائي | 2% |
+| **Professional** | Matgarco أو حساب Paymob خاص (API Key) | التاجر يدخل API Key في الإعدادات | 0% |
+| **Business** | أي منصة دفع + ربط كامل | مرونة كاملة | 0% |
+
+**Available Payment Methods (via Paymob):**
+- 💵 الدفع عند الاستلام (COD) — **جاهز في الـ checkout** ✅
+- 💳 كروت ائتمان (Visa / Mastercard)
+- 📱 محافظ إلكترونية (Vodafone Cash, Orange, Etisalat)
+- 🏪 Fawry (رقم مرجعي يدفع في أي فرع)
+
+**Key Insight:** التاجر في Free/Starter **لا يحتاج يعمل أي شيء**. المنصة بتهندل كل حاجة. التاجر بس يدخل بيانات حسابه البنكي عشان يستلم فلوسه.
+
+**Backend Logic (Planned):**
+
+```typescript
+function getPaymentConfig(merchant: IMerchant) {
+  const plan = merchant.subscriptionPlan;
+  
+  // Free Trial & Starter → use platform's central Paymob account
+  if (plan === 'free_trial' || plan === 'starter') {
+    return { 
+      type: 'platform', 
+      apiKey: process.env.PAYMOB_API_KEY,
+      commission: plan === 'free_trial' ? 0.03 : 0.02
+    };
+  }
+  
+  // Professional & Business → check if merchant has own keys
+  if (merchant.paymentConfig?.paymobApiKey) {
+    return { 
+      type: 'merchant', 
+      apiKey: merchant.paymentConfig.paymobApiKey,
+      commission: 0 
+    };
+  }
+  
+  // Fallback to platform account
+  return { 
+    type: 'platform', 
+    apiKey: process.env.PAYMOB_API_KEY,
+    commission: 0 
+  };
+}
+```
+
+---
+
+### 🚚 Tiered Shipping Model
+
+Same tiered approach for shipping. Simpler plans use manual tracking or the platform's central Bosta account, while higher plans allow direct API integration.
+
+| Tier | Shipping Provider | Experience |
+|------|------------------|------------|
+| **Free / Starter** | يدوي (التاجر يشحن بنفسه ويدخل tracking number) أو عبر Matgarco (حساب Bosta مركزي) | بسيط |
+| **Professional** | Matgarco أو حساب Bosta خاص (API Key) | التاجر يدخل API Key |
+| **Business** | أي شركة شحن (Aramex, J&T, DHL, ...) | ربط كامل |
+
+**Current Status:**
+- ✅ Manual tracking (tracking number field) — partially ready in OrderDetails
+- ❌ Bosta API integration — not started
+- ❌ Custom shipping provider integration — not started
+
+---
+
+### Implementation TODO (Payment):
+
+- [ ] إنشاء حساب Paymob للمنصة (platform-level account)
+- [ ] Backend: إضافة `paymentConfig` في Merchant model
+- [ ] Backend: `getPaymentConfig()` — routing حسب خطة التاجر
+- [ ] Backend: Paymob API integration (create payment intention)
+- [ ] Backend: Webhook endpoint لتأكيد الدفع
+- [ ] Storefront: إضافة خيارات الدفع في checkout (COD ✅ + Card + Wallet + Fawry)
+- [ ] Dashboard (Professional+): حقل "ربط حساب Paymob الخاص" + Test Connection
+- [ ] Dashboard: عرض تحويلات التاجر (Payouts) — لاحقاً
+
+### Implementation TODO (Shipping):
+
+- [ ] Phase 5a: الشحن اليدوي (tracking number فقط) — **جزئياً جاهز**
+- [ ] Phase 5b: Bosta API integration (حساب مركزي)
+- [ ] Phase 5c: ربط حساب Bosta خاص (Professional+)
+- [ ] Dashboard: إعدادات الشحن (مناطق، أسعار، شركات)
 
 ---
 
@@ -1436,6 +1618,7 @@ matgarco/
 **Transaction Fee:** 3%
 
 **Features:**
+
 - ✅ Basic store setup
 - ✅ 20 products max
 - ✅ Order management
@@ -1446,6 +1629,7 @@ matgarco/
 - ❌ Limited AI (5 credits)
 
 **Limits:**
+
 - `maxProducts: 20`
 - `maxStaffUsers: 0`
 - `aiCreditsPerMonth: 5`
@@ -1458,6 +1642,7 @@ matgarco/
 **Transaction Fee:** 2%
 
 **Features:**
+
 - ✅ Everything in Free Trial
 - ✅ 100 products
 - ✅ Payment gateway integration
@@ -1467,6 +1652,7 @@ matgarco/
 - ✅ Remove "Powered by Matgarco"
 
 **Limits:**
+
 - `maxProducts: 100`
 - `maxStaffUsers: 1`
 - `aiCreditsPerMonth: 30`
@@ -1479,6 +1665,7 @@ matgarco/
 **Transaction Fee:** 0%
 
 **Features:**
+
 - ✅ Everything in Starter
 - ✅ Unlimited products
 - ✅ Advanced analytics
@@ -1488,6 +1675,7 @@ matgarco/
 - ✅ Priority support
 
 **Limits:**
+
 - `maxProducts: -1` (unlimited)
 - `maxStaffUsers: 3`
 - `aiCreditsPerMonth: 100`
@@ -1500,6 +1688,7 @@ matgarco/
 **Transaction Fee:** 0%
 
 **Features:**
+
 - ✅ Everything in Professional
 - ✅ Multi-user staff access
 - ✅ Inventory forecasting
@@ -1509,6 +1698,7 @@ matgarco/
 - ✅ Dedicated support
 
 **Limits:**
+
 - `maxProducts: -1` (unlimited)
 - `maxStaffUsers: 10`
 - `aiCreditsPerMonth: 300`
@@ -1517,19 +1707,19 @@ matgarco/
 
 ### Plan Comparison Table
 
-| Feature | Free Trial | Starter | Professional | Business |
-|---------|-----------|---------|--------------|----------|
-| **Price/month** | Free | 250 EGP | 450 EGP | 699 EGP |
-| **Transaction Fee** | 3% | 2% | 0% | 0% |
-| **Products** | 20 | 100 | Unlimited | Unlimited |
-| **Staff Users** | 0 | 1 | 3 | 10 |
-| **AI Credits** | 5 | 30 | 100 | 300 |
-| **Custom Domain** | ❌ | ❌ | ✅ | ✅ |
-| **Advanced Analytics** | ❌ | ❌ | ✅ | ✅ |
-| **Discounts/Coupons** | ❌ | ❌ | ✅ | ✅ |
-| **API Access** | ❌ | ❌ | ❌ | ✅ |
-| **Export Reports** | ❌ | ❌ | ❌ | ✅ |
-| **Support** | Standard | Standard | Priority | Dedicated |
+| Feature                | Free Trial | Starter  | Professional | Business  |
+| ---------------------- | ---------- | -------- | ------------ | --------- |
+| **Price/month**        | Free       | 250 EGP  | 450 EGP      | 699 EGP   |
+| **Transaction Fee**    | 3%         | 2%       | 0%           | 0%        |
+| **Products**           | 20         | 100      | Unlimited    | Unlimited |
+| **Staff Users**        | 0          | 1        | 3            | 10        |
+| **AI Credits**         | 5          | 30       | 100          | 300       |
+| **Custom Domain**      | ❌         | ❌       | ✅           | ✅        |
+| **Advanced Analytics** | ❌         | ❌       | ✅           | ✅        |
+| **Discounts/Coupons**  | ❌         | ❌       | ✅           | ✅        |
+| **API Access**         | ❌         | ❌       | ❌           | ✅        |
+| **Export Reports**     | ❌         | ❌       | ❌           | ✅        |
+| **Support**            | Standard   | Standard | Priority     | Dedicated |
 
 ---
 
@@ -1538,17 +1728,20 @@ matgarco/
 ### 9.1 Local AI Setup (Ollama)
 
 **Why Local?**
+
 - ✅ No API costs
 - ✅ Privacy (data doesn't leave server)
 - ✅ Unlimited usage (based on hardware)
 - ✅ Fast response times
 
 **Recommended Models:**
+
 - **Llama 3 (8B)** - Best quality, needs 8GB+ RAM
 - **Mistral (7B)** - Faster, good quality
 - **Phi-2 (2.7B)** - Lightweight, basic tasks
 
 **Installation:**
+
 ```bash
 # Install Ollama
 curl -fsSL https://ollama.com/install.sh | sh
@@ -1564,16 +1757,19 @@ ollama pull llama3
 #### 1. Product Description Generator
 
 **Input:**
+
 - Product name
 - Category
 - Key features (optional)
 
 **Output:**
+
 - Engaging product description
 - Highlights benefits
 - SEO-friendly
 
 **Example:**
+
 ```
 Input: "Wireless Bluetooth Headphones"
 Output: "Experience crystal-clear sound with our premium wireless Bluetooth headphones. Featuring noise cancellation, 30-hour battery life, and comfortable over-ear design. Perfect for music lovers, commuters, and professionals."
@@ -1584,10 +1780,12 @@ Output: "Experience crystal-clear sound with our premium wireless Bluetooth head
 #### 2. SEO Optimizer
 
 **Input:**
+
 - Product name
 - Description
 
 **Output:**
+
 - SEO title
 - Meta description
 - Keywords
@@ -1597,10 +1795,12 @@ Output: "Experience crystal-clear sound with our premium wireless Bluetooth head
 #### 3. Category Suggester
 
 **Input:**
+
 - Product name
 - Description
 
 **Output:**
+
 - Suggested categories
 - Tags
 
@@ -1609,9 +1809,11 @@ Output: "Experience crystal-clear sound with our premium wireless Bluetooth head
 #### 4. Image Alt Text (Phase 2)
 
 **Input:**
+
 - Product image
 
 **Output:**
+
 - Descriptive alt text for accessibility
 
 ---
@@ -1645,6 +1847,7 @@ Backend → Dashboard
 - If credits exhausted, feature disabled until next month or upgrade
 
 **Example:**
+
 - Product description = 1 credit
 - SEO optimization = 2 credits
 - Category suggestion = 1 credit
@@ -1653,80 +1856,119 @@ Backend → Dashboard
 
 ## 10. Development Roadmap
 
-### Phase 1: Foundation (Weeks 1-3)
+### Phase 1: Foundation (Weeks 1-3) ✅ COMPLETE
 
 **Backend API**
-- [ ] Project setup (Node + Express + TypeScript)
-- [ ] MongoDB connection
-- [ ] User model + Auth (JWT)
-- [ ] Merchant model
-- [ ] Product model
-- [ ] Order model
-- [ ] Auth routes (register, login, logout, refresh)
-- [ ] Merchant CRUD routes
-- [ ] Product CRUD routes
-- [ ] Order routes
-- [ ] Middleware (auth, validation, error handling)
-- [ ] File upload (Cloudinary)
+
+- [x] Project setup (Node + Express + TypeScript)
+- [x] MongoDB connection
+- [x] User model + Auth (JWT)
+- [x] Merchant model
+- [x] Product model
+- [x] Order model
+- [x] Auth routes (register, login, logout, refresh)
+- [x] Merchant CRUD routes
+- [x] Product CRUD routes
+- [x] Order routes
+- [x] Middleware (auth, validation, error handling)
+- [x] File upload (Cloudinary)
+- [x] Customer model + routes
+- [x] Theme settings model + routes (draft/publish/preview/apply-template)
+- [x] Staff management routes (CRUD + RBAC permissions)
+- [x] Notification model + routes (list/mark-read/delete)
+- [x] Search route (global search: products, orders, customers)
+- [x] Storefront routes (public products, categories)
+- [x] Upload routes (single + multi image via Cloudinary)
 
 **Merchant Dashboard**
-- [ ] Project setup (React + Vite + TypeScript)
-- [ ] Routing setup
-- [ ] Auth pages (Login, Register)
-- [ ] Dashboard layout (sidebar, header)
-- [ ] Dashboard overview page
-- [ ] Product list page
-- [ ] Product create/edit form
-- [ ] Order list page
-- [ ] Order detail page
-- [ ] API integration
-- [ ] State management (Zustand)
+
+- [x] Project setup (React + Vite + TypeScript)
+- [x] Routing setup
+- [x] Auth pages (Login, Register — 2-step registration)
+- [x] Dashboard layout (sidebar RTL + mobile menu + top bar + logo)
+- [x] Dashboard overview page (stats cards + Revenue AreaChart + Orders BarChart)
+- [x] Product list page (grid/list view + search + filters + pagination)
+- [x] Product create/edit form (5 images + tags + category + variants + SEO)
+- [x] Order list page (table + status/payment filters + quick actions)
+- [x] Order detail page (progress bar + items + timeline + modals + print)
+- [x] API integration (Axios interceptors + auto token refresh)
+- [x] State management (Zustand + TanStack Query)
+- [x] Customer list + detail pages
+- [x] Onboarding wizard (5 steps: StoreInfo → Template → Colors → Social → Done)
+- [x] Store design page (7 panels: StoreInfo, Template, Colors, Typography, Sections, SEO, Social)
+- [x] Reports page (full analytics)
+- [x] Settings page (comprehensive store settings)
+- [x] Staff management page (CRUD + RBAC permissions)
+- [x] Notification bell + panel
+- [x] Global search bar (products, orders, customers)
+- [x] RequirePermission component (route-level permission guard)
+- [x] Can component (conditional rendering by permission)
 
 ---
 
-### Phase 2: Storefront (Weeks 4-5)
+### Phase 2: Storefront (Weeks 4-5) ✅ COMPLETE
 
 **Storefront**
-- [ ] Project setup (Next.js 14 App Router)
-- [ ] Subdomain detection middleware
-- [ ] Store homepage
-- [ ] Product listing page
-- [ ] Product detail page
-- [ ] Shopping cart
-- [ ] Checkout flow
-- [ ] Order confirmation
-- [ ] Template system (1 template - Modern)
-- [ ] Responsive design
+
+- [x] Project setup (Next.js 14 App Router)
+- [x] Subdomain detection middleware (subdomain-based + path-based routing)
+- [x] Store homepage (dynamic template loading)
+- [x] Product listing page (search, sort, filter, pagination)
+- [x] Product detail page (images, add to cart, related products)
+- [x] Shopping cart (Context + useReducer + localStorage persistence)
+- [x] Checkout flow (customer info + shipping address + COD payment)
+- [x] Order confirmation page
+- [x] Template system (6 templates: Spark, Volt, Épure, Bloom, Noir, Mosaic)
+- [x] Responsive design
+- [x] Theme engine (CSS variables injection + Google Fonts)
+- [x] Preview mode support
+- [x] PreviewLinkInterceptor (keeps ?preview=1 on navigation)
+- [x] ThemeDocumentSync (dir/lang sync)
+
+**Each Template Contains:**
+- Header.tsx + Footer.tsx + HomePage.tsx + ProductCard.tsx
+- Spark has 8 homepage sections: AnnouncementBar, Hero, FeaturedProducts, CategoriesGrid, PromoBanner, NewArrivals, TrustBadges, Newsletter
 
 **Backend**
-- [ ] Store config model
-- [ ] Template model
-- [ ] Customer model
-- [ ] Cart in database
-- [ ] Order creation flow
+
+- [x] Store config model (ThemeSettings — draft/published workflow)
+- [x] Template model (6 template presets with default colors/fonts/sections)
+- [x] Customer model (auto-created on first order)
+- [x] Order creation flow (public checkout, auto stock update, auto stats)
+- [x] Storefront API routes (public products, product by slug, categories)
 
 ---
 
-### Phase 3: Customization (Week 6)
+### Phase 3: Customization (Week 6) ✅ COMPLETE
 
 **Backend**
-- [ ] Store config routes
-- [ ] Template routes
-- [ ] Logo upload
-- [ ] Template data seeding
+
+- [x] Store config routes (ThemeSettings — get/save-draft/publish/reset/apply-template)
+- [x] Template routes (7 endpoints: get, save draft, publish, reset, apply template, storefront published, storefront preview)
+- [x] Logo upload (via Cloudinary integration)
+- [x] Template data seeding (6 templates with presets)
 
 **Dashboard**
-- [ ] Store settings page
-- [ ] Template selection
-- [ ] Customization panel (colors, fonts)
-- [ ] Logo upload
-- [ ] Preview mode
+
+- [x] Store settings page (comprehensive settings — 39KB)
+- [x] Template selection (6 templates with preview)
+- [x] Customization panel — 7 panels:
+  - StoreInfoPanel (name, description, logo)
+  - TemplatePanel (choose from 6 templates)
+  - ColorsPanel (primary, secondary, accent, background, text)
+  - TypographyPanel (heading + body fonts)
+  - SectionsPanel (reorder + enable/disable homepage sections)
+  - SeoPanel (meta title, description, keywords)
+  - SocialPanel (Facebook, Instagram, Twitter, TikTok, WhatsApp)
+- [x] Logo upload (in store design)
+- [x] Preview mode (draft → publish workflow)
 
 ---
 
 ### Phase 4: Subscriptions (Week 7)
 
 **Backend**
+
 - [ ] Subscription model
 - [ ] Plan definitions
 - [ ] Subscription routes
@@ -1735,6 +1977,7 @@ Backend → Dashboard
 - [ ] Plan limits enforcement
 
 **Dashboard**
+
 - [ ] Subscription page
 - [ ] Plan selection
 - [ ] Upgrade/downgrade
@@ -1745,12 +1988,14 @@ Backend → Dashboard
 ### Phase 5: Analytics (Week 8)
 
 **Backend**
+
 - [ ] Analytics model
 - [ ] Daily aggregation job
 - [ ] Analytics routes
 - [ ] Stats calculations
 
 **Dashboard**
+
 - [ ] Analytics page
 - [ ] Sales charts
 - [ ] Product performance
@@ -1762,6 +2007,7 @@ Backend → Dashboard
 ### Phase 6: AI Features (Week 9)
 
 **AI Service**
+
 - [ ] FastAPI setup
 - [ ] Ollama integration
 - [ ] Description generator endpoint
@@ -1769,12 +2015,14 @@ Backend → Dashboard
 - [ ] Category suggester endpoint
 
 **Backend**
+
 - [ ] AI usage model
 - [ ] AI routes
 - [ ] Credit system
 - [ ] AI service client
 
 **Dashboard**
+
 - [ ] AI tools section
 - [ ] Generate description button
 - [ ] Optimize SEO button
@@ -1785,6 +2033,7 @@ Backend → Dashboard
 ### Phase 7: Landing Page (Week 10)
 
 **Landing**
+
 - [ ] Project setup (Next.js)
 - [ ] Homepage
 - [ ] Pricing page
@@ -1799,12 +2048,14 @@ Backend → Dashboard
 ### Phase 8: Super Admin (Week 11)
 
 **Backend**
+
 - [ ] Admin routes
 - [ ] Dashboard stats endpoint
 - [ ] Merchant management endpoints
 - [ ] Revenue analytics
 
 **Admin Dashboard**
+
 - [ ] Project setup (React)
 - [ ] Admin authentication
 - [ ] Dashboard page
@@ -1818,6 +2069,7 @@ Backend → Dashboard
 ### Phase 9: Advanced Features (Weeks 12-14)
 
 **Backend**
+
 - [ ] Review model & routes
 - [ ] Discount/coupon system
 - [ ] Shipping settings
@@ -1825,6 +2077,7 @@ Backend → Dashboard
 - [ ] Email marketing
 
 **Dashboard**
+
 - [ ] Customer management
 - [ ] Reviews management
 - [ ] Marketing tools
@@ -1832,6 +2085,7 @@ Backend → Dashboard
 - [ ] Staff management
 
 **Storefront**
+
 - [ ] Product reviews
 - [ ] Wishlist
 - [ ] Order tracking
@@ -1870,6 +2124,7 @@ Backend → Dashboard
 ### Development Phase
 
 **Hosting:**
+
 - Landing: `matgarco.vercel.app`
 - Storefront: `storefront.vercel.app`
 - Dashboard: `dashboard.vercel.app`
@@ -1878,6 +2133,7 @@ Backend → Dashboard
 - Images: Cloudinary (Free tier)
 
 **Custom Domain (Not Yet):**
+
 - Wait until ready for launch
 
 ---
@@ -1885,6 +2141,7 @@ Backend → Dashboard
 ### Production Phase
 
 **Domain Setup:**
+
 1. Purchase domain: `matgarco.com`
 2. Configure DNS:
    - `matgarco.com` → Landing (Vercel)
@@ -1894,12 +2151,14 @@ Backend → Dashboard
    - `api.matgarco.com` → Backend
 
 **Hosting:**
+
 - **Frontend:** Vercel (automatic deployments from GitHub)
 - **Backend:** Railway Pro / DigitalOcean / Your VPS
 - **Database:** MongoDB Atlas (Paid tier)
 - **AI Service:** Your local server / Railway
 
 **SSL:**
+
 - Automatic with Vercel
 - Let's Encrypt for backend
 
@@ -1908,6 +2167,7 @@ Backend → Dashboard
 ### Environment Variables
 
 **Backend (.env):**
+
 ```env
 NODE_ENV=production
 PORT=5000
@@ -1928,6 +2188,7 @@ DASHBOARD_URL=https://dashboard.matgarco.com
 ```
 
 **Frontend (.env.local):**
+
 ```env
 NEXT_PUBLIC_API_URL=https://api.matgarco.com
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=...
@@ -1940,17 +2201,20 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=...
 ### Authentication
 
 ✅ **JWT Best Practices:**
+
 - Access token: 15 minutes expiry
 - Refresh token: 7 days expiry
 - Store refresh token in httpOnly cookie
 - Store access token in memory (not localStorage)
 
 ✅ **Password Security:**
+
 - Bcrypt with salt rounds 10
 - Minimum 8 characters
 - Password strength validation
 
 ✅ **Email Verification:**
+
 - Required before store creation
 - Verification token expires in 24 hours
 
@@ -1959,17 +2223,21 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=...
 ### API Security
 
 ✅ **Rate Limiting:**
+
 - 100 requests per 15 minutes per IP
 - Stricter limits for auth endpoints
 
 ✅ **CORS:**
+
 - Whitelist specific domains only
 
 ✅ **Input Validation:**
+
 - Zod schema validation for all inputs
 - Sanitize user inputs
 
 ✅ **Error Handling:**
+
 - Never expose stack traces in production
 - Generic error messages for clients
 
@@ -1978,20 +2246,22 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=...
 ### Multi-Tenant Isolation
 
 ✅ **Data Isolation:**
+
 ```javascript
 // Always filter by merchantId
-Product.find({ 
+Product.find({
   merchantId: req.user.merchantId,
-  // other filters 
-})
+  // other filters
+});
 ```
 
 ✅ **Middleware:**
+
 ```javascript
 // Ensure user can only access their data
 const tenantIsolation = (req, res, next) => {
   if (req.params.merchantId !== req.user.merchantId) {
-    return res.status(403).json({ error: 'Forbidden' });
+    return res.status(403).json({ error: "Forbidden" });
   }
   next();
 };
@@ -2002,11 +2272,13 @@ const tenantIsolation = (req, res, next) => {
 ### File Upload Security
 
 ✅ **Validation:**
+
 - Only allow image types (jpg, png, webp)
 - Max file size: 5MB
 - Virus scanning (if possible)
 
 ✅ **Storage:**
+
 - Use Cloudinary transformations
 - Generate unique filenames
 - Don't expose original filenames
@@ -2016,11 +2288,13 @@ const tenantIsolation = (req, res, next) => {
 ### Payment Security
 
 ✅ **PCI Compliance:**
+
 - Never store card details
 - Use payment gateway (Paymob)
 - Verify webhooks with signatures
 
 ✅ **Order Verification:**
+
 - Verify payment before fulfillment
 - Double-check amounts server-side
 
@@ -2029,11 +2303,13 @@ const tenantIsolation = (req, res, next) => {
 ### Environment Security
 
 ✅ **Secrets Management:**
+
 - Never commit .env files
 - Use environment variables
 - Rotate secrets regularly
 
 ✅ **Database:**
+
 - Enable MongoDB authentication
 - Use connection string with credentials
 - Whitelist IP addresses
@@ -2054,11 +2330,13 @@ const tenantIsolation = (req, res, next) => {
 ## 8. Development Status
 
 ### Current Phase
+
 **Phase 1: Backend Foundation** - 70% COMPLETED ✅
 
 ### ✅ What's Working
 
 #### 1. **Multi-Tenant Architecture** (100% Complete)
+
 - ✅ Single database with shared collections
 - ✅ Tenant isolation via `merchantId` in all queries
 - ✅ Subdomain validation and availability checking
@@ -2068,6 +2346,7 @@ const tenantIsolation = (req, res, next) => {
 - ✅ JWT contains `merchantId` for authorization
 
 #### 2. **Authentication System** (100% Complete - 8 Endpoints)
+
 - ✅ User registration with email/password
 - ✅ Login with JWT (access + refresh tokens)
 - ✅ Refresh token mechanism (15min access, 7day refresh)
@@ -2080,6 +2359,7 @@ const tenantIsolation = (req, res, next) => {
 - ✅ Role-based authorization (super_admin, merchant_owner, merchant_staff, customer)
 
 #### 3. **Merchant Management** (100% Complete - 10 Endpoints)
+
 - ✅ Create merchant with subdomain validation
 - ✅ Check subdomain availability (public endpoint)
 - ✅ Get merchant by ID (protected)
@@ -2095,6 +2375,7 @@ const tenantIsolation = (req, res, next) => {
 - ✅ Product/Staff/AI limits per plan
 
 #### 4. **Product Management** (100% Complete - 8 Endpoints)
+
 - ✅ List products with pagination & filters
 - ✅ Create product with tenant isolation
 - ✅ Get product by ID (protected)
@@ -2113,6 +2394,7 @@ const tenantIsolation = (req, res, next) => {
 - ✅ View and sales stats tracking
 
 #### 5. **Order System** (100% Complete - 7 Endpoints)
+
 - ✅ Create order (public checkout endpoint)
 - ✅ List orders with filters (status, payment, search)
 - ✅ Get order by ID
@@ -2132,6 +2414,7 @@ const tenantIsolation = (req, res, next) => {
 - ✅ Payment method tracking (cash, card, paymob, wallet)
 
 #### 6. **Customer Management** (100% Complete - 4 Endpoints)
+
 - ✅ List customers with search & pagination
 - ✅ Get customer by ID
 - ✅ Update customer profile
@@ -2142,6 +2425,7 @@ const tenantIsolation = (req, res, next) => {
 - ✅ Link to registered users (userId reference)
 
 #### 7. **Security & Middleware** (100% Complete)
+
 - ✅ JWT authentication middleware
 - ✅ Role-based authorization middleware
 - ✅ Tenant isolation middleware (critical for multi-tenancy!)
@@ -2154,6 +2438,7 @@ const tenantIsolation = (req, res, next) => {
 - ✅ Rate limiting ready (commented in app.ts)
 
 #### 8. **Database Models** (5 Complete)
+
 - ✅ User (authentication, roles, OAuth support)
 - ✅ Merchant (subscription, limits, stats, subdomain)
 - ✅ Product (variants, images, SEO, inventory)
@@ -2161,6 +2446,7 @@ const tenantIsolation = (req, res, next) => {
 - ✅ Customer (addresses, stats, marketing)
 
 #### 9. **Utilities & Helpers** (Complete)
+
 - ✅ JWT service (generate/verify tokens)
 - ✅ Validation schemas (email, password, phone, subdomain)
 - ✅ Constants (subscription plans, reserved subdomains, AI costs)
@@ -2172,6 +2458,7 @@ const tenantIsolation = (req, res, next) => {
 ### 📊 Backend API Summary: 37 Endpoints Live!
 
 #### Authentication (8)
+
 1. POST `/api/auth/register` - User registration
 2. POST `/api/auth/login` - Login with credentials
 3. POST `/api/auth/refresh` - Refresh access token
@@ -2182,6 +2469,7 @@ const tenantIsolation = (req, res, next) => {
 8. POST `/api/auth/reset-password` - Reset password with token
 
 #### Merchants (10)
+
 1. POST `/api/merchants` - Create merchant store
 2. GET `/api/merchants/:id` - Get merchant details
 3. GET `/api/merchants/subdomain/:subdomain` - Get by subdomain (public)
@@ -2194,6 +2482,7 @@ const tenantIsolation = (req, res, next) => {
 10. POST `/api/merchants/:id/activate` - Activate merchant (admin)
 
 #### Products (8)
+
 1. GET `/api/products` - List products (with filters)
 2. POST `/api/products` - Create product
 3. GET `/api/products/:id` - Get product details
@@ -2204,6 +2493,7 @@ const tenantIsolation = (req, res, next) => {
 8. GET `/api/products/slug/:slug` - Get by slug (public)
 
 #### Orders (7)
+
 1. POST `/api/orders` - Create order / Checkout (public)
 2. GET `/api/orders` - List orders (with filters)
 3. GET `/api/orders/:id` - Get order details
@@ -2213,6 +2503,7 @@ const tenantIsolation = (req, res, next) => {
 7. PATCH `/api/orders/:id/tracking` - Add tracking info
 
 #### Customers (4)
+
 1. GET `/api/customers` - List customers
 2. GET `/api/customers/:id` - Get customer details
 3. PATCH `/api/customers/:id` - Update customer
@@ -2223,6 +2514,7 @@ const tenantIsolation = (req, res, next) => {
 ### ⏳ What's Pending (Phase 1 - 30% Remaining)
 
 #### High Priority
+
 - [ ] **File Upload System**
   - Setup Multer middleware
   - Create image upload endpoint
@@ -2246,6 +2538,7 @@ const tenantIsolation = (req, res, next) => {
   - Revenue charts data
 
 #### Medium Priority
+
 - [ ] **Subscription Management**
   - Subscription model
   - Payment integration (Paymob mock)
@@ -2265,12 +2558,14 @@ const tenantIsolation = (req, res, next) => {
 ### 📁 Files Created (36 Backend Files)
 
 #### Core Setup (4)
+
 - `src/server.ts` - Application entry point
 - `src/app.ts` - Express configuration
 - `src/config/database.ts` - MongoDB connection
 - `src/config/cloudinary.ts` - Cloudinary setup
 
 #### Models (5)
+
 - `src/models/User.ts` - User authentication
 - `src/models/Merchant.ts` - Store/merchant data
 - `src/models/Product.ts` - Product catalog
@@ -2278,6 +2573,7 @@ const tenantIsolation = (req, res, next) => {
 - `src/models/Customer.ts` - Customer management
 
 #### Controllers (5)
+
 - `src/controllers/auth.controller.ts` - Auth logic (8 endpoints)
 - `src/controllers/merchant.controller.ts` - Merchant logic (10 endpoints)
 - `src/controllers/product.controller.ts` - Product logic (8 endpoints)
@@ -2285,6 +2581,7 @@ const tenantIsolation = (req, res, next) => {
 - `src/controllers/customer.controller.ts` - Customer logic (4 endpoints)
 
 #### Routes (5)
+
 - `src/routes/auth.routes.ts` - Auth routes
 - `src/routes/merchant.routes.ts` - Merchant routes
 - `src/routes/product.routes.ts` - Product routes
@@ -2292,6 +2589,7 @@ const tenantIsolation = (req, res, next) => {
 - `src/routes/customer.routes.ts` - Customer routes
 
 #### Middleware (5)
+
 - `src/middleware/error.middleware.ts` - Error handling
 - `src/middleware/notFound.middleware.ts` - 404 handler
 - `src/middleware/auth.middleware.ts` - JWT authentication
@@ -2299,15 +2597,18 @@ const tenantIsolation = (req, res, next) => {
 - `src/middleware/tenantIsolation.middleware.ts` - Multi-tenant security
 
 #### Services (1)
+
 - `src/services/jwt.service.ts` - JWT token management
 
 #### Utils (4)
+
 - `src/utils/validators.ts` - Validation schemas
 - `src/utils/helpers.ts` - Helper functions
 - `src/utils/constants.ts` - App constants
 - `src/types/index.ts` - TypeScript types
 
 #### Configuration (7)
+
 - `package.json` - Dependencies
 - `tsconfig.json` - TypeScript config
 - `.env.example` - Environment template
@@ -2347,6 +2648,7 @@ Use **Postman** or **Thunder Client**:
 1. **Base URL:** `http://localhost:5000/api`
 
 2. **Register User:**
+
 ```json
 POST /auth/register
 {
@@ -2359,6 +2661,7 @@ POST /auth/register
 ```
 
 3. **Login:**
+
 ```json
 POST /auth/login
 {
@@ -2368,6 +2671,7 @@ POST /auth/login
 ```
 
 4. **Create Merchant (with JWT token):**
+
 ```json
 POST /merchants
 Authorization: Bearer <your_jwt_token>
@@ -2379,6 +2683,7 @@ Authorization: Bearer <your_jwt_token>
 ```
 
 5. **Create Product:**
+
 ```json
 POST /products
 Authorization: Bearer <your_jwt_token>
@@ -2392,6 +2697,7 @@ Authorization: Bearer <your_jwt_token>
 ```
 
 6. **Create Order (Public - No Auth):**
+
 ```json
 POST /orders
 {
@@ -2422,49 +2728,39 @@ POST /orders
 
 ---
 
-### 🎯 Next Phase Planning
+### 🎯 Next Phase: Payment Integration (Phase 4)
 
-#### Option 1: Complete Backend Phase 1 (1 week)
-- Implement file upload system
-- Setup email service
-- Add analytics endpoints
-- Full backend testing
+**Priority:** 🔴 High  
+**See:** [Section 9: Payment & Shipping Model](#9-payment--shipping-model) for full details.
 
-#### Option 2: Start Frontend Development (Immediate)
-- **Merchant Dashboard** (React + Vite)
-  - Login/Register pages
-  - Dashboard overview
-  - Product management UI
-  - Order management UI
-  - Customer list
-  - Settings page
-
-#### Option 3: Build Storefront (Next.js)
-- Subdomain middleware
-- Product listing page
-- Product detail page
-- Shopping cart
-- Checkout flow
-- Order success page
+**Summary:**
+- إنشاء حساب Paymob للمنصة
+- Backend: Paymob API integration + Webhooks
+- Storefront: Card/Wallet/Fawry في الـ checkout
+- Dashboard (Professional+): ربط حساب Paymob خاص
 
 ---
 
 ### 📊 Progress Tracker
 
 **Phase 0:** ✅ 100% Complete  
-**Phase 1:** 🚧 70% Complete (37 endpoints live!)  
-**Phase 2:** ⏳ Pending  
-**Phase 3:** ⏳ Pending  
+**Phase 1:** ✅ 100% Complete (Backend API + Dashboard — 55+ endpoints, 7 models, 11 controllers!)  
+**Phase 2:** ✅ 100% Complete (Storefront — 6 templates, 7 pages, theme engine)  
+**Phase 3:** ✅ 100% Complete (Customization — 7 design panels, draft/publish, preview)  
+**Phase 4:** ❌ Pending (Payment — Paymob integration)  
+**Phase 5:** ❌ Pending (Shipping — Bosta integration)
 
-**Total Backend Files:** 36 created  
-**Total API Endpoints:** 37 live and working  
-**Database Models:** 5 complete  
+**Total Backend Files:** 50+ created  
+**Total API Endpoints:** 55+ live and working  
+**Database Models:** 7 complete (User, Merchant, Product, Order, Customer, ThemeSettings, Notification)  
+**Dashboard Pages:** 15+ (Overview, Products, Orders, Customers, Store Design, Reports, Staff, Settings, Onboarding)  
+**Storefront Templates:** 6 (Spark, Volt, Épure, Bloom, Noir, Mosaic)
 
 ---
 
 ### 💡 Architecture Decisions Made
 
-1. **Multi-Tenancy Strategy:** 
+1. **Multi-Tenancy Strategy:**
    - Single database with data isolation via `merchantId`
    - NOT separate databases per merchant
    - Enforced at middleware level (`tenantIsolation`)
@@ -2508,13 +2804,26 @@ POST /orders
 
 ---
 
-### 🐛 Known Issues / TODO
+### 🐛 Known Issues & Fixes
 
+**Resolved:**
+1. ~~Double password hashing~~ → Fixed
+2. ~~403 Forbidden on dashboard~~ → Linked user.merchantId
+3. ~~Cloudinary upload error~~ → Fixed cloud name
+4. ~~Product creation 400~~ → Relaxed Zod schema
+5. ~~Image not showing in cards~~ → Handle string + object formats
+6. ~~Stock showing 0~~ → Added toJSON transform
+7. ~~Edit form fields empty~~ → Fixed response parsing
+8. ~~Sidebar active state wrong~~ → Changed to startsWith()
+9. ~~File upload not implemented~~ → Multer + Cloudinary integrated ✅
+
+**Pending:**
 1. Email service not configured (needs real SMTP)
-2. File upload not implemented (needs Multer + Cloudinary)
-3. Rate limiting commented out (need Redis)
-4. Payment gateway not integrated (Paymob pending)
-5. AI service not connected (Python service ready but not used yet)
+2. Rate limiting commented out (need Redis)
+3. Payment gateway not integrated (Paymob — Phase 4)
+4. AI service not connected (Python service — Phase 8)
+5. Checkout → Order flow needs full end-to-end testing
+6. Mobile optimization for storefront
 
 ---
 
@@ -2531,7 +2840,7 @@ POST /orders
 
 - **Code Style:** Follow TypeScript best practices
 - **Commits:** Use conventional commits (feat, fix, docs, etc.)
-- **Branches:** 
+- **Branches:**
   - `main` - Production
   - `develop` - Development
   - `feature/*` - New features
@@ -2540,6 +2849,6 @@ POST /orders
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** January 30, 2026  
-**Status:** 70% Backend Complete - Ready for Frontend! 🚀
+**Document Version:** 2.0  
+**Last Updated:** March 17, 2026  
+**Status:** Phase 3 Complete — Next: Phase 4 Payment Integration (Paymob) 🚀

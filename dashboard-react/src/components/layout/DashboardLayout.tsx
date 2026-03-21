@@ -74,7 +74,7 @@ export default function DashboardLayout() {
         <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
           {/* Logo */}
           <div className="flex items-center flex-shrink-0 px-6">
-            <h1 className="text-2xl font-bold text-blue-600">Matgarco</h1>
+            <img src="/logo.png" alt="Matgarco" className="h-10 w-auto" />
           </div>
 
           {/* User Info */}
@@ -146,7 +146,7 @@ export default function DashboardLayout() {
           
           <div className="fixed inset-y-0 right-0 flex flex-col w-64 bg-white">
             <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-              <h1 className="text-xl font-bold text-blue-600">Matgarco</h1>
+              <img src="/logo.png" alt="Matgarco" className="h-8 w-auto" />
               <button onClick={() => setSidebarOpen(false)}>
                 <X className="h-6 w-6 text-gray-500" />
               </button>

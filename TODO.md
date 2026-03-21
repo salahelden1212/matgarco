@@ -1,685 +1,215 @@
 # Matgarco - Development TODO
 
-**Last Updated:** 27 فبراير 2026  
-**Current Phase:** Phase 3 - Storefront (0% Started) | Dashboard COMPLETE ✅
+**Last Updated:** 17 مارس 2026  
+**Current Phase:** Phase 3 Complete (80%) → Phase 4 Payment Next
 
 ---
 
 ## ✅ Phase 0: Project Setup (COMPLETED ✓)
 
 - [x] Create project documentation
-- [x] Setup project structure
-- [x] Initialize all folders (5 frontend + 1 backend + 1 AI service)
-- [x] Create package.json for all projects
-- [x] Create README files
-- [x] Create .env.example files
-- [x] Create .gitignore files
+- [x] Setup project structure (7 projects)
+- [x] Initialize all folders
 - [x] Install all npm dependencies
+- [x] Create .env files + .gitignore
 
 ---
 
-## 🚧 Phase 1: Backend Foundation (IN PROGRESS - 70% COMPLETE!)
+## ✅ Phase 1: Backend API (100% COMPLETE ✓)
 
-### ✅ Week 1: Core Setup & Authentication (COMPLETED!)
+### Endpoints Summary: ~55+ endpoints across 11 controllers
 
-#### ✓ Day 1-2: Project Setup (DONE)
-- [x] Initialize Node.js project with TypeScript
-- [x] Setup Express server (server.ts + app.ts)
-- [x] Configure MongoDB connection (database.ts)
-- [x] Setup folder structure (models, routes, controllers, middleware, services, utils)
-- [x] Configure environment variables (.env created)
-- [x] Setup error handling middleware (error.middleware.ts + AppError class)
-- [x] Add request logging (Morgan)
-- [x] Configure CORS and security (Helmet)
-- [x] Add notFound handler middleware
+- [x] Auth (8): register, login, refresh, logout, me, verify-email, forgot/reset password
+- [x] Merchant (10): CRUD + stats + subdomain check + onboarding + suspend/activate
+- [x] Product (8): CRUD + duplicate + featured + slug + search
+- [x] Order (7): create (checkout) + list + details + status + payment + cancel + tracking
+- [x] Customer (4): list + details + update + orders
+- [x] Upload (2): single + multiple image (Multer + Cloudinary)
+- [x] Theme (7): get + save draft + publish + reset + apply template + storefront published/preview
+- [x] Staff (5): list + create + update + delete + reset password (RBAC)
+- [x] Notification (4): list + mark read + mark all read + delete
+- [x] Search (1): global search
+- [x] Storefront (3): products + product by slug + categories (public)
 
-#### ✓ Day 3-4: User Model & Authentication (DONE)
-- [x] Create User model (Mongoose schema with bcrypt)
-- [x] Hash passwords with bcrypt (pre-save hook)
-- [x] Implement JWT token generation (jwt.service.ts)
-- [x] Implement refresh token mechanism (access + refresh tokens)
-- [x] Create auth middleware (authenticate, authorize, isMerchant)
-- [x] Create register endpoint
-- [x] Create login endpoint
-- [x] Create refresh token endpoint
-- [x] Create logout endpoint
-- [x] Create getCurrentUser endpoint
-- [x] Test all auth endpoints ✓
+### Models: 7
 
-#### ✓ Day 5: Email & Password Reset (DONE)
-- [x] Create email verification flow (verifyEmail endpoint)
-- [x] Implement forgot password endpoint
-- [x] Implement reset password endpoint
-- [x] Token generation utility (generateToken helper)
-- [ ] Configure Nodemailer (TODO: needs actual email setup)
-- [ ] Create email templates (TODO: HTML templates)
-- [ ] Test email functionality (TODO: needs email service)
+- [x] User (auth, roles, OAuth)
+- [x] Merchant (subscription, limits, stats, subdomain)
+- [x] Product (variants, SEO, images, inventory)
+- [x] Order (timeline, commission, shipping, payment)
+- [x] Customer (addresses, stats)
+- [x] ThemeSettings (draft/published, colors, fonts, sections)
+- [x] Notification (in-app notifications)
 
-**📝 Files Created (Week 1):**
-- `src/server.ts` - Server entry point
-- `src/app.ts` - Express configuration
-- `src/config/database.ts` - MongoDB connection
-- `src/config/cloudinary.ts` - Cloudinary config
-- `src/models/User.ts` - User model
-- `src/controllers/auth.controller.ts` - Auth logic (8 endpoints)
-- `src/routes/auth.routes.ts` - Auth routes
-- `src/middleware/error.middleware.ts` - Error handling
-- `src/middleware/notFound.middleware.ts` - 404 handler
-- `src/middleware/auth.middleware.ts` - JWT auth
-- `src/middleware/validation.middleware.ts` - Zod validation
-- `src/services/jwt.service.ts` - JWT utilities
-- `src/utils/validators.ts` - Validation schemas
-- `src/utils/helpers.ts` - Helper functions
-- `src/utils/constants.ts` - App constants
-- `src/types/index.ts` - TypeScript types
+### Middleware:
 
-### ✅ Week 2: Merchant & Product Management (COMPLETED!)
+- [x] JWT auth + authorize() + checkPermission() (RBAC)
+- [x] Tenant isolation middleware
+- [x] File upload (Multer + Cloudinary)
+- [x] Zod validation
+- [x] Error handling + AppError
+- [x] CORS + Helmet
 
-#### ✓ Day 1-2: Merchant System (DONE)
-- [x] Create Merchant model (with subscription, limits, stats)
-- [x] Implement subdomain validation (reserved words check)
-- [x] Create merchant registration flow (createMerchant)
-- [x] Create GET merchant endpoint
-- [x] Create UPDATE merchant endpoint
-- [x] Create merchant stats endpoint
-- [x] Create check subdomain availability endpoint
-- [x] Create get merchant by subdomain (public)
-- [x] Create complete onboarding endpoint
-- [x] Admin: Get all merchants
-- [x] Admin: Suspend/activate merchant
-- [x] Test merchant CRUD operations ✓
-
-#### ✓ Day 3-5: Product Management (DONE)
-- [x] Create Product model with variants support
-- [x] Implement slug generation (slugify)
-- [x] Create product CRUD endpoints
-  - [x] GET /products (with pagination & filters)
-  - [x] POST /products (with product limit check)
-  - [x] GET /products/:id
-  - [x] PATCH /products/:id
-  - [x] DELETE /products/:id
-- [x] Create duplicate product endpoint
-- [x] Implement product search
-- [x] Create get featured products (public)
-- [x] Create get product by slug (public)
-- [x] Add tenant isolation middleware
-- [x] Add injectMerchantId middleware
-- [x] Test product endpoints ✓
-
-**📝 Files Created (Week 2):**
-- `src/models/Merchant.ts` - Merchant model (subscription, limits, stats)
-- `src/controllers/merchant.controller.ts` - Merchant logic (10 endpoints)
-- `src/routes/merchant.routes.ts` - Merchant routes
-- `src/middleware/tenantIsolation.middleware.ts` - Tenant security
-- `src/models/Product.ts` - Product model (variants, SEO, images)
-- `src/controllers/product.controller.ts` - Product logic (8 endpoints)
-- `src/routes/product.routes.ts` - Product routes
-
-### ✅ Week 3: Orders & Customers (COMPLETED!)
-
-#### ✓ Day 1-3: Order System (DONE)
-- [x] Create Order model (with timeline, items, addresses)
-- [x] Create Customer model (with addresses, stats)
-- [x] Implement order number generation (ORD-YYYYMM-XXXX)
-- [x] Create order creation endpoint (checkout with validation)
-- [x] Create GET orders endpoint (with filters & pagination)
-- [x] Create GET order details endpoint
-- [x] Create update order status endpoint (with timeline)
-- [x] Create update payment status endpoint
-- [x] Create cancel order endpoint (with stock restore)
-- [x] Create update tracking endpoint
-- [x] Calculate platform commission (based on plan)
-- [x] Auto-create customer on order
-- [x] Update product stock on order
-- [x] Update merchant & customer stats
-- [x] Test order flow ✓
-
-#### ✓ Day 4: Customer Management (DONE)
-- [x] Create GET customers endpoint (with search & pagination)
-- [x] Create GET customer by ID endpoint
-- [x] Create UPDATE customer endpoint
-- [x] Create GET customer orders endpoint
-- [x] Customer stats tracking (totalSpent, averageOrderValue)
-- [x] Test customer endpoints ✓
-
-#### ✓ Day 5: File Upload & Validation (DONE)
-- [x] Setup Cloudinary configuration (cloudinary.ts)
-- [x] Add Zod validation schemas (in routes)
-- [x] Apply validation to all endpoints
-- [x] Create file upload middleware (Multer)
-- [x] Create image upload endpoint (single + multiple)
-- [x] Create image delete endpoint
-- [x] Test file uploads ✓
-
-**📝 Files Created (Week 3):**
-- `src/models/Order.ts` - Order model (timeline, commission, addresses)
-- `src/models/Customer.ts` - Customer model (addresses, stats)
-- `src/controllers/order.controller.ts` - Order logic (7 endpoints)
-- `src/routes/order.routes.ts` - Order routes
-- `src/controllers/customer.controller.ts` - Customer logic (4 endpoints)
-- `src/routes/customer.routes.ts` - Customer routes
-
----
-
-## 📊 Backend API Status Summary:
-
-### ✅ COMPLETED ENDPOINTS (37 total):
-
-#### Auth Routes (8):
-- POST `/api/auth/register` ✓
-- POST `/api/auth/login` ✓
-- POST `/api/auth/refresh` ✓
-- POST `/api/auth/logout` ✓
-- GET `/api/auth/me` ✓
-- POST `/api/auth/verify-email` ✓
-- POST `/api/auth/forgot-password` ✓
-- POST `/api/auth/reset-password` ✓
-
-#### Merchant Routes (10):
-- POST `/api/merchants` ✓
-- GET `/api/merchants/:id` ✓
-- GET `/api/merchants/subdomain/:subdomain` ✓ (public)
-- GET `/api/merchants/check-subdomain/:subdomain` ✓ (public)
-- PATCH `/api/merchants/:id` ✓
-- GET `/api/merchants/:id/stats` ✓
-- POST `/api/merchants/:id/complete-onboarding` ✓
-- GET `/api/merchants` ✓ (admin)
-- POST `/api/merchants/:id/suspend` ✓ (admin)
-- POST `/api/merchants/:id/activate` ✓ (admin)
-
-#### Product Routes (8):
-- GET `/api/products` ✓
-- POST `/api/products` ✓
-- GET `/api/products/:id` ✓
-- PATCH `/api/products/:id` ✓
-- DELETE `/api/products/:id` ✓
-- POST `/api/products/:id/duplicate` ✓
-- GET `/api/products/featured` ✓ (public)
-- GET `/api/products/slug/:slug` ✓ (public)
-
-#### Order Routes (7):
-- POST `/api/orders` ✓ (public - checkout)
-- GET `/api/orders` ✓
-- GET `/api/orders/:id` ✓
-- PATCH `/api/orders/:id/status` ✓
-- PATCH `/api/orders/:id/payment` ✓
-- POST `/api/orders/:id/cancel` ✓
-- PATCH `/api/orders/:id/tracking` ✓
-
-#### Customer Routes (4):
-- GET `/api/customers` ✓
-- GET `/api/customers/:id` ✓
-- PATCH `/api/customers/:id` ✓
-- GET `/api/customers/:id/orders` ✓
-
----
-
-## 🎯 Phase 1 Summary:
-
-### ✅ What's Working:
-1. **Multi-Tenant Architecture** ✓
-   - Tenant isolation middleware
-   - merchantId filtering
-   - Subdomain system ready
-
-2. **Authentication System** ✓
-   - JWT access + refresh tokens
-   - Email verification flow
-   - Password reset flow
-   - Role-based authorization
-
-3. **Core Business Logic** ✓
-   - Merchant registration & management
-   - Product management with variants
-   - Order processing with commission
-   - Customer tracking
-   - Stats & analytics tracking
-
-4. **Data Models** ✓
-   - User (with roles)
-   - Merchant (with subscription & limits)
-   - Product (with variants & SEO)
-   - Order (with timeline & commission)
-   - Customer (with addresses & stats)
-
-5. **Security** ✓
-   - Tenant isolation
-   - JWT authentication
-   - Input validation (Zod)
-   - Error handling
-   - CORS & Helmet
-
-### ⏳ What's Pending:
-1. File upload (Cloudinary + Multer)
-2. Email service (Nodemailer configuration)
-3. Analytics endpoints
-4. Subscription management
-5. Store customization (templates)
-6. AI integration
-
----
-
-## ✅ Phase 1: COMPLETED 100%
-
-### Backend Essentials Done:
-- [x] Media upload endpoints (Multer + Cloudinary) ✓
-- [ ] Email service setup (Nodemailer) — pending
-- [ ] Analytics endpoints — pending
-
----
-
-## 📝 Developer Notes:
-
-### 🔧 To Run Backend:
-```bash
-cd backend-node
-npm run dev
-```
-
-### 🧪 To Test Endpoints:
-Use Postman/Thunder Client with:
-- Base URL: `http://localhost:5000/api`
-- Auth: Bearer token in Authorization header
-
-### 📦 Database:
-- MongoDB running on `mongodb://localhost:27017/matgarco`
-- Collections: users, merchants, products, orders, customers
-
-### 🔐 Environment Variables:
-All set in `.env` file (JWT secrets, MongoDB URI, etc.)
-
----
-
-## ✅ Phase 1 Achievement: 70% Complete!
-
-**Great progress!** Core backend is fully functional. Multi-tenant system is working perfectly. Ready to start building frontend! 🚀
+### Pending (not critical):
+- [ ] Email service (Nodemailer) — needs actual email config
+- [ ] Email templates (HTML, Arabic RTL)
 
 ---
 
 ## ✅ Phase 2: Merchant Dashboard (100% COMPLETE ✓)
 
-### ✓ Week 4: Dashboard Core (DONE)
-
-#### ✓ Project Setup & Authentication (DONE)
-- [x] Initialize React + Vite project
-- [x] Setup TypeScript configuration
-- [x] Configure Tailwind CSS
-- [x] Setup React Router
-- [x] Create basic layout (Sidebar, Header) — RTL Arabic
-- [x] Create auth store (Zustand)
-- [x] Create API client (Axios) with interceptors
-- [x] Create Login page (مع error handling)
-- [x] Create Register page (2 steps)
-- [x] Auto-login after register
-- [x] Protected routes
-- [x] Sidebar active state (startsWith)
-
-#### ✓ Dashboard Pages (DONE)
-- [x] Dashboard overview page (stats cards + recent orders)
-- [x] Setup TanStack Query
-- [x] ProtectedRoute component
-- [x] ImageUpload reusable component (upload + reorder + remove)
-
-### ✓ Week 5: Product & Order Management (DONE)
-
-#### ✓ Product Pages (DONE)
-- [x] ProductsList — grid + list view, search, filters, delete, image carousel
-- [x] AddProduct — form كامل + image upload (5 صور) + reorder
-- [x] EditProduct — pre-filled form + image sync
-- [x] ViewProduct — صفحة تفاصيل
-- [x] Test product CRUD ✓
-
-#### ✓ Order Pages (DONE)
-- [x] OrdersList — table, search, status/payment filters, pagination, quick actions
-- [x] OrderDetails — full detail: items, pricing, customer, shipping, timeline
-  - [x] Status update modal + progress bar
-  - [x] Payment confirmation
-  - [x] Tracking info (Aramex, Bosta, DHL...)
-  - [x] Cancel order modal
-  - [x] Print support
-- [x] Test order management ✓
-
-### ✅ Week 6: Customers & Settings (DONE ✓)
-
-#### Customers Pages
-- [x] CustomersList — table مع search + pagination
-- [x] CustomerDetails — بيانات + order history + stats
-- [x] Add routes in App.tsx
-
-#### Settings Page
-- [x] Store info (name, description, subdomain)
-- [x] Logo + favicon upload
-- [x] Store colors
-- [x] Contact info
-
-#### Overview Improvements
-- [x] Recharts AreaChart (revenue last 7 days)
-- [x] Recharts BarChart (orders by status)
-- [x] Quick action buttons → Links
+- [x] Auth: Login + Register (2 steps) + Auto-login + Protected routes
+- [x] Onboarding Wizard (5 steps: StoreInfo → Template → Colors → Social → Done)
+- [x] Layout: Sidebar (RTL) + Mobile menu + Top bar + SearchBar + NotificationBell + Logo
+- [x] Overview: Stats cards + Revenue chart + Orders chart + Recent orders
+- [x] Products: List (grid+list) + Add + Edit + View + ImageUpload + Carousel
+- [x] Orders: List + Details (progress bar, items, pricing, tracking, timeline, modals)
+- [x] Customers: List + Details + Order history
+- [x] Store Design: 7 panels (StoreInfo, Template, Colors, Typography, Sections, SEO, Social)
+- [x] Reports: Full analytics page
+- [x] Settings: شاملة (متجر، لوجو، ألوان، تواصل)
+- [x] Staff: Management + RBAC permissions
+- [x] Notifications: Bell + Panel
 
 ---
 
-## 🛍 Phase 3: Storefront (Weeks 6-7)
+## 🟡 Phase 3: Customer Storefront (80% — Core Complete)
 
-### Week 6: Storefront Core
+### ✅ Done:
+- [x] Next.js 14 project setup
+- [x] Subdomain middleware (subdomain + path-based routing)
+- [x] Theme engine (CSS variables, Google Fonts)
+- [x] CartProvider (Context + useReducer + localStorage)
+- [x] 6 Templates (Spark, Volt, Épure, Bloom, Noir, Mosaic)
+- [x] Homepage (`/store/[subdomain]`) — dynamic template loading
+- [x] Products page (`/store/[subdomain]/products`) — search, sort, pagination
+- [x] Product detail (`/store/[subdomain]/products/[slug]`) — images, add to cart
+- [x] Cart page (`/store/[subdomain]/cart`) — items, quantities, totals
+- [x] Checkout page (`/store/[subdomain]/checkout`) — customer info + shipping + COD
+- [x] Order confirmation (`/store/[subdomain]/orders/[id]`) — success + order details
+- [x] API client functions (theme, products, merchant)
+- [x] Preview mode support
 
-#### Day 1-2: Project Setup
-- [ ] Initialize Next.js 14 project (App Router)
-- [ ] Configure TypeScript
-- [ ] Setup Tailwind CSS
-- [ ] Create middleware for subdomain detection
-- [ ] Configure API client
-- [ ] Create store context (fetch merchant data)
-
-#### Day 3-5: Product Pages
-- [ ] Create store homepage
-  - [ ] Hero section
-  - [ ] Featured products
-  - [ ] Categories
-- [ ] Create product listing page
-  - [ ] Product grid
-  - [ ] Filters & sorting
-  - [ ] Pagination
-- [ ] Create product detail page
-  - [ ] Product images
-  - [ ] Variant selection
-  - [ ] Add to cart button
-  - [ ] Product details
-- [ ] Make responsive
-
-### Week 7: Cart & Checkout
-
-#### Day 1-2: Shopping Cart
-- [ ] Create cart store (Zustand)
-- [ ] Create cart sidebar
-- [ ] Implement add to cart
-- [ ] Implement remove from cart
-- [ ] Implement quantity update
-- [ ] Cart persistence (localStorage)
-
-#### Day 3-5: Checkout Flow
-- [ ] Create checkout page
-  - [ ] Customer information form
-  - [ ] Shipping address form
-  - [ ] Order summary
-- [ ] Create order confirmation page
-- [ ] Implement order creation
-- [ ] Test complete checkout flow
-- [ ] Add form validation
+### ❌ Remaining:
+- [ ] اختبار Checkout → Order flow كامل
+- [ ] Mobile optimization
+- [ ] About page
+- [ ] Product reviews display (when backend ready)
+- [ ] Wishlist (future)
 
 ---
 
-## 🎨 Phase 4: Store Customization (Week 8)
+## ❌ Phase 4: Payment Integration (0%)
 
-### Backend
-- [ ] Create Template model
-- [ ] Create StoreConfig model
-- [ ] Seed template data (Modern, Minimal, Luxury)
-- [ ] Create template endpoints
-- [ ] Create store config endpoints
-- [ ] Create logo upload endpoint
+### نموذج طبقي (Tiered):
+- Free/Starter → Matgarco Paymob account (تلقائي، بدون إعداد)
+- Professional → Matgarco أو حساب Paymob خاص (API Key)
+- Business → أي منصة دفع + ربط كامل
 
-### Dashboard
-- [ ] Create Store Settings page
-- [ ] Create Template selection UI
-- [ ] Create Customization panel
-  - [ ] Color picker
-  - [ ] Font selector
-  - [ ] Logo upload
-  - [ ] Layout options
-- [ ] Create preview mode
-- [ ] Test customization
-
-### Storefront
-- [ ] Create template components
-  - [ ] Modern template
-  - [ ] Minimal template
-  - [ ] Luxury template
-- [ ] Load store config dynamically
-- [ ] Apply customization
-- [ ] Test template switching
+### TODO:
+- [ ] إنشاء حساب Paymob للمنصة
+- [ ] Backend: `paymentConfig` في Merchant model
+- [ ] Backend: `getPaymentConfig()` — routing حسب الخطة
+- [ ] Backend: Paymob API integration (create intention, webhooks)
+- [ ] Backend: Webhook endpoint لتأكيد الدفع
+- [ ] Storefront: خيارات الدفع في checkout (COD ✅ + Card + Wallet + Fawry)
+- [ ] Dashboard (Prof+): حقل "ربط حساب Paymob" + Test Connection
 
 ---
 
-## 💳 Phase 5: Subscriptions (Week 9)
+## ❌ Phase 5: Shipping Integration (0%)
 
-### Backend
-- [ ] Create Subscription model
-- [ ] Define subscription plans
-- [ ] Create plan limits configuration
-- [ ] Create subscription endpoints
-  - [ ] GET /plans
-  - [ ] POST /subscribe
-  - [ ] POST /upgrade
-  - [ ] POST /cancel
-- [ ] Implement plan limits enforcement
-- [ ] Calculate commission for Starter plan
-- [ ] Mock payment gateway integration
+### نموذج طبقي:
+- Free/Starter → يدوي (tracking number) أو Matgarco Bosta
+- Professional → Matgarco أو حساب Bosta خاص
+- Business → أي شركة شحن
 
-### Dashboard
-- [ ] Create Subscription page
-  - [ ] Current plan display
-  - [ ] Usage stats
-  - [ ] Upgrade/downgrade UI
-- [ ] Create plan selection modal
-- [ ] Create invoice list
-- [ ] Test subscription flow
+### TODO:
+- [ ] Phase 5a: يدوي (tracking number فقط) — **جزئياً جاهز**
+- [ ] Phase 5b: Bosta API integration (حساب مركزي)
+- [ ] Phase 5c: ربط حساب خاص (Professional+)
+- [ ] Dashboard: إعدادات الشحن
 
 ---
 
-## 📊 Phase 6: Analytics (Week 10)
+## ❌ Phase 6: Subscription Management (0%)
 
-### Backend
-- [ ] Create Analytics model
-- [ ] Create daily aggregation job
-- [ ] Create analytics endpoints
-  - [ ] GET /analytics/dashboard
-  - [ ] GET /analytics/sales
-  - [ ] GET /analytics/products
-  - [ ] GET /analytics/customers
-- [ ] Implement data calculations
-
-### Dashboard
-- [ ] Create Analytics page
-- [ ] Create sales charts (Recharts)
-  - [ ] Revenue over time
-  - [ ] Orders over time
-- [ ] Create product performance table
-- [ ] Create customer insights
-- [ ] Add date range filters
-- [ ] Create export functionality (CSV)
+- [ ] Backend: Subscription model + plan enforcement
+- [ ] Backend: Upgrade/Downgrade/Cancel endpoints
+- [ ] Dashboard: صفحة الاشتراك + Invoices
+- [ ] Integration مع Paymob لدفع الاشتراكات
 
 ---
 
-## 🤖 Phase 7: AI Features (Week 11)
+## ❌ Phase 7: Landing Page (0%)
 
-### AI Service
-- [ ] Setup FastAPI project
-- [ ] Install and configure Ollama
-- [ ] Download Llama 3 model
-- [ ] Create LLM service wrapper
-- [ ] Create description generator endpoint
-- [ ] Create SEO optimizer endpoint
-- [ ] Create category suggester endpoint
-- [ ] Test AI endpoints
-
-### Backend
-- [ ] Create AIUsage model
-- [ ] Create AI service client
-- [ ] Create AI proxy endpoints
-- [ ] Implement credit system
-- [ ] Track AI usage
-- [ ] Enforce credit limits
-
-### Dashboard
-- [ ] Create AI Tools section
-- [ ] Add "Generate Description" button to product form
-- [ ] Add "Optimize SEO" button
-- [ ] Create credit usage indicator
-- [ ] Show upgrade prompt when credits exhausted
-- [ ] Test AI features
+- [ ] Homepage (Hero, Features, Testimonials, CTA)
+- [ ] Pricing page (مقارنة الخطط)
+- [ ] Features + About + Contact pages
+- [ ] Responsive + Animations + SEO
 
 ---
 
-## 🌐 Phase 8: Landing Page (Week 12)
+## ❌ Phase 8: AI Features (0%)
 
-- [ ] Create homepage
-  - [ ] Hero section
-  - [ ] Features showcase
-  - [ ] Testimonials
-  - [ ] CTA sections
-- [ ] Create Pricing page
-  - [ ] Pricing cards
-  - [ ] Comparison table
-  - [ ] FAQ
-- [ ] Create Features page
-- [ ] Create About page
-- [ ] Create Contact page
-  - [ ] Contact form
-  - [ ] Form submission
-- [ ] Make fully responsive
-- [ ] Add animations
+- [ ] FastAPI + Ollama setup
+- [ ] Product description generator + SEO optimizer
+- [ ] Backend: AI proxy + credit system
+- [ ] Dashboard: AI tools in product form
 
 ---
 
-## 👨‍💼 Phase 9: Super Admin (Week 13)
+## ❌ Phase 9: Super Admin Dashboard (0%)
 
-### Backend
-- [ ] Create admin routes
-- [ ] Create admin dashboard stats endpoint
-- [ ] Create merchant management endpoints
-  - [ ] GET /admin/merchants
-  - [ ] GET /admin/merchants/:id
-  - [ ] POST /admin/merchants/:id/suspend
-  - [ ] POST /admin/merchants/:id/activate
-- [ ] Create revenue analytics endpoint
-
-### Admin Dashboard
-- [ ] Setup React project
-- [ ] Create admin authentication
-- [ ] Create Dashboard page
-  - [ ] KPI cards
-  - [ ] Revenue chart
-  - [ ] Growth metrics
-- [ ] Create Merchants page
-  - [ ] Merchant list
-  - [ ] Search & filters
-  - [ ] Suspend/activate actions
-- [ ] Create Merchant Detail page
-- [ ] Create Revenue page
-- [ ] Test admin features
+- [ ] React SPA + Admin auth
+- [ ] Dashboard (KPIs, revenue)
+- [ ] Merchants management + Subscriptions overview
 
 ---
 
-## 🚀 Phase 10: Advanced Features (Weeks 14-15)
+## ❌ Phase 10: Email & Notifications (0%)
 
-### Week 14: Reviews & Discounts
-
-#### Reviews System
-- [ ] Create Review model
-- [ ] Create review endpoints
-  - [ ] GET /products/:id/reviews
-  - [ ] POST /products/:id/reviews
-  - [ ] PATCH /reviews/:id/approve
-  - [ ] DELETE /reviews/:id
-- [ ] Add reviews to storefront
-- [ ] Add review management to dashboard
-- [ ] Calculate average ratings
-
-#### Discount System
-- [ ] Design discount/coupon schema
-- [ ] Create discount endpoints
-- [ ] Apply discounts to cart
-- [ ] Create coupon management UI
-- [ ] Test discount functionality
-
-### Week 15: Staff & Shipping
-
-#### Staff Management
-- [ ] Add staff role to User model
-- [ ] Create staff invitation flow
-- [ ] Create staff management UI
-- [ ] Implement permission system
-
-#### Shipping Settings
-- [ ] Create shipping configuration
-- [ ] Add shipping cost calculation
-- [ ] Create shipping settings UI
-- [ ] Integrate with checkout
+- [ ] Nodemailer / SendGrid setup
+- [ ] Order confirmation + Password reset emails
+- [ ] Arabic RTL email templates
+- [ ] Backend notification system — **جاهز** ✅
 
 ---
 
-## 🧪 Phase 11: Testing & Polish (Week 16)
+## ❌ Phase 11: Advanced Features (Future)
 
-### Testing
-- [ ] Write unit tests for critical functions
-- [ ] Write integration tests for API
-- [ ] End-to-end testing
-- [ ] Test all user flows
-- [ ] Performance testing
-- [ ] Security audit
-
-### Bug Fixes & Polish
-- [ ] Fix reported bugs
-- [ ] Improve error messages
-- [ ] Add loading states everywhere
-- [ ] Optimize database queries
-- [ ] Optimize images
-- [ ] Code cleanup
-- [ ] Documentation update
-
----
-
-## 🌍 Phase 12: Deployment (Week 17)
-
-### Preparation
-- [ ] Purchase domain (matgarco.com)
-- [ ] Setup MongoDB Atlas production
-- [ ] Setup Cloudinary account
-- [ ] Setup email service (SendGrid)
-- [ ] Setup Paymob account
-- [ ] Configure DNS records
-
-### Deployment
-- [ ] Deploy backend to Railway/VPS
-- [ ] Deploy frontend apps to Vercel
-- [ ] Configure environment variables
-- [ ] Setup SSL certificates
-- [ ] Configure wildcard subdomain
-- [ ] Test production environment
-
-### Monitoring
-- [ ] Setup error tracking (Sentry)
-- [ ] Setup uptime monitoring
-- [ ] Setup analytics
-- [ ] Create backup strategy
-- [ ] Document deployment process
-
----
-
-## 🎯 Future Enhancements (Post-Launch)
-
-- [ ] Mobile app (React Native)
-- [ ] Multi-language support
+- [ ] Product reviews system
+- [ ] Discount / coupon system
+- [ ] Wishlist
 - [ ] Advanced inventory management
-- [ ] Shipping integrations (Aramex, etc.)
-- [ ] Email marketing campaigns
+- [ ] Multi-language (AR/EN)
 - [ ] SMS notifications
-- [ ] Abandoned cart recovery
-- [ ] Advanced reporting
-- [ ] API for third-party integrations
-- [ ] Webhook system
-- [ ] Multi-currency support
 
 ---
 
-## 📝 Notes
+## ❌ Phase 12: Testing & Deployment
 
-- Each checkbox should be checked when task is completed
-- Update this file regularly
-- Add new tasks as needed
-- Mark blockers with ⚠️
-- Mark optional items with (Optional)
+- [ ] Unit tests + Integration tests + E2E
+- [ ] Domain + DNS + MongoDB Atlas + SSL
+- [ ] Deploy backend (Railway) + frontend (Vercel)
+- [ ] Wildcard subdomain + Sentry + Monitoring
+
+---
+
+## 📝 Dev Notes
+
+```bash
+# Backend (Port 5000)
+cd backend-node && npm run dev
+
+# Dashboard (Port 3002)
+cd dashboard-react && npx vite --port 3002
+
+# Storefront (Port 3001)
+cd storefront-next && npx next dev -p 3001
+```
+
+**Demo:** demo@matgarco.com / Demo1234
 
 ---
 

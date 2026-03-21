@@ -1,161 +1,342 @@
 # Matgarco - Multi-Tenant SaaS E-commerce Platform
 **تاريخ البدء:** 30 يناير 2026  
-**آخر تحديث:** 1 مارس 2026
+**آخر تحديث:** 17 مارس 2026
 
 ---
 
-## 📊 حالة المشروع الحالية
+## 📊 ملخص سريع
+
+| المكون | الحالة | النسبة |
+|--------|--------|--------|
+| Backend API | ✅ مكتمل | 100% |
+| Merchant Dashboard | ✅ مكتمل | 100% |
+| Customer Storefront | 🟡 أساسي جاهز | 80% |
+| Payment (Paymob) | ❌ لم يبدأ | 0% |
+| Landing Page | ❌ لم يبدأ | 0% |
+| Super Admin | ❌ لم يبدأ | 0% |
+| AI Service | ❌ لم يبدأ | 0% |
 
 ---
 
-## ✅ المكتمل بالكامل
+## ✅ Phase 1 — Backend API (100% ✓)
 
-### Phase 1 - Backend API (100% ✓)
-- [x] Backend API Foundation — **42 endpoint** شغالة
-  - Auth Controller (8 endpoints)
-  - Merchant Controller (10 endpoints)
-  - Product Controller (8 endpoints) + Upload (2 endpoints)
-  - Order Controller (7 endpoints)
-  - Customer Controller (4 endpoints)
-  - Upload Controller: single image + multiple images (Multer + Cloudinary)
-- [x] Multi-Tenant Architecture (tenant isolation middleware)
-- [x] JWT authentication (access 15m + refresh 7d)
-- [x] Database Models: User, Merchant, Product, Order, Customer
-- [x] Cloudinary integration (cloud: dkafalsne) — رفع صور شغال
-- [x] Demo Account: `demo@matgarco.com` / `Demo1234`
-  - مربوط بـ merchant "Demo Store" (Professional plan)
-- [x] Bug fixes:
-  - Double password hashing → fixed
-  - Product stock field (quantity ↔ stock mapping) → fixed
-  - Update product validation (relaxed schema) → fixed
-  - Image object format handling → fixed
+### الكود الفعلي:
+- **11 Controller** | **7 Models** | **11 Route Files** | **~55+ endpoint**
 
-### Phase 2 - Merchant Dashboard (85% ✓)
+### Controllers:
+| Controller | Endpoints | الحالة |
+|-----------|-----------|--------|
+| `auth.controller.ts` | Register, Login, Refresh, Logout, Me, Verify Email, Forgot/Reset Password | ✅ |
+| `merchant.controller.ts` | CRUD + Stats + Subdomain check + Onboarding + Suspend/Activate | ✅ |
+| `product.controller.ts` | CRUD + Duplicate + Featured + Slug + Search + Filters | ✅ |
+| `order.controller.ts` | Create (checkout) + List + Details + Status + Payment + Cancel + Tracking | ✅ |
+| `customer.controller.ts` | List + Details + Update + Orders | ✅ |
+| `upload.controller.ts` | Single + Multiple image upload (Multer + Cloudinary) | ✅ |
+| `theme.controller.ts` | Get + Save Draft + Publish + Reset + Apply Template + Storefront Published/Preview | ✅ |
+| `staff.controller.ts` | List + Create + Update + Delete + Reset Password (مع RBAC) | ✅ |
+| `notification.controller.ts` | List + Mark Read + Mark All Read + Delete | ✅ |
+| `search.controller.ts` | Global Search (products, orders, customers) | ✅ |
+| `storefront.controller.ts` | Products + Product by Slug + Categories (public, no auth) | ✅ |
+
+### Models:
+| Model | الوصف |
+|-------|-------|
+| `User.ts` | Auth, roles (super_admin, merchant_owner, merchant_staff, customer), OAuth |
+| `Merchant.ts` | Store info, subscription, limits, stats, subdomain |
+| `Product.ts` | Variants, SEO, images, inventory, categories |
+| `Order.ts` | Items, timeline, commission, shipping, payment |
+| `Customer.ts` | Contact, addresses, order stats |
+| `ThemeSettings.ts` | Draft/Published theme, colors, fonts, sections, header/footer config |
+| `Notification.ts` | In-app notifications for merchant events |
+
+### Middleware:
+- `auth.middleware.ts` — JWT auth + `authorize()` + `checkPermission()` (RBAC)
+- `tenantIsolation.middleware.ts` — merchantId filtering
+- `upload.middleware.ts` — Multer + Cloudinary
+- `validation.middleware.ts` — Zod schema validation
+- `error.middleware.ts` — Global error handler + AppError class
+
+### Security:
+- [x] JWT (access 15m + refresh 7d)
+- [x] bcrypt password hashing
+- [x] Zod input validation
+- [x] Helmet + CORS
+- [x] Tenant isolation middleware
+- [x] Role-based access control (RBAC)
+- [x] Permission-based staff access
+
+---
+
+## ✅ Phase 2 — Merchant Dashboard (100% ✓)
+
+### Tech Stack:
+- React 18.2 + Vite 5 + TypeScript
+- Tailwind CSS 3 | React Router v6 | Zustand | TanStack Query
+- Lucide React icons | Sonner toasts | Recharts
+
+### الصفحات الكاملة:
 
 #### Authentication ✅
-- [x] Login page (مع error handling كامل)
-- [x] Register page (2 خطوات: بيانات المستخدم + بيانات المتجر)
+- [x] Login page (error handling كامل)
+- [x] Register page (خطوتين: بيانات المستخدم + بيانات المتجر)
 - [x] Auto-login بعد التسجيل
-- [x] Protected routes
+- [x] Protected routes + RequirePermission component
 - [x] Axios interceptor لتجديد الـ token تلقائياً
 
+#### Onboarding Wizard ✅
+- [x] StepStoreInfo — اسم المتجر والوصف
+- [x] StepTemplate — اختيار القالب
+- [x] StepColors — ألوان المتجر
+- [x] StepSocial — روابط السوشيال
+- [x] StepDone — رسالة الإكمال
+
 #### Layout ✅
-- [x] Sidebar navigation (RTL عربي)
-- [x] Mobile hamburger menu
-- [x] Active state ذكي (startsWith بدل exact match)
-- [x] Top bar
-- [x] Dashboard layout responsive
+- [x] Sidebar navigation (RTL عربي) + Mobile hamburger
+- [x] Active state ذكي (startsWith)
+- [x] Top bar مع SearchBar + NotificationBell
+- [x] Logo image في الـ sidebar
 
-#### Overview Page ✅
-- [x] Welcome banner
+#### Overview (Dashboard Home) ✅
 - [x] Stats cards (orders, revenue, products, customers)
-- [x] Recent orders list
-- [x] Quick action buttons
+- [x] Revenue AreaChart (Recharts — آخر 7 أيام)
+- [x] Orders BarChart (بالحالة)
+- [x] Recent orders + Quick actions
 
-#### Products Management ✅ (كامل)
-- [x] **ProductsList** — Grid + List view, search, filters, pagination, delete
-  - Image carousel في cards (يمين/شمال)
-  - عرض stock صح
-  - Handle both string and object image formats
-- [x] **AddProduct** — form كامل مع:
-  - Image upload (Cloudinary) حتى 5 صور
-  - Tags, category, status, price, compare price
-  - Inventory (stock, SKU, barcode)
-  - Cost price
-  - Image reorder (up/down)
-- [x] **EditProduct** — نفس AddProduct + pre-filled بيانات الـ product
-  - صور بتتحمل من الـ API صح
-  - Image sync مع useEffect
-- [x] **ViewProduct** — صفحة عرض تفاصيل المنتج
-- [x] **ImageUpload component** — reusable مع:
-  - رفع single + multiple
-  - Preview grid
-  - Remove image (مع callback للـ parent)
-  - Reorder (ArrowUp/ArrowDown)
-  - Sync مع currentImages prop
-  - folder prop بيتبعت في الـ upload request
+#### Products Management ✅
+- [x] ProductsList — Grid + List view, search, filters, pagination, delete, image carousel
+- [x] AddProduct — Form كامل + Image upload (5 صور) + Tags, category, status, inventory
+- [x] EditProduct — Pre-filled + image sync
+- [x] ViewProduct — صفحة تفاصيل
+- [x] ImageUpload component — reusable (upload, preview, remove, reorder)
 
-#### Orders Management ✅ (كامل)
-- [x] **OrdersList** — table مع:
-  - Search (orderNumber, customer name/email)
-  - Filter بالحالة (pending/confirmed/processing/shipped/delivered/cancelled)
-  - Filter بحالة الدفع
-  - Pagination (15 per page)
-  - Quick actions (confirm/process)
-  - Arabic status labels + color badges
-- [x] **OrderDetails** — صفحة تفاصيل كاملة:
-  - Status progress bar (5 خطوات)
-  - جدول المنتجات مع صور وأسعار
-  - ملخص التسعير (subtotal, shipping, tax, discount, total)
-  - بيانات العميل (اسم, email, تليفون)
-  - عنوان الشحن
-  - بيانات الدفع + تأكيد الدفع button
-  - Tracking info section (Aramex, DHL, Bosta...)
-  - Timeline/سجل الأحداث
-  - عمولة المنصة
-  - ملاحظات العميل والتاجر
-  - Print support
-  - 3 modals: تحديث الحالة, إضافة tracking, إلغاء الطلب
+#### Orders Management ✅
+- [x] OrdersList — Table + search + status/payment filters + pagination + quick actions
+- [x] OrderDetails — Status progress bar + items table + pricing + customer + shipping + tracking + timeline + modals (update status, tracking, cancel)
+- [x] Print support
 
----
+#### Customers Management ✅
+- [x] CustomersList — Table + search + pagination
+- [x] CustomerDetails — بيانات + order history + stats
 
-## 🚧 المتبقي في Dashboard React
+#### Store Design ✅
+- [x] StoreDesignPage — واجهة تصميم المتجر مع preview panel
+- [x] 7 Customization Panels:
+  - StoreInfoPanel (اسم، وصف، لوجو)
+  - TemplatePanel (اختيار من 6 قوالب)
+  - ColorsPanel (ألوان المتجر)
+  - TypographyPanel (خطوط)
+  - SectionsPanel (ترتيب وتفعيل أقسام الصفحة الرئيسية)
+  - SeoPanel (عنوان، وصف، كلمات مفتاحية)
+  - SocialPanel (روابط السوشيال)
+- [x] Draft/Publish system (حفظ مسودة → نشر)
 
-### Priority 1: Customers Management ❌
-- [ ] CustomersList — table مع search + pagination
-- [ ] CustomerDetails — بيانات العميل + سجل الطلبات + إحصائيات
-- [ ] إضافة route في App.tsx
+#### Reports ✅
+- [x] Reports page (30KB — تحليلات شاملة)
 
-### Priority 2: Settings Page ❌
-- [ ] بيانات المتجر (الاسم، الوصف، الـ subdomain)
-- [ ] رفع لوجو + favicon
-- [ ] ألوان المتجر
-- [ ] معلومات التواصل
+#### Staff Management ✅
+- [x] StaffPage — إدارة الموظفين مع RBAC
+- [x] إضافة / تعديل / حذف / إعادة تعيين كلمة مرور
+- [x] Permission system (products, orders, customers, reports, settings, staff)
 
-### Priority 3: Dashboard Overview بداتا حقيقية ❌
-- [ ] Charts (Recharts) للمبيعات
-- [ ] Top products
-- [ ] إحصائيات دقيقة من الـ API
+#### Settings ✅
+- [x] Settings page (39KB — شاملة)
+- [x] بيانات المتجر، لوجو، ألوان، تواصل
+- [x] Notification bell + panel
+
+#### Components المشتركة ✅
+- [x] SearchBar — بحث شامل (products, orders, customers)
+- [x] NotificationPanel — عرض وإدارة الإشعارات
+- [x] Can component — conditional rendering حسب الصلاحيات
+- [x] RequirePermission — route-level permission guard
 
 ---
 
-## 📅 الخطة القادمة (بعد إكمال Dashboard)
+## 🟡 Phase 3 — Customer Storefront (80%)
 
-### Phase 3: Store Frontend (Next.js storefront)
-1. **Customer Storefront**
-   - Store homepage مع المنتجات
-   - Product detail page
-   - Shopping cart
-   - Checkout process
-   - Order tracking page
-   - Subdomain routing setup (Next.js middleware)
+### Tech Stack:
+- Next.js 14 (App Router) + TypeScript
+- Tailwind CSS | Lucide React
 
-### Phase 4: Advanced Features
-1. **Email Service (Nodemailer)**
-   - Order confirmation emails
-   - Password reset emails
-   - Arabic RTL email templates
+### ✅ ما هو مكتمل:
 
-2. **Store Customization**
-   - Store settings (logo, colors, theme)
-   - Template selection (Modern, Minimal, Luxury)
+#### Middleware & Infrastructure ✅
+- [x] Subdomain routing middleware (subdomain + path-based)
+- [x] Theme engine (CSS variables injection, Google Fonts)
+- [x] Preview mode support
+- [x] CartProvider (Context + useReducer + localStorage persistence)
+- [x] ThemeDocumentSync (dir/lang sync)
+- [x] PreviewLinkInterceptor (keeps ?preview=1 on navigation)
 
-3. **Analytics & Reports**
-   - Sales charts (Recharts)
-   - Revenue over time
-   - Top products
-   - Customer insights
-   - CSV export
+#### 6 Store Templates ✅
+| Template | الوصف | النوع |
+|----------|-------|-------|
+| **Spark** | Clean, modern, versatile | Light |
+| **Volt** | Dark, sporty, powerful | Dark |
+| **Épure** | Warm, fashion-forward | Light |
+| **Bloom** | Soft, feminine, beauty | Light |
+| **Noir** | Luxury, sophisticated | Dark |
+| **Mosaic** | Colorful, creative, handmade | Light |
 
-### Phase 5: AI Integration
-1. **AI Service (FastAPI + Ollama)**
-   - Product description generator
-   - SEO optimizer
-   - Category suggester
+كل template فيه: `Header.tsx` + `Footer.tsx` + `HomePage.tsx` + `ProductCard.tsx`
+- Spark عنده 8 sections: AnnouncementBar, Hero, FeaturedProducts, CategoriesGrid, PromoBanner, NewArrivals, TrustBadges, Newsletter
 
-### Phase 6: Payment & Admin
-1. **Payment (Paymob)**
-2. **Super Admin Dashboard**
+#### Store Pages ✅
+- [x] `/store/[subdomain]` — Homepage (dynamic template loading)
+- [x] `/store/[subdomain]/products` — Product listing (search, sort, pagination)
+- [x] `/store/[subdomain]/products/[slug]` — Product detail + related products
+- [x] `/store/[subdomain]/cart` — Cart page (items, quantities, total)
+- [x] `/store/[subdomain]/checkout` — Checkout form (customer info + shipping + payment)
+- [x] `/store/[subdomain]/orders/[id]` — Order confirmation page
+
+#### API Client ✅
+- [x] `fetchStorefrontTheme()` + `fetchPreviewTheme()`
+- [x] `fetchProducts()` (with params: page, limit, category, search, sort, featured)
+- [x] `fetchProductBySlug()`
+- [x] `fetchMerchantBySubdomain()`
+
+### ❌ ما هو ناقص:
+- [ ] اختبار Checkout → Order flow كامل (ممكن يحتاج تعديلات)
+- [ ] صفحة "عن المتجر" (About)
+- [ ] Wishlist functionality
+- [ ] Product reviews display
+- [ ] Mobile-first optimization وتحسينات الأداء
+
+---
+
+## ❌ Phase 4 — Payment Integration (0%)
+
+### 💳 نموذج الدفع الطبقي (Tiered Payment Model):
+
+| الخطة | طريقة الدفع | العمولة | من الذي يهيئها؟ |
+|-------|------------|---------|------------|
+| **Free Trial** | Matgarco فقط (حسابنا على Paymob) | 3% | لا شيء - تلقائي |
+| **Starter** | Matgarco فقط | 2% | لا شيء - تلقائي |
+| **Professional** | Matgarco أو حساب Paymob خاص | 0% | يدخل API Key في الإعدادات |
+| **Business** | أي منصة دفع + ربط خاص | 0% | مرونة كاملة |
+
+### طرق الدفع:
+- 💵 الدفع عند الاستلام (COD) — **جاهز في الـ checkout** ✅
+- 💳 كروت ائتمان (Visa / Mastercard) — عبر Paymob
+- 📱 محافظ إلكترونية (Vodafone Cash, Orange, Etisalat)
+- 🏪 Fawry (رقم مرجعي)
+
+### المطلوب:
+- [ ] إنشاء حساب Paymob للمنصة
+- [ ] Backend: إضافة `paymentConfig` في Merchant model
+- [ ] Backend: `getPaymentConfig()` — routing حسب الخطة
+- [ ] Backend: Paymob API integration (create intention, webhooks)
+- [ ] Backend: Webhook endpoint لتأكيد الدفع
+- [ ] Storefront: إضافة خيارات الدفع في checkout
+- [ ] Dashboard (Professional+): حقل "ربط حساب Paymob" + Test Connection
+- [ ] Dashboard: تحويلات التاجر (Payouts) — لاحقاً
+
+---
+
+## ❌ Phase 5 — Shipping Integration (0%)
+
+### 🚚 نموذج الشحن الطبقي:
+
+| الخطة | الشحن | التجربة |
+|-------|-------|---------|
+| **Free / Starter** | يدوي (التاجر يشحن بنفسه ويدخل tracking) أو عبر Matgarco (حساب Bosta مركزي) | بسيط |
+| **Professional** | Matgarco أو حساب Bosta خاص | يدخل API Key |
+| **Business** | أي شركة شحن (Aramex, J&T, DHL...) | ربط كامل |
+
+### المطلوب:
+- [ ] Phase 5a: الشحن اليدوي (tracking number فقط) — **جاهز جزئياً** في OrderDetails
+- [ ] Phase 5b: Bosta API integration (حساب مركزي)
+- [ ] Phase 5c: ربط حساب Bosta خاص (Professional+)
+- [ ] Dashboard: إعدادات الشحن (مناطق، أسعار، شركات)
+
+---
+
+## ❌ Phase 6 — Subscription Management (0%)
+
+### المطلوب:
+- [ ] Backend: Subscription model + plan enforcement
+- [ ] Backend: Upgrade/Downgrade/Cancel endpoints
+- [ ] Backend: إنفاد حدود الخطة (products limit, AI credits)
+- [ ] Dashboard: صفحة الاشتراك (الخطة الحالية، الاستخدام، الترقية)
+- [ ] Dashboard: Invoices list
+- [ ] Integration مع Paymob لدفع الاشتراكات
+
+---
+
+## ❌ Phase 7 — Landing Page (0%)
+
+### المطلوب:
+- [ ] Next.js 14 project
+- [ ] Homepage (Hero, Features, Testimonials, CTA)
+- [ ] Pricing page (مقارنة الخطط)
+- [ ] Features page + About page + Contact page
+- [ ] Responsive + Animations
+- [ ] SEO optimization
+
+---
+
+## ❌ Phase 8 — AI Features (0%)
+
+### المطلوب:
+- [ ] FastAPI + Ollama setup
+- [ ] Product description generator
+- [ ] SEO optimizer
+- [ ] Category suggester
+- [ ] Backend: AI proxy + credit system
+- [ ] Dashboard: AI tools integration in product form
+
+---
+
+## ❌ Phase 9 — Super Admin Dashboard (0%)
+
+### المطلوب:
+- [ ] React SPA project setup
+- [ ] Admin auth (super_admin role)
+- [ ] Dashboard (KPIs, revenue charts)
+- [ ] Merchants management (list, details, suspend/activate)
+- [ ] Revenue analytics
+- [ ] Subscriptions overview
+
+---
+
+## ❌ Phase 10 — Email & Notifications (0%)
+
+### المطلوب:
+- [ ] Nodemailer / SendGrid setup
+- [ ] Order confirmation email
+- [ ] Password reset email
+- [ ] Arabic RTL email templates
+- [ ] In-app notifications — **Backend جاهز** ✅
+
+---
+
+## ❌ Phase 11 — Advanced Features (Future)
+
+- [ ] Product reviews system
+- [ ] Discount / coupon system
+- [ ] Wishlist
+- [ ] Advanced inventory management
+- [ ] CSV export
+- [ ] Multi-language support (AR/EN)
+- [ ] SMS notifications
+
+---
+
+## ❌ Phase 12 — Testing & Deployment
+
+### Testing:
+- [ ] Unit tests
+- [ ] Integration tests
+- [ ] E2E testing
+- [ ] Performance testing
+
+### Deployment:
+- [ ] Domain (matgarco.com) + DNS
+- [ ] MongoDB Atlas production
+- [ ] Backend → Railway / DO
+- [ ] Frontend → Vercel
+- [ ] SSL + Wildcard subdomain
+- [ ] Sentry error tracking
+- [ ] Backup strategy
 
 ---
 
@@ -163,39 +344,35 @@
 
 ### Backend Stack
 - **Runtime:** Node.js 20 LTS
-- **Framework:** Express.js 4.x
-- **Language:** TypeScript 5.x
+- **Framework:** Express.js 4.x + TypeScript 5.x
 - **Database:** MongoDB 7.x + Mongoose ODM
-- **Auth:** JWT (access 15m + refresh 7d)
+- **Auth:** JWT (access 15m + refresh 7d) + RBAC
 - **Validation:** Zod schemas
 - **Build:** tsx (esbuild) for hot reload
+- **Media:** Cloudinary (cloud: dkafalsne)
 
-### Frontend Stack
-- **Framework:** React 18.2
-- **Build Tool:** Vite 5.4.21
+### Dashboard Stack
+- **Framework:** React 18.2 + Vite 5.4
 - **Language:** TypeScript
 - **Routing:** React Router v6
 - **State:** Zustand + TanStack Query
 - **Styling:** Tailwind CSS 3.x
+- **Charts:** Recharts
 - **Icons:** Lucide React
+- **Toasts:** Sonner
 
-### Database Schema
-```
-Collections:
-├── users (auth, profile, merchantId link)
-├── merchants (stores, subscriptions, limits)
-├── products (inventory, variants, images)
-├── orders (items, payments, shipping)
-├── customers (contact, order history)
-├── categories (product organization)
-└── templates (store themes - future)
-```
+### Storefront Stack
+- **Framework:** Next.js 14 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **Cart:** Context + useReducer + localStorage
+- **Templates:** 6 (Spark, Volt, Épure, Bloom, Noir, Mosaic)
 
 ### Multi-Tenancy Model
 - **Type:** Single Database, Shared Schema
 - **Isolation:** Middleware filters by merchantId
-- **Routing:** Subdomain-based (shop.matgarco.com)
-- **Security:** JWT contains merchantId for authorization
+- **Routing:** Subdomain-based (shop.matgarco.com) + Path-based fallback
+- **Security:** JWT contains merchantId + RBAC permissions
 
 ---
 
@@ -210,33 +387,6 @@ Collections:
 
 ---
 
-## 🐛 Known Issues & Fixes
-
-### ✅ Resolved
-1. ~~Backend MODULE_NOT_FOUND~~ → Fixed with tsx watch mode
-2. ~~Duplicate calculateCommission export~~ → Removed duplicate
-3. ~~Registration 400 Bad Request~~ → Fixed field validation
-4. ~~Merchant creation failure~~ → Added missing fields (email, dates)
-5. ~~Auto-login not working~~ → Register endpoint returns JWT
-6. ~~Double password hashing~~ → Let User model pre-save hook handle it only
-7. ~~403 Forbidden on dashboard~~ → Linked user.merchantId in seed script
-8. ~~Cloudinary upload error~~ → Fixed cloud name (was UUID, now 'dkafalsne')
-9. ~~Product creation 400~~ → Relaxed Zod schema (description optional)
-10. ~~Edit product route 404~~ → Added route + created EditProduct component
-11. ~~Image not showing in cards~~ → Handle both string and object image formats
-12. ~~Stock showing 0~~ → Added toJSON transform (quantity → stock)
-13. ~~Edit form fields empty~~ → Fixed response parsing (data.data.product)
-14. ~~Update product 400~~ → Relaxed updateProductSchema + image transform in controller
-15. ~~Images not syncing in ImageUpload~~ → Added useEffect to sync currentImages prop
-16. ~~JSX syntax error in ProductsList~~ → Wrapped carousel in relative div
-17. ~~ImageUpload broken functions~~ → Fixed missing closing brace in removeImage
-18. ~~Sidebar active state wrong~~ → Changed to startsWith() for nested routes
-
-### 🔍 To Monitor
-- Mongoose duplicate index warning (non-critical)
-
----
-
 ## 📝 Development Notes
 
 ### Environment Setup
@@ -247,7 +397,11 @@ npm run dev
 
 # Frontend Dashboard (Port 3002)
 cd dashboard-react
-npm run dev
+npx vite --port 3002
+
+# Storefront (Port 3001)
+cd storefront-next
+npx next dev -p 3001
 ```
 
 ### Demo Account
@@ -258,18 +412,40 @@ npm run dev
 ### Important Files
 - **Backend Config:** `backend-node/.env`
 - **Frontend Config:** `dashboard-react/.env` → `VITE_API_URL=http://localhost:5000/api`
+- **Storefront Config:** `storefront-next/.env.example`
 - **API Client:** `dashboard-react/src/lib/axios.ts`
-- **API Methods:** `dashboard-react/src/lib/api.ts`
 - **Auth Store:** `dashboard-react/src/store/authStore.ts`
-- **Routes:** `dashboard-react/src/App.tsx`
-- **Seed Script:** `backend-node/src/scripts/seedDemo.ts`
-
-### Cloudinary Config
-- **Cloud Name:** dkafalsne
-- **API Key:** 974316371493397
-- Configured in `backend-node/.env`
+- **Theme Engine:** `storefront-next/src/lib/theme.ts`
+- **Template Registry:** `storefront-next/src/lib/templates/registry.ts`
 
 ---
 
-**Last Updated By:** GitHub Copilot  
-**Next Review Date:** مع كل phase جديدة
+## 🐛 Known Issues & Fixes (Resolved)
+1. ~~Double password hashing~~ → Fixed
+2. ~~403 Forbidden on dashboard~~ → Linked user.merchantId
+3. ~~Cloudinary upload error~~ → Fixed cloud name
+4. ~~Product creation 400~~ → Relaxed Zod schema
+5. ~~Image not showing in cards~~ → Handle string + object formats
+6. ~~Stock showing 0~~ → Added toJSON transform
+7. ~~Edit form fields empty~~ → Fixed response parsing
+8. ~~Sidebar active state wrong~~ → Changed to startsWith()
+
+---
+
+## 📌 ملاحظات مهمة
+
+> [!IMPORTANT]
+> **الأولوية القادمة:**
+> 1. اختبار Checkout flow كامل (Storefront → Backend → Order)
+> 2. Payment Integration (Paymob — platform-level أولاً)
+> 3. Landing Page
+
+> [!NOTE]
+> **قرار تصميمي:** نموذج الدفع والشحن طبقي.
+> Free/Starter يستخدم حسابات المنصة. Professional+ يقدر يربط حسابه الخاص.
+> ده بيعطي التاجر البسيط تجربة "plug and play" وبيعطي التاجر المحترف المرونة.
+
+---
+
+**Last Updated:** 17 مارس 2026  
+**Next Milestone:** Phase 4 — Payment Integration (Paymob)
