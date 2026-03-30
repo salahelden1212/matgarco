@@ -34,7 +34,6 @@ export default async function ProductDetailPage({ params }: Props) {
     <StorePageShell subdomain={subdomain}>
       <ProductDetailClient
         product={product}
-        theme={theme}
         subdomain={subdomain}
         relatedProducts={relatedProducts}
       />

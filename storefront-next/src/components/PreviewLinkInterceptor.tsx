@@ -4,9 +4,9 @@ import { useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 /**
- * Client component that intercepts all anchor clicks while in preview mode
- * and appends ?preview=1 so the draft theme is loaded on every navigation.
- * Place this once inside the store layout.
+ * Client component that intercepts anchor clicks to:
+ * 1. Maintain ?preview=1 for draft themes.
+ * 2. Prepend /store/[subdomain] for path-based routing on localhost. 
  */
 export default function PreviewLinkInterceptor() {
   const searchParams = useSearchParams();
@@ -14,13 +14,11 @@ export default function PreviewLinkInterceptor() {
   const isPreview = searchParams.get('preview') === '1';
 
   useEffect(() => {
-    if (!isPreview) return;
-
     const handler = (e: MouseEvent) => {
       const anchor = (e.target as Element).closest('a');
       if (!anchor) return;
 
-      const href = anchor.getAttribute('href');
+      let href = anchor.getAttribute('href');
       if (!href) return;
 
       // Skip external links, anchors, mailto, tel, javascript
@@ -34,14 +32,40 @@ export default function PreviewLinkInterceptor() {
         return;
       }
 
-      // Already has preview param — let it go through normally
-      if (href.includes('preview=1')) return;
+      let modified = false;
 
-      e.preventDefault();
-      e.stopPropagation();
+      // --- 1. Fix Path-Based Routing (Localhost shortcut) ---
+      // If we are browsing via `http://localhost:3001/store/demo-store`
+      // A link to `/categories` should become `/store/demo-store/categories`
+      if (window.location.pathname.startsWith('/store/')) {
+        const subdomainMatch = window.location.pathname.match(/^\/store\/([^\/]+)/);
+        const subdomain = subdomainMatch ? subdomainMatch[1] : null;
+        
+        if (subdomain && href.startsWith('/') && !href.startsWith('/store/')) {
+          href = `/store/${subdomain}${href === '/' ? '' : href}`;
+          modified = true;
+        }
+      }
 
-      const separator = href.includes('?') ? '&' : '?';
-      router.push(`${href}${separator}preview=1`);
+      // --- 2. Maintain Preview State ---
+      if (isPreview) {
+        let qsObj = new URLSearchParams(href.split('?')[1] || '');
+        if (!qsObj.has('preview')) qsObj.set('preview', '1');
+        
+        const masterId = searchParams.get('master_theme_id');
+        if (masterId && !qsObj.has('master_theme_id')) {
+          qsObj.set('master_theme_id', masterId);
+        }
+        
+        href = `${href.split('?')[0]}?${qsObj.toString()}`;
+        modified = true;
+      }
+
+      if (modified) {
+        e.preventDefault();
+        e.stopPropagation();
+        router.push(href);
+      }
     };
 
     // Use capture phase to intercept before Next.js Link handler

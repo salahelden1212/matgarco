@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   ChevronUp, ChevronDown, Eye, EyeOff, ChevronRight,
   Megaphone, Image as ImageIcon, Star, LayoutGrid, Target,
-  Sparkles, ShieldCheck, Mail, GripVertical,
+  Sparkles, ShieldCheck, Mail, GripVertical, Plus, Trash2,
 } from 'lucide-react';
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -18,6 +18,7 @@ type FieldDef =
   | { type: 'toggle';   key: string; label: string };
 
 interface SectionMeta {
+  type: string;
   label: string;
   description: string;
   Icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
@@ -25,7 +26,7 @@ interface SectionMeta {
   fields: FieldDef[];
 }
 
-const SECTION_META: Record<string, SectionMeta> = {
+const SECTION_META: Record<string, Omit<SectionMeta, 'type'>> = {
   announcement_bar: {
     label: 'شريط الإعلانات',
     description: 'شريط ملوّن أعلى الصفحة لعروض أو رسائل سريعة',
@@ -128,6 +129,11 @@ const SECTION_META: Record<string, SectionMeta> = {
   },
 };
 
+const SECTION_OPTIONS = Object.entries(SECTION_META).map(([type, meta]) => ({
+  type,
+  ...meta,
+}));
+
 /* ── Trust badges special options ────────────────── */
 const BADGE_OPTIONS = [
   { key: 'shipping',  label: 'شحن سريع' },
@@ -148,12 +154,36 @@ interface Props {
 export default function SectionsPanel({ draft, onChange }: Props) {
   const sections: any[] = draft?.sections || [];
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showAddMenu, setShowAddMenu] = useState(false);
 
-  // Keep a ref to always access the latest sections (avoids stale closures)
+  // Keep a ref to always access the latest sections
   const sectionsRef = useRef(sections);
   sectionsRef.current = sections;
 
   const sorted = [...sections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  /* ── Add Section ─────────────────────────── */
+  const addSection = (type: string) => {
+    const newSection = {
+      id: `${type}_${Date.now()}`,
+      type,
+      enabled: true,
+      order: sections.length,
+      settings: {},
+    };
+    
+    // In our theme system, legacy uses "config" while new uses "settings", we will safely use settings and fallback config
+    onChange({ sections: [...sectionsRef.current, newSection] });
+    setShowAddMenu(false);
+    setExpandedId(newSection.id);
+  };
+
+  /* ── Delete Section ──────────────────────── */
+  const deleteSection = (id: string) => {
+    const updated = sectionsRef.current.filter((s) => s.id !== id).map((s, i) => ({ ...s, order: i }));
+    onChange({ sections: updated });
+    if (expandedId === id) setExpandedId(null);
+  };
 
   /* ── Reorder ─────────────────────────── */
   const reorder = (index: number, direction: 'up' | 'down') => {
@@ -173,10 +203,10 @@ export default function SectionsPanel({ draft, onChange }: Props) {
     onChange({ sections: updated });
   };
 
-  /* ── Update config field (always immediate — text debounce is handled by DebouncedInput) */
-  const updateConfig = useCallback((sectionId: string, key: string, value: any) => {
+  /* ── Update config field ─────────────── */
+  const updateSettings = useCallback((sectionId: string, key: string, value: any) => {
     const updated = sectionsRef.current.map((s) =>
-      s.id === sectionId ? { ...s, config: { ...s.config, [key]: value } } : s
+      s.id === sectionId ? { ...s, settings: { ...(s.settings || s.config), [key]: value } } : s
     );
     onChange({ sections: updated });
   }, [onChange]);
@@ -184,25 +214,30 @@ export default function SectionsPanel({ draft, onChange }: Props) {
   /* ── Toggle a badge ──────────────────── */
   const toggleBadge = (sectionId: string, badgeKey: string) => {
     const section = sections.find((s) => s.id === sectionId);
-    const current: string[] = section?.config?.badges || ['shipping', 'guarantee', 'secure', 'support'];
+    const setObj = section?.settings || section?.config || {};
+    const current: string[] = setObj.badges || ['shipping', 'guarantee', 'secure', 'support'];
     const updated = current.includes(badgeKey)
       ? current.filter((b) => b !== badgeKey)
       : [...current, badgeKey];
-    updateConfig(sectionId, 'badges', updated);
+    updateSettings(sectionId, 'badges', updated);
   };
 
   return (
-    <div className="space-y-3">
-      <h3 className="font-bold text-sm text-gray-800">أقسام الصفحة الرئيسية</h3>
-      <p className="text-xs text-gray-400">رتّب الأقسام، أظهر أو أخفِ، وعدّل محتوى كل قسم</p>
+    <div className="space-y-4 pb-20 relative">
+      <div>
+        <h3 className="font-bold text-sm text-[var(--text)]">أقسام الصفحة الرئيسية</h3>
+        <p className="text-xs text-[var(--text-muted)] mt-1">رتّب الأقسام، أضف أقساماً جديدة، وعدّل المحتوى</p>
+      </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {sorted.map((section, index) => {
-          const meta = SECTION_META[section.id];
+          const typeKey = section.type || section.id;
+          const meta = SECTION_META[typeKey];
           if (!meta) return null;
 
           const isExpanded = expandedId === section.id;
           const { Icon } = meta;
+          const settingsObj = section.settings || section.config || {};
 
           return (
             <div
@@ -216,96 +251,106 @@ export default function SectionsPanel({ draft, onChange }: Props) {
               {/* ── Row header ────────────────── */}
               <div className="flex items-center gap-1.5 p-2.5">
                 {/* Grip icon */}
-                <GripVertical className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
+                <GripVertical className="w-3.5 h-3.5 text-gray-300 flex-shrink-0 cursor-move" />
 
                 {/* Section icon + name */}
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : section.id)}
-                  className="flex items-center gap-2 flex-1 min-w-0 text-right"
+                  className="flex items-center gap-3 flex-1 min-w-0 text-right group"
                 >
                   <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-opacity group-hover:opacity-80"
                     style={{ backgroundColor: `${meta.iconColor}15` }}
                   >
-                    <Icon className="w-3.5 h-3.5" style={{ color: meta.iconColor }} />
+                    <Icon className="w-4 h-4" style={{ color: meta.iconColor }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-semibold truncate ${section.enabled ? 'text-gray-800' : 'text-gray-400'}`}>
+                    <p className={`text-xs font-bold truncate ${section.enabled ? 'text-gray-800' : 'text-gray-400'}`}>
                       {meta.label}
                     </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5 truncate">{typeKey}</p>
                   </div>
                   <ChevronRight
-                    className={`w-3.5 h-3.5 text-gray-300 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
+                    className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
                   />
                 </button>
 
-                {/* Order arrows */}
-                <div className="flex flex-col gap-px flex-shrink-0">
+                {/* Actions */}
+                <div className="flex items-center gap-1 flex-shrink-0 border-r border-gray-100 pr-1">
+                  <div className="flex flex-col gap-px">
+                    <button
+                      onClick={() => reorder(index, 'up')}
+                      disabled={index === 0}
+                      className="p-1 hover:text-indigo-600 disabled:opacity-20 text-gray-400"
+                    >
+                      <ChevronUp className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => reorder(index, 'down')}
+                      disabled={index === sorted.length - 1}
+                      className="p-1 hover:text-indigo-600 disabled:opacity-20 text-gray-400"
+                    >
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                  </div>
+
                   <button
-                    onClick={() => reorder(index, 'up')}
-                    disabled={index === 0}
-                    className="p-0.5 hover:text-indigo-600 disabled:opacity-20 text-gray-400"
+                    onClick={() => toggleEnabled(section.id)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      section.enabled ? 'text-indigo-600 hover:bg-indigo-50' : 'text-gray-400 hover:bg-gray-50'
+                    }`}
+                    title={section.enabled ? 'إخفاء' : 'إظهار'}
                   >
-                    <ChevronUp className="w-3 h-3" />
+                    {section.enabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                   </button>
+                  
                   <button
-                    onClick={() => reorder(index, 'down')}
-                    disabled={index === sorted.length - 1}
-                    className="p-0.5 hover:text-indigo-600 disabled:opacity-20 text-gray-400"
+                    onClick={() => deleteSection(section.id)}
+                    className="p-2 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                    title="حذف القسم"
                   >
-                    <ChevronDown className="w-3 h-3" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-
-                {/* Toggle enable/disable */}
-                <button
-                  onClick={() => toggleEnabled(section.id)}
-                  className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${
-                    section.enabled ? 'text-indigo-600 bg-indigo-50' : 'text-gray-300 bg-gray-100'
-                  }`}
-                  title={section.enabled ? 'إخفاء' : 'إظهار'}
-                >
-                  {section.enabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                </button>
               </div>
 
               {/* ── Expanded config ──────────── */}
               {isExpanded && (
-                <div className="px-3 pb-3 pt-1 border-t border-gray-100 space-y-3">
-                  <p className="text-[10px] text-gray-400">{meta.description}</p>
+                <div className="px-4 pb-4 pt-2 border-t border-gray-100 space-y-4 bg-gray-50/50 rounded-b-xl">
+                  <p className="text-[11px] text-gray-500 font-medium">{meta.description}</p>
 
                   {/* Standard fields */}
                   {meta.fields.map((field) => (
                     <FieldRenderer
                       key={field.key}
                       field={field}
-                      value={section.config?.[field.key]}
-                      onChangeValue={(val) => updateConfig(section.id, field.key, val)}
+                      value={settingsObj[field.key]}
+                      onChangeValue={(val) => updateSettings(section.id, field.key, val)}
                     />
                   ))}
 
                   {/* Trust badges special UI */}
-                  {section.id === 'trust_badges' && (
+                  {typeKey === 'trust_badges' && (
                     <div className="space-y-2">
-                      <label className="block text-[11px] font-semibold text-gray-600">الشارات المفعّلة</label>
-                      <div className="grid grid-cols-2 gap-1.5">
+                      <label className="block text-xs font-bold text-gray-700">الشارات المفعّلة</label>
+                      <div className="grid grid-cols-2 gap-2">
                         {BADGE_OPTIONS.map((badge) => {
-                          const isOn = (section.config?.badges || ['shipping', 'guarantee', 'secure', 'support']).includes(badge.key);
+                          const isOn = (settingsObj.badges || ['shipping', 'guarantee', 'secure', 'support']).includes(badge.key);
                           return (
                             <button
                               key={badge.key}
                               onClick={() => toggleBadge(section.id, badge.key)}
-                              className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border text-[11px] font-medium transition-all ${
+                              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border text-xs font-bold transition-all ${
                                 isOn
-                                  ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
-                                  : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                                  ? 'border-indigo-300 bg-white text-indigo-700 shadow-sm'
+                                  : 'border-gray-200 text-gray-500 bg-transparent hover:border-gray-300 hover:bg-white'
                               }`}
                             >
-                              <div className={`w-3 h-3 rounded-sm border-2 flex items-center justify-center
-                                ${isOn ? 'border-indigo-500 bg-indigo-500' : 'border-gray-300'}`}
+                              <div className={`w-3.5 h-3.5 rounded-[4px] border-[1.5px] flex items-center justify-center transition-colors
+                                ${isOn ? 'border-indigo-600 bg-indigo-600' : 'border-gray-300 bg-white'}`}
                               >
                                 {isOn && (
-                                  <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
+                                  <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                   </svg>
                                 )}
@@ -323,6 +368,53 @@ export default function SectionsPanel({ draft, onChange }: Props) {
           );
         })}
       </div>
+
+      {/* ── Add Section Button ───────────────── */}
+      <div className="pt-2">
+        {!showAddMenu ? (
+          <button
+            onClick={() => setShowAddMenu(true)}
+            className="w-full py-3.5 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            إضافة قسم جديد
+          </button>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-hidden">
+            <div className="p-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/80">
+              <h4 className="font-bold text-sm text-gray-800">اختر القسم</h4>
+              <button
+                onClick={() => setShowAddMenu(false)}
+                className="text-xs font-semibold text-gray-500 hover:text-gray-800"
+              >
+                إلغاء
+              </button>
+            </div>
+            <div className="max-h-80 overflow-y-auto p-2 grid grid-cols-1 gap-1">
+              {SECTION_OPTIONS.map((opt) => (
+                <button
+                  key={opt.type}
+                  onClick={() => addSection(opt.type)}
+                  className="flex flex-col items-start gap-1 p-3 rounded-lg hover:bg-gray-50 transition-colors text-right group"
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
+                      style={{ backgroundColor: `${opt.iconColor}15` }}
+                    >
+                      <opt.Icon className="w-4 h-4" style={{ color: opt.iconColor }} />
+                    </div>
+                    <div>
+                      <span className="font-bold text-sm text-gray-800 block">{opt.label}</span>
+                      <span className="text-[10px] text-gray-500 block mt-0.5">{opt.description}</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -331,7 +423,7 @@ export default function SectionsPanel({ draft, onChange }: Props) {
    Generic field renderer
    ──────────────────────────────────────────────────────────────────────────── */
 
-/* ── Debounced text input: local state for smooth typing, propagates after delay ── */
+/* ── Debounced text input ── */
 function DebouncedInput({ value: propValue, onDebouncedChange, delay = 700, as: Element = 'input', ...rest }: {
   value: string;
   onDebouncedChange: (val: string) => void;
@@ -344,7 +436,6 @@ function DebouncedInput({ value: propValue, onDebouncedChange, delay = 700, as: 
   const latestCb = useRef(onDebouncedChange);
   latestCb.current = onDebouncedChange;
 
-  // Sync from ext props only when the user isn't actively typing
   const isFocused = useRef(false);
   useEffect(() => {
     if (!isFocused.current) setLocal(propValue);
@@ -357,7 +448,6 @@ function DebouncedInput({ value: propValue, onDebouncedChange, delay = 700, as: 
     timerRef.current = setTimeout(() => latestCb.current(val), delay);
   };
 
-  // On blur, flush immediately so changes aren't lost
   const handleBlur = () => {
     isFocused.current = false;
     clearTimeout(timerRef.current);
@@ -380,8 +470,8 @@ function FieldRenderer({ field, value, onChangeValue }: {
   value: any;
   onChangeValue: (val: any) => void;
 }) {
-  const labelClass = 'block text-[11px] font-semibold text-gray-600 mb-1';
-  const inputClass = 'w-full px-2.5 py-2 rounded-lg border border-gray-200 outline-none focus:border-indigo-400 text-xs text-gray-700 placeholder:text-gray-300';
+  const labelClass = 'block text-xs font-bold text-gray-700 mb-1.5';
+  const inputClass = 'w-full px-3 py-2.5 rounded-lg border border-gray-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm font-medium text-gray-800 placeholder:text-gray-400 bg-white transition-shadow';
 
   switch (field.type) {
     case 'text':
@@ -407,27 +497,29 @@ function FieldRenderer({ field, value, onChangeValue }: {
             value={value ?? ''}
             onDebouncedChange={(v) => onChangeValue(v)}
             placeholder={field.placeholder}
-            rows={2}
-            className={`${inputClass} resize-none`}
+            rows={3}
+            className={`${inputClass} resize-y min-h-[80px]`}
           />
         </div>
       );
 
     case 'color':
       return (
-        <div className="flex items-center gap-2">
-          <input
-            type="color"
-            value={value || '#6366F1'}
-            onChange={(e) => onChangeValue(e.target.value)}
-            className="w-8 h-8 rounded-lg cursor-pointer border-0 outline-none bg-transparent flex-shrink-0"
-          />
-          <div className="flex-1">
-            <label className="text-[11px] font-semibold text-gray-600">{field.label}</label>
+        <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-gray-200">
+          <div className="relative w-8 h-8 rounded-md overflow-hidden flex-shrink-0 shadow-sm border border-black/10">
+            <input
+              type="color"
+              value={value || '#6366F1'}
+              onChange={(e) => onChangeValue(e.target.value)}
+              className="absolute -top-2 -left-2 w-12 h-12 cursor-pointer border-0 outline-none p-0 m-0"
+            />
           </div>
-          <code className="text-[10px] bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 font-mono text-gray-400">
-            {value || '---'}
-          </code>
+          <div className="flex-1 min-w-0 flex items-center justify-between">
+            <label className="text-xs font-bold text-gray-700 truncate">{field.label}</label>
+            <code className="text-[11px] bg-gray-50 border border-gray-200 rounded px-2 py-1 font-mono text-gray-500">
+              {(value || '#6366F1').toUpperCase()}
+            </code>
+          </div>
         </div>
       );
 
@@ -441,7 +533,7 @@ function FieldRenderer({ field, value, onChangeValue }: {
             onChange={(e) => onChangeValue(Number(e.target.value))}
             min={field.min}
             max={field.max}
-            className={`${inputClass} w-24`}
+            className={`${inputClass} max-w-[120px]`}
           />
         </div>
       );
@@ -464,15 +556,17 @@ function FieldRenderer({ field, value, onChangeValue }: {
 
     case 'toggle':
       return (
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={!!value}
-            onChange={(e) => onChangeValue(e.target.checked)}
-            className="sr-only peer"
-          />
-          <div className="w-8 h-[18px] bg-gray-200 peer-checked:bg-indigo-500 rounded-full relative transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:w-3.5 after:h-3.5 after:transition-transform peer-checked:after:translate-x-3.5" />
-          <span className="text-[11px] font-semibold text-gray-600">{field.label}</span>
+        <label className="flex items-center justify-between p-3 rounded-lg border border-gray-200 bg-white cursor-pointer hover:border-gray-300 transition-colors">
+          <span className="text-xs font-bold text-gray-700">{field.label}</span>
+          <div className="relative">
+            <input
+              type="checkbox"
+              checked={!!value}
+              onChange={(e) => onChangeValue(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+          </div>
         </label>
       );
 

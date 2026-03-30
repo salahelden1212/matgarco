@@ -11,11 +11,11 @@ const nextConfig = {
     return [
       {
         // Allow the dashboard (port 3002) to embed preview iframes
-        source: '/store/:path*',
+        source: '/:path*',
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "frame-ancestors 'self' http://localhost:3002 https://*.matgarco.com",
+            value: "frame-ancestors 'self' http://localhost:3002 http://localhost:5173 https://*.matgarco.com",
           },
           // Remove the default X-Frame-Options for store pages
           // so the CSP frame-ancestors directive takes precedence

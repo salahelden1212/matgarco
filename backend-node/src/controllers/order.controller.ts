@@ -7,6 +7,7 @@ import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { AuthRequest } from '../types';
 import { generateOrderNumber, calculateCommission } from '../utils/helpers';
 import { SUBSCRIPTION_PLANS } from '../utils/constants';
+import { PAYMOB_FEE_RATE, MATGARCO_COMMISSION } from './payout.controller';
 import {
   notifyNewOrder,
   notifyOrderStatusChanged,
@@ -166,9 +167,18 @@ export const createOrder = asyncHandler(
 
     const total = subtotal + shippingCost + tax - discount;
 
-    // Calculate platform commission
-    const commissionRate = SUBSCRIPTION_PLANS[merchant.subscriptionPlan]?.commissionRate || 0;
+    // Calculate platform commission (legacy field)
+    const plan = merchant.subscriptionPlan as string;
+    const commissionRate = (SUBSCRIPTION_PLANS as any)[plan]?.commissionRate || 0;
     const commissionAmount = calculateCommission(total, commissionRate);
+
+    // ── Aggregator commission breakdown ──
+    const usesMerchantPaymob = plan === 'business' && !!(merchant as any).paymobConfig?.secretKey;
+    const paymobFeeRate = usesMerchantPaymob ? 0 : PAYMOB_FEE_RATE;
+    const matgarcoRate   = usesMerchantPaymob ? 0 : (MATGARCO_COMMISSION[plan] || 0);
+    const paymobFee   = paymentMethod === 'cash' ? 0 : Math.round(total * paymobFeeRate * 100) / 100;
+    const matgarcoFee = paymentMethod === 'cash' ? 0 : Math.round(total * matgarcoRate * 100) / 100;
+    const merchantNet = total - paymobFee - matgarcoFee;
 
     // Generate order number
     const orderNumber = generateOrderNumber();
@@ -215,6 +225,12 @@ export const createOrder = asyncHandler(
         percentage: commissionRate,
         amount: commissionAmount,
       },
+      // Aggregator payout fields
+      paymobFee,
+      matgarcoFee,
+      merchantNet,
+      usesMerchantPaymob,
+      payoutStatus: 'pending',
     });
 
     // Update customer stats

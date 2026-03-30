@@ -19,6 +19,12 @@ import notificationRoutes from './routes/notification.routes';
 import searchRoutes from './routes/search.routes';
 import themeRoutes from './routes/theme.routes';
 import storefrontRoutes from './routes/storefront.routes';
+import superAdminRoutes from './routes/superAdmin.routes';
+import subscriptionRoutes from './routes/subscription.routes';
+import paymentRoutes from './routes/payment.routes';
+import payoutRoutes from './routes/payout.routes';
+import storeThemeRoutes from './routes/storeTheme.routes';
+import publicThemesRoutes from './routes/publicThemes.routes';
 
 const app: Application = express();
 
@@ -32,6 +38,7 @@ app.use(cors({
     process.env.STOREFRONT_URL || 'http://localhost:3001',
     process.env.DASHBOARD_URL || 'http://localhost:3002',
     process.env.ADMIN_URL || 'http://localhost:3003',
+    'http://localhost:5173', // Super Admin Vite default
   ],
   credentials: true,
 }));
@@ -80,6 +87,12 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/theme', themeRoutes);
 app.use('/api/storefront', storefrontRoutes);
+app.use('/api/super-admin', superAdminRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/payouts', payoutRoutes);
+app.use('/api/store-themes', storeThemeRoutes);
+app.use('/api/themes', publicThemesRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

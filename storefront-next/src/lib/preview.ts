@@ -13,3 +13,14 @@ export function isPreviewMode(): boolean {
     return false;
   }
 }
+
+/**
+ * Super Admin Template Maker preview injection
+ */
+export function getMasterThemeId(): string | null {
+  try {
+    return headers().get('x-master-theme');
+  } catch {
+    return null;
+  }
+}

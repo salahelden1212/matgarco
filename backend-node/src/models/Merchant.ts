@@ -62,6 +62,24 @@ export interface IMerchant extends Document {
   isActive: boolean;
   suspensionReason?: string;
   
+  // Payment Gateway (Business plan: own Paymob)
+  paymobConfig?: {
+    secretKey: string;
+    publicKey: string;
+    integrationId?: string;
+  };
+
+  // Payout / Settlement
+  payoutInfo: {
+    bankName?: string;
+    accountNumber?: string;
+    accountName?: string;
+    iban?: string;
+    pendingBalance: number;    // رصيد لم يُحول بعد
+    totalPaidOut: number;      // إجمالي ما تم تحويله
+    lastPayoutAt?: Date;
+  };
+  
   // Meta
   onboardingCompleted: boolean;
   createdAt: Date;
@@ -226,6 +244,24 @@ const merchantSchema = new Schema<IMerchant>(
     },
     suspensionReason: {
       type: String,
+    },
+
+    // Payment Gateway (Business plan: own Paymob)
+    paymobConfig: {
+      secretKey: { type: String, select: false },     // encrypted ideally
+      publicKey: { type: String },
+      integrationId: { type: String },
+    },
+
+    // Payout / Settlement
+    payoutInfo: {
+      bankName: { type: String },
+      accountNumber: { type: String },
+      accountName: { type: String },
+      iban: { type: String },
+      pendingBalance: { type: Number, default: 0 },
+      totalPaidOut: { type: Number, default: 0 },
+      lastPayoutAt: { type: Date },
     },
     
     // Meta

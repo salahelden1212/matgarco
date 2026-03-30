@@ -16,7 +16,8 @@ import Merchant from '../models/Merchant';
 import Product from '../models/Product';
 import Customer from '../models/Customer';
 import Order from '../models/Order';
-import { ThemeSettings, buildDefaultTheme } from '../models/ThemeSettings';
+import StoreTheme from '../models/StoreTheme';
+import Theme from '../models/Theme';
 
 dotenv.config();
 
@@ -253,7 +254,7 @@ const seed = async () => {
     await Product.deleteMany({ merchantId });
     await Order.deleteMany({ merchantId });
     await Customer.deleteMany({ merchantId });
-    await ThemeSettings.deleteMany({ merchantId });
+    await StoreTheme.deleteMany({ merchantId });
     console.log('🧹  Cleared old demo data');
 
     // ── 3. Products ──────────────────────────────────────────────────────────
@@ -409,36 +410,34 @@ const seed = async () => {
     });
     console.log('✅  Updated merchant stats');
 
-    // ── 7. Theme Settings (Spark: published + draft) ──────────────────────────
-    const defaultTheme = buildDefaultTheme('spark', 'متجر النخبة');
-    // Override with some nice colors
-    (defaultTheme as any).colors = {
-      primary: '#6366F1',
-      secondary: '#8B5CF6',
-      accent: '#EC4899',
-      background: '#FFFFFF',
-      surface: '#F9FAFB',
-      text: '#111827',
-      textMuted: '#6B7280',
-      border: '#E5E7EB',
-    };
-    (defaultTheme as any).store = {
-      name: 'متجر النخبة',
-      description: 'أفضل منتجات الموضة والإلكترونيات',
-      currency: 'EGP',
-      phone: '01000000000',
-      email: 'demo@matgarco.com',
-      address: 'القاهرة، مصر',
-    };
-
-    await ThemeSettings.create({
-      merchantId,
-      published: defaultTheme,
-      draft:     defaultTheme,
-      hasUnpublishedChanges: false,
-      lastPublishedAt: new Date(),
-    });
-    console.log('✅  Theme settings created (Spark template, indigo/violet)');
+    // Find the Spark base theme (seeded by seedThemes.ts)
+    const sparkTheme = await Theme.findOne({ slug: 'spark' });
+    if (sparkTheme) {
+      await StoreTheme.create({
+        merchantId,
+        themeId: sparkTheme._id,
+        name: `Custom ${sparkTheme.name}`,
+        isActive: true,
+        globalSettings: {
+          colors: {
+            primary: '#6366F1',
+            secondary: '#8B5CF6',
+            accent: '#EC4899',
+            background: '#FFFFFF',
+            surface: '#F9FAFB',
+            text: '#111827',
+            textMuted: '#6B7280',
+            border: '#E5E7EB',
+          },
+          typography: sparkTheme.globalSettings?.typography || { headingFont: 'Cairo', fontFamily: 'Cairo', fontSize: 'md' },
+          layout: sparkTheme.globalSettings?.layout || { direction: 'rtl', language: 'ar' },
+        },
+        pages: sparkTheme.pages || { home: { sections: [] } },
+      });
+      console.log('✅  StoreTheme created (Spark base, indigo/violet overrides)');
+    } else {
+      console.log('⚠️  No Spark theme found in DB. Run seedThemes.ts first!');
+    }
 
     // ── 8. Fresh test user (wizard flow) ─────────────────────────────────────
     await User.deleteOne({ email: 'fresh@matgarco.com' });

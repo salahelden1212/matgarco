@@ -19,7 +19,6 @@ export default async function CheckoutPage({ params }: Props) {
     <StorePageShell subdomain={subdomain}>
       <CheckoutClient
         subdomain={subdomain}
-        theme={{ colors: theme.colors, store: theme.store }}
       />
     </StorePageShell>
   );

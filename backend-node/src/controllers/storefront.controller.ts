@@ -8,6 +8,7 @@ import Merchant from '../models/Merchant';
 import Product from '../models/Product';
 import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { calculatePagination } from '../utils/helpers';
+import StoreTheme from '../models/StoreTheme'; // Added import for StoreTheme
 
 /** GET /api/storefront/:subdomain/products */
 export const getStorefrontProducts = asyncHandler(async (req: Request, res: Response) => {
@@ -114,4 +115,69 @@ export const getStorefrontCategories = asyncHandler(async (req: Request, res: Re
   });
 
   res.json({ success: true, data: { categories: categories.filter(Boolean) } });
+});
+
+/**
+ * @desc    Get public active theme JSON for a store
+ * @route   GET /api/storefront/:subdomain/theme
+ * @access  Public
+ */
+export const getStorefrontTheme = asyncHandler(async (req: Request, res: Response) => {
+  const { subdomain } = req.params;
+  const merchant = await Merchant.findOne({ subdomain: subdomain.toLowerCase(), isActive: true }).lean();
+  if (!merchant) throw new AppError('Store not found', 404);
+
+  const activeTheme = await StoreTheme.findOne({ merchantId: (merchant as any)._id, isActive: true })
+    .populate('themeId', 'slug isPremium').lean();
+
+  res.json({
+    success: true,
+    data: {
+      theme: activeTheme || null,
+      merchant,
+    }
+  });
+});
+
+/**
+ * @desc    Get raw Master Theme for Super Admin Template Maker preview
+ * @route   GET /api/storefront/theme-preview/:themeId
+ * @access  Public
+ */
+export const getStorefrontThemePreview = asyncHandler(async (req: Request, res: Response) => {
+  const { themeId } = req.params;
+  const Theme = (await import('../models/Theme')).default;
+  
+  if (!themeId || themeId.length !== 24) {
+     throw new AppError('Invalid Theme ID', 400);
+  }
+
+  const baseTheme = await Theme.findById(themeId).lean();
+  if (!baseTheme) throw new AppError('Base Theme not found', 404);
+
+  // Return a mock payload that translates BaseTheme to the StoreTheme schema expected by the render engine
+  res.json({
+    success: true,
+    data: {
+      theme: {
+        _id: baseTheme._id,
+        themeId: baseTheme,
+        merchantId: 'demo-preview',
+        isActive: true,
+        published: {
+          globalSettings: (baseTheme as any).globalSettings,
+          pages: (baseTheme as any).pages,
+        },
+        draft: {
+          globalSettings: (baseTheme as any).globalSettings,
+          pages: (baseTheme as any).pages,
+        }
+      },
+      merchant: {
+        storeName: 'معاينة القالب الأساسي',
+        subdomain: 'demo',
+        currency: 'EGP',
+      }
+    }
+  });
 });

@@ -177,3 +177,19 @@ export const themeAPI = {
   applyTemplate: (templateId: string) =>
     axios.post('/theme/apply-template', { templateId }),
 };
+
+// Subscription API
+export const subscriptionAPI = {
+  getPlans: () => axios.get('/subscriptions/plans'),
+  getMy: () => axios.get('/subscriptions/my'),
+  getInvoices: (params?: { page?: number; limit?: number }) =>
+    axios.get('/subscriptions/invoices', { params }),
+  subscribe: (planId: string, billingCycle: 'monthly' | 'yearly') =>
+    axios.post('/subscriptions/subscribe', { planId, billingCycle }),
+  upgrade: (planId: string, billingCycle: 'monthly' | 'yearly') =>
+    axios.post('/subscriptions/upgrade', { planId, billingCycle }),
+  downgrade: (planId: string) =>
+    axios.post('/subscriptions/downgrade', { planId }),
+  cancel: (reason?: string) =>
+    axios.post('/subscriptions/cancel', { reason }),
+};

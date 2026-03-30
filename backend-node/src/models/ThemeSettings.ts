@@ -1,3 +1,15 @@
+/**
+ * @deprecated — This model has been replaced by Theme + StoreTheme.
+ * 
+ * DO NOT IMPORT THIS FILE in new code.
+ * 
+ * The new system:
+ *   - Theme (models/Theme.ts)      → Base themes managed by Super Admin
+ *   - StoreTheme (models/StoreTheme.ts) → Merchant's customised copy
+ *
+ * This file is kept only so Mongoose doesn't error if the old collection
+ * still exists in the database. It will be deleted once all data is migrated.
+ */
 import mongoose, { Document, Schema } from 'mongoose';
 
 // ─── Section config ───────────────────────────────────────────────────────────

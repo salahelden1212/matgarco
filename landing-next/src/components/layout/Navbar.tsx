@@ -39,8 +39,8 @@ export function Navbar() {
       className={cn(
         "fixed top-0 w-full z-50 transition-all duration-300",
         isScrolled
-          ? "bg-white/80 backdrop-blur-xl border-b border-slate-200/80 py-3 shadow-sm"
-          : "bg-transparent py-5"
+          ? "bg-white/80 backdrop-blur-xl border-b border-slate-200/80 py-1 shadow-sm"
+          : "bg-transparent py-2"
       )}
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
@@ -49,8 +49,8 @@ export function Navbar() {
           <Image
             src="/logo.png"
             alt="Matgarco Logo"
-            width={120}
-            height={40}
+            width={140}
+            height={30}
             className="object-contain"
             priority
           />

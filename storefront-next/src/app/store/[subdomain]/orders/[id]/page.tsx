@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import StorePageShell from '@/components/StorePageShell';
 import { fetchStorefrontTheme } from '@/lib/api';
-import { CheckCircle, Package, MapPin, Phone, Mail, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Package, MapPin, Phone, Mail, ArrowLeft, User } from 'lucide-react';
 
 interface Props {
   params: { subdomain: string; id: string };
@@ -32,68 +32,56 @@ export default async function OrderConfirmationPage({ params }: Props) {
 
   if (!themeRes) return notFound();
 
-  const { theme } = themeRes;
-  const c = theme.colors;
-  const currency = theme.store?.currency || 'ج.م';
+  const currency = 'ج.م';
 
   return (
     <StorePageShell subdomain={subdomain}>
-      <div className="max-w-2xl mx-auto px-4 py-16">
+      <div className="max-w-3xl mx-auto px-4 py-16">
         {/* Success Header */}
-        <div className="text-center mb-10">
-          <div
-            className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-6"
-            style={{ backgroundColor: '#22c55e20' }}
-          >
-            <CheckCircle className="w-10 h-10 text-green-500" />
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-6 bg-green-50 border-[6px] border-green-100 shadow-sm">
+            <CheckCircle className="w-12 h-12 text-green-500" />
           </div>
-          <h1 className="text-3xl font-black mb-2" style={{ color: c.text }}>
+          <h1 className="text-4xl font-black mb-3 text-[var(--text)] font-heading">
             تم تأكيد طلبك! 🎉
           </h1>
-          <p className="text-sm" style={{ color: c.textMuted }}>
-            شكراً لتسوقك معنا. سنتواصل معك قريباً.
+          <p className="text-base font-medium text-[var(--text-muted)]">
+            شكراً لتسوقك معنا. سنتواصل معك قريباً لتأكيد موعد التسليم.
           </p>
           {order && (
-            <div
-              className="inline-block mt-4 px-4 py-2 rounded-full text-sm font-bold"
-              style={{ backgroundColor: c.primary + '20', color: c.primary }}
-            >
-              رقم الطلب: {order.orderNumber}
+            <div className="inline-flex items-center mt-6 px-6 py-2.5 rounded-full text-sm font-black bg-[var(--primary)] bg-opacity-10 text-[var(--primary)] border border-[var(--primary)] border-opacity-20 shadow-sm">
+              رقم الطلب: <span className="ml-2 font-mono text-base">{order.orderNumber}</span>
             </div>
           )}
         </div>
 
         {order ? (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Order Items */}
-            <div
-              className="rounded-2xl overflow-hidden"
-              style={{ border: `1px solid ${c.border}`, backgroundColor: c.surface }}
-            >
-              <div className="flex items-center gap-2 px-5 py-4 border-b" style={{ borderColor: c.border }}>
-                <Package className="w-4 h-4" style={{ color: c.primary }} />
-                <h2 className="font-bold text-sm" style={{ color: c.text }}>المنتجات المطلوبة</h2>
+            <div className="rounded-[var(--radius)] overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-md">
+              <div className="flex items-center gap-3 px-6 py-5 border-b border-[var(--border)] bg-[var(--background)]">
+                <div className="p-2 bg-[var(--primary)] bg-opacity-10 rounded-lg">
+                  <Package className="w-5 h-5 text-[var(--primary)]" />
+                </div>
+                <h2 className="font-black text-lg text-[var(--text)] font-heading">المنتجات المطلوبة</h2>
               </div>
-              <div className="divide-y" style={{ borderColor: c.border }}>
+              <div className="divide-y divide-[var(--border)] max-h-96 overflow-y-auto">
                 {order.items?.map((item: any, i: number) => (
-                  <div key={i} className="flex items-center gap-3 px-5 py-3">
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold" style={{ color: c.text }}>{item.productName}</p>
-                      <p className="text-xs" style={{ color: c.textMuted }}>الكمية: {item.quantity}</p>
+                  <div key={i} className="flex items-center gap-4 px-6 py-4">
+                    <div className="flex-1 min-w-0 pr-2">
+                      <p className="font-bold text-base text-[var(--text)]">{item.productName}</p>
+                      <p className="text-sm font-medium text-[var(--text-muted)] mt-1">الكمية: {item.quantity}</p>
                     </div>
-                    <span className="text-sm font-bold" style={{ color: c.primary }}>
+                    <span className="text-base font-black flex-shrink-0 text-[var(--primary)]">
                       {item.subtotal?.toLocaleString()} {currency}
                     </span>
                   </div>
                 ))}
               </div>
               {/* Total */}
-              <div
-                className="flex justify-between items-center px-5 py-4 border-t"
-                style={{ borderColor: c.border, backgroundColor: c.background }}
-              >
-                <span className="font-black" style={{ color: c.text }}>الإجمالي</span>
-                <span className="text-lg font-black" style={{ color: c.primary }}>
+              <div className="flex justify-between items-center px-6 py-5 border-t border-[var(--border)] bg-[var(--background)]">
+                <span className="font-black text-lg text-[var(--text-muted)]">الإجمالي الكلي</span>
+                <span className="text-2xl font-black text-[var(--primary)]">
                   {order.total?.toLocaleString()} {currency}
                 </span>
               </div>
@@ -101,53 +89,64 @@ export default async function OrderConfirmationPage({ params }: Props) {
 
             {/* Shipping Info */}
             {order.shippingAddress && (
-              <div
-                className="rounded-2xl p-5 space-y-2"
-                style={{ border: `1px solid ${c.border}`, backgroundColor: c.surface }}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <MapPin className="w-4 h-4" style={{ color: c.primary }} />
-                  <h2 className="font-bold text-sm" style={{ color: c.text }}>عنوان الشحن</h2>
+              <div className="rounded-[var(--radius)] p-6 space-y-4 border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-[var(--primary)] bg-opacity-10 rounded-lg">
+                    <MapPin className="w-5 h-5 text-[var(--primary)]" />
+                  </div>
+                  <h2 className="font-black text-lg text-[var(--text)] font-heading">معلومات الشحن</h2>
                 </div>
-                <p className="text-sm" style={{ color: c.text }}>
-                  {order.shippingAddress.firstName} {order.shippingAddress.lastName}
-                </p>
-                <p className="text-sm" style={{ color: c.textMuted }}>
-                  {order.shippingAddress.street}، {order.shippingAddress.city}
-                </p>
-                <div className="flex gap-4 mt-2">
-                  {order.customerInfo?.phone && (
-                    <span className="flex items-center gap-1 text-xs" style={{ color: c.textMuted }}>
-                      <Phone className="w-3 h-3" /> {order.customerInfo.phone}
-                    </span>
-                  )}
-                  {order.customerInfo?.email && (
-                    <span className="flex items-center gap-1 text-xs" style={{ color: c.textMuted }}>
-                      <Mail className="w-3 h-3" /> {order.customerInfo.email}
-                    </span>
-                  )}
+                
+                <div className="space-y-3 pr-2">
+                  <div className="flex items-start gap-3">
+                    <User className="w-4 h-4 mt-0.5 text-[var(--text-muted)]" />
+                    <div>
+                      <p className="font-bold text-sm text-[var(--text)]">مستلم الطلب</p>
+                      <p className="text-base text-[var(--text-muted)]">{order.shippingAddress.firstName} {order.shippingAddress.lastName}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-4 h-4 mt-0.5 text-[var(--text-muted)]" />
+                    <div>
+                      <p className="font-bold text-sm text-[var(--text)]">العنوان</p>
+                      <p className="text-base text-[var(--text-muted)]">
+                        {order.shippingAddress.street}، {order.shippingAddress.state}، {order.shippingAddress.city}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-8 mt-2 pt-4 border-t border-[var(--border)] border-dashed">
+                    {order.customerInfo?.phone && (
+                      <span className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)]">
+                        <Phone className="w-4 h-4" /> {order.customerInfo.phone}
+                      </span>
+                    )}
+                    {order.customerInfo?.email && (
+                      <span className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)]">
+                        <Mail className="w-4 h-4" /> {order.customerInfo.email}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
           </div>
         ) : (
-          <div
-            className="rounded-2xl p-8 text-center"
-            style={{ backgroundColor: c.surface, border: `1px solid ${c.border}` }}
-          >
-            <p className="text-sm" style={{ color: c.textMuted }}>تم استلام طلبك بنجاح! سيتم التواصل معك قريباً.</p>
+          <div className="rounded-[var(--radius)] p-10 text-center bg-[var(--surface)] border border-[var(--border)] shadow-sm">
+            <div className="text-4xl mb-4">⏳</div>
+            <p className="text-lg font-bold text-[var(--text-muted)]">تم استلام طلبك بنجاح! جاري معالجة البيانات.</p>
           </div>
         )}
 
         {/* CTA */}
-        <div className="mt-8 text-center space-y-3">
+        <div className="mt-12 text-center">
           <Link
             href={`/store/${subdomain}/products`}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90"
-            style={{ backgroundColor: c.primary }}
+            className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-[var(--radius)] font-black text-base text-white transition-all hover:-translate-y-0.5 shadow-md hover:shadow-lg bg-[var(--primary)]"
           >
-            <ArrowLeft className="w-4 h-4" />
-            متابعة التسوق
+            <ArrowLeft className="w-5 h-5" />
+            العودة لمتابعة التسوق
           </Link>
         </div>
       </div>

@@ -21,6 +21,8 @@ import { Reports } from './pages/reports/Reports';
 import StaffPage from './pages/staff/StaffPage';
 import OnboardingWizard from './pages/onboarding/OnboardingWizard';
 import StoreDesignPage from './pages/store-design/StoreDesignPage';
+import SubscriptionPage from './pages/SubscriptionPage';
+import FinancePage from './pages/finance/FinancePage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,6 +64,8 @@ function App() {
             <Route path="settings" element={<Settings />} />
             <Route path="staff" element={<RequirePermission permission="staff.view"><StaffPage /></RequirePermission>} />
             <Route path="store-design" element={<StoreDesignPage />} />
+            <Route path="subscription" element={<SubscriptionPage />} />
+            <Route path="finance" element={<FinancePage />} />
           </Route>
 
           {/* Redirect root to dashboard */}

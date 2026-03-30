@@ -71,6 +71,14 @@ export interface IOrder extends Document {
     percentage: number;
     amount: number;
   };
+
+  // Payout / Settlement (Aggregator model)
+  paymobFee: number;              // ~2% رسوم Paymob
+  matgarcoFee: number;            // عمولة Matgarco (1/2/3%)
+  merchantNet: number;            // صافي ما يستلمه التاجر
+  usesMerchantPaymob: boolean;    // Business plan: يستخدم Paymob الخاص
+  payoutStatus: 'pending' | 'included_in_payout' | 'paid';
+  payoutId?: mongoose.Types.ObjectId;  // ref: MerchantPayout
   
   // Shipping
   shippingMethod?: string;
@@ -257,15 +265,22 @@ const orderSchema = new Schema<IOrder>(
     
     // Platform Commission
     platformCommission: {
-      percentage: {
-        type: Number,
-        default: 0,
-      },
-      amount: {
-        type: Number,
-        default: 0,
-      },
+      percentage: { type: Number, default: 0 },
+      amount: { type: Number, default: 0 },
     },
+
+    // Payout / Settlement
+    paymobFee: { type: Number, default: 0 },
+    matgarcoFee: { type: Number, default: 0 },
+    merchantNet: { type: Number, default: 0 },
+    usesMerchantPaymob: { type: Boolean, default: false },
+    payoutStatus: {
+      type: String,
+      enum: ['pending', 'included_in_payout', 'paid'],
+      default: 'pending',
+      index: true,
+    },
+    payoutId: { type: Schema.Types.ObjectId, ref: 'MerchantPayout' },
     
     // Shipping
     shippingMethod: String,

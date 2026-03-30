@@ -19,7 +19,6 @@ export default async function CartPage({ params }: Props) {
     <StorePageShell subdomain={subdomain}>
       <CartPageClient
         subdomain={subdomain}
-        theme={{ colors: theme.colors, store: theme.store }}
       />
     </StorePageShell>
   );

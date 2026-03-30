@@ -19,6 +19,7 @@ import {
   X,
   UserRound,
   Palette,
+  Wallet,
 } from 'lucide-react';
 
 export default function DashboardLayout() {
@@ -56,6 +57,7 @@ export default function DashboardLayout() {
     { name: 'الطلبات', path: '/dashboard/orders', icon: ShoppingCart, badge: pendingCount, permission: 'orders.view' },
     { name: 'العملاء', path: '/dashboard/customers', icon: Users, badge: 0, permission: 'customers.view' },
     { name: 'تصميم المتجر', path: '/dashboard/store-design', icon: Palette, badge: 0 },
+    { name: 'الماليات', path: '/dashboard/finance', icon: Wallet, badge: 0 },
     { name: 'التقارير', path: '/dashboard/reports', icon: BarChart2, badge: 0, permission: 'reports.view' },
     { name: 'الإعدادات', path: '/dashboard/settings', icon: Settings, badge: 0, permission: 'settings.view' },
     { name: 'الموظفون', path: '/dashboard/staff', icon: UserRound, badge: 0, permission: 'staff.view' as PermissionKey },

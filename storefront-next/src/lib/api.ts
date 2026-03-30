@@ -5,8 +5,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 // ─── Fetch published theme (used by storefront pages) ────────────────────────
 export async function fetchStorefrontTheme(subdomain: string): Promise<StorefrontThemeResponse | null> {
   try {
-    const res = await fetch(`${API_URL}/theme/storefront/${subdomain}`, {
-      next: { revalidate: 5 }, // Revalidate frequently; also busted on-demand via /api/revalidate
+    const res = await fetch(`${API_URL}/storefront/${subdomain}/theme`, {
+      next: { revalidate: 0 }, 
     });
     if (!res.ok) return null;
     const json = await res.json();
@@ -25,6 +25,20 @@ export async function fetchPreviewTheme(subdomain: string): Promise<StorefrontTh
     if (!res.ok) return null;
     const json = await res.json();
     return json.data as StorefrontThemeResponse;
+  } catch {
+    return null;
+  }
+}
+
+// ─── Fetch Master Theme (used by Super Admin Template Maker) ─────────────────
+export async function fetchMasterThemePreview(themeId: string): Promise<StorefrontThemeResponse | null> {
+  try {
+    const res = await fetch(`${API_URL}/storefront/theme-preview/${themeId}`, {
+      cache: 'no-store', 
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.success ? (json.data as StorefrontThemeResponse) : null;
   } catch {
     return null;
   }
@@ -84,4 +98,19 @@ export async function fetchMerchantBySubdomain(subdomain: string) {
   if (!res.ok) return null;
   const json = await res.json();
   return json.data?.merchant ?? null;
+}
+
+// ─── Categories (public) ───────────────────────────────────────────────────────
+export async function fetchCategories(subdomain: string) {
+  try {
+    const res = await fetch(
+      `${API_URL}/storefront/${subdomain}/categories`,
+      { next: { revalidate: 120 } }
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.data ?? null;
+  } catch {
+    return null;
+  }
 }

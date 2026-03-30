@@ -50,7 +50,6 @@ export default function StoreDesignPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [activeTab, setActiveTab] = useState('store');
   const [viewport, setViewport] = useState<ViewportSize>('desktop');
-  const [pendingChanges, setPendingChanges] = useState(false);
 
   // The subdomain comes from the merchant's account
   const subdomain = user?.subdomain || 'demo-store';
@@ -68,7 +67,6 @@ export default function StoreDesignPage() {
     mutationFn: (update: Record<string, any>) => themeAPI.saveDraft(update),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['theme'] });
-      setPendingChanges(false);
       refreshPreviewDebounced();   // debounced — avoids iframe reload on every keystroke
     },
     onError: () => toast.error('فشل حفظ التغييرات'),
@@ -122,16 +120,28 @@ export default function StoreDesignPage() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const handleChange = useCallback((update: Record<string, any>) => {
-    // 1. Optimistic – update UI instantly
-    qc.setQueryData(['theme'], (old: any) => {
-      if (!old) return old;
-      const currentDraft = old.draft || old.published || {};
-      const merged = shallowMergeDraft(currentDraft, update);
-      return { ...old, draft: merged };
-    });
-    setPendingChanges(true);
+    // Calculate new merged state based on local cache
+    const old = qc.getQueryData(['theme']) as any;
+    if (!old) return;
+    
+    const currentDraft = old.draft || old.published || {};
+    const merged = shallowMergeDraft(currentDraft, update);
 
-    // 2. Accumulate changes & debounce the actual save (400ms)
+    // 1. Send live preview update to iframe instantly over active link
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        { type: 'STORE_THEME_UPDATE', payload: merged },
+        '*'
+      );
+    }
+
+    // 2. Optimistic UI update
+    qc.setQueryData(['theme'], (oldData: any) => {
+      if (!oldData) return oldData;
+      return { ...oldData, draft: merged };
+    });
+
+    // 3. Accumulate API payload and debounce saving to the server
     pendingUpdateRef.current = shallowMergeDraft(pendingUpdateRef.current, update);
     clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
