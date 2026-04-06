@@ -5,7 +5,6 @@ import { useAuthStore } from '../../store/authStore';
 import { merchantAPI, orderAPI } from '../../lib/api';
 import {
   TrendingUp,
-  TrendingDown,
   ShoppingCart,
   Package,
   Users,

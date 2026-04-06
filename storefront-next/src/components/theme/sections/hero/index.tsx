@@ -15,16 +15,13 @@ export interface HeroProps {
   storeData?: any;
 }
 
+const VariantRegistry: Record<string, React.FC<HeroProps>> = {
+  centered: HeroCentered,
+  split: HeroSplit,
+};
+
 // ─── Component ─────────────────────────────────────────────────────────────
 export default function HeroSectionResolver(props: HeroProps) {
-  // If no variant is directly provided, default to centered
-  const variant = props.variant || 'centered';
-
-  switch (variant) {
-    case 'split':
-      return <HeroSplit {...props} />;
-    case 'centered':
-    default:
-      return <HeroCentered {...props} />;
-  }
+  const Component = VariantRegistry[props.variant ?? 'centered'] ?? VariantRegistry.centered;
+  return <Component {...props} />;
 }

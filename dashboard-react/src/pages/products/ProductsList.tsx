@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import {
   Plus,
   Search,
-  Filter,
   Grid3x3,
   List,
   Edit,
@@ -102,7 +101,6 @@ export const ProductsList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [showFilters, setShowFilters] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 

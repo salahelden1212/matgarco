@@ -15,7 +15,7 @@ export default async function GenericStorePage({ params, searchParams }: Props) 
   const isPreview = searchParams.preview === '1';
 
   // Protect against reserved or non-existent page slugs globally
-  const validPages = ['about', 'contact', 'faq', 'terms', 'privacy'];
+  const validPages = ['about', 'contact', 'faq', 'terms', 'privacy', 'shipping', 'returns'];
   if (!validPages.includes(page)) {
     return notFound();
   }
@@ -35,19 +35,22 @@ export default async function GenericStorePage({ params, searchParams }: Props) 
   if (!sections || sections.length === 0) {
     if (page === 'about') {
       sections = [
+        { id: 'hdr', type: 'header', settings: {} },
         { 
           id: 'about-img-text', 
           type: 'image_with_text', 
           settings: { 
             title: 'قصتنا', 
-            text: 'نحن متجر مصمم بالشغف لنقدم لك أفضل الخدمات المتنوعة.',
-            imagePosition: 'right'
+            text: 'نحن متجر مصمم بالشغف لنقدم لك أفضل الخدمات المتنوعة.' 
           } 
-        }
+        },
+        { id: 'ftr', type: 'footer', settings: {} }
       ];
     } else {
-      // Empty page content fallback
-      sections = [];
+      sections = [
+        { id: 'hdr', type: 'header', settings: {} },
+        { id: 'ftr', type: 'footer', settings: {} }
+      ];
     }
   }
 

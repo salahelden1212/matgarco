@@ -99,7 +99,7 @@ export default function Subscriptions() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 12 }} />
               <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} />
-              <Tooltip formatter={(v: number) => `${v.toLocaleString()} ج.م`} />
+              <Tooltip formatter={(value) => `${Number(value ?? 0).toLocaleString()} ج.م`} />
               <Area type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={2.5} fill="url(#colorRev2)" />
             </AreaChart>
           </ResponsiveContainer>

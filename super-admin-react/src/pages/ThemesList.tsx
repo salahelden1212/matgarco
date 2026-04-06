@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Palette, Plus, Loader2, AlertCircle, Zap, Store, Tag, Eye, Trash2, Clock, X, Save, Package, Settings2, History, Users as UsersIcon, Globe, Shirt, Monitor, UtensilsCrossed, Smartphone, Wrench } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import api from '../lib/api';
 
@@ -29,7 +29,15 @@ const PLAN_LABELS: Record<string, { label: string; color: string; bg: string }> 
   business: { label: 'Business', color: 'text-amber-700', bg: 'bg-amber-50' }
 };
 
+const INVALID_THUMBNAIL_HOSTS = ['via.placeholder.com'];
+
+const isThemeThumbnailUsable = (thumbnail?: string) => {
+  if (!thumbnail) return false;
+  return !INVALID_THUMBNAIL_HOSTS.some((host) => thumbnail.includes(host));
+};
+
 export default function ThemesList() {
+  const navigate = useNavigate();
   const [themes, setThemes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -202,7 +210,11 @@ export default function ThemesList() {
 
       {/* Create Theme Modal */}
       {showCreateModal && (
-        <CreateThemeModal onClose={() => setShowCreateModal(false)} onRefresh={fetchThemes} />
+        <CreateThemeModal
+          onClose={() => setShowCreateModal(false)}
+          onRefresh={fetchThemes}
+          onCreated={(themeId) => navigate(`/themes/${themeId}/builder`)}
+        />
       )}
     </div>
   );
@@ -213,6 +225,9 @@ function ThemeCard({ theme, onStatusChange, onPlansChange, onCategoryChange, onO
   theme: any; onStatusChange: (s: string) => void; onPlansChange: (p: string, c: boolean) => void;
   onCategoryChange: (c: string) => void; onOpenDetail: () => void; onDelete: () => void;
 }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const shouldShowThumbnail = isThemeThumbnailUsable(theme.thumbnail) && !imageFailed;
+
   return (
     <div className={clsx(
       "bg-white rounded-3xl border transition-all duration-300 relative overflow-hidden group shadow-sm hover:shadow-xl",
@@ -227,8 +242,14 @@ function ThemeCard({ theme, onStatusChange, onPlansChange, onCategoryChange, onO
 
       {/* Thumbnail */}
       <div className="aspect-video bg-gradient-to-br from-slate-100 to-slate-200 relative overflow-hidden">
-        {theme.thumbnail ? (
-          <img src={theme.thumbnail} alt={theme.name} className="w-full h-full object-cover" />
+        {shouldShowThumbnail ? (
+          <img
+            src={theme.thumbnail}
+            alt={theme.name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={() => setImageFailed(true)}
+          />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 font-bold">
             <Palette size={32} className="mb-2 opacity-40" />
@@ -508,8 +529,16 @@ function ThemeDetailModal({ theme, merchants, loadingMerchants, tab, setTab, onC
 }
 
 /* ─── Create Theme Modal ─────────────────────────────────────────────────────── */
-function CreateThemeModal({ onClose, onRefresh }: { onClose: () => void; onRefresh: () => void }) {
-  const [form, setForm] = useState({ name: '', description: '', category: 'general', isPremium: false });
+function CreateThemeModal({ onClose, onRefresh, onCreated }: { onClose: () => void; onRefresh: () => void; onCreated: (themeId: string) => void }) {
+  const [form, setForm] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    category: 'general',
+    status: 'draft',
+    isPremium: false,
+    openBuilder: true,
+  });
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -517,10 +546,24 @@ function CreateThemeModal({ onClose, onRefresh }: { onClose: () => void; onRefre
     if (!form.name) return;
     setSaving(true);
     try {
-      const slug = form.name.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/(^-|-$)/g, '') || `theme-${Date.now()}`;
-      await api.post('/super-admin/themes', { ...form, slug });
+      const autoSlug = form.name.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/(^-|-$)/g, '') || `theme-${Date.now()}`;
+      const payload = {
+        name: form.name,
+        slug: form.slug || autoSlug,
+        description: form.description,
+        category: form.category,
+        status: form.status,
+        isPremium: form.isPremium,
+      };
+
+      const res = await api.post('/super-admin/themes', payload);
+      const createdId = res.data?.data?._id;
       onRefresh();
       onClose();
+
+      if (form.openBuilder && createdId) {
+        onCreated(createdId);
+      }
     } catch {
       alert('فشل إنشاء القالب!');
     } finally {
@@ -543,6 +586,10 @@ function CreateThemeModal({ onClose, onRefresh }: { onClose: () => void; onRefre
             <input required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="مثال: Dawn, Nova" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-matgarco-500 outline-none" />
           </div>
           <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Slug (اختياري)</label>
+            <input value={form.slug} onChange={e => setForm(p => ({ ...p, slug: e.target.value }))} placeholder="nova-theme" dir="ltr" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-matgarco-500 outline-none font-mono text-sm" />
+          </div>
+          <div>
             <label className="block text-sm font-bold text-slate-700 mb-1">وصف القالب</label>
             <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-matgarco-500 outline-none resize-none" />
           </div>
@@ -557,9 +604,21 @@ function CreateThemeModal({ onClose, onRefresh }: { onClose: () => void; onRefre
               <option value="services">خدمات</option>
             </select>
           </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">حالة البداية</label>
+            <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-matgarco-500 outline-none">
+              <option value="draft">مسودة</option>
+              <option value="maintenance">صيانة</option>
+              <option value="active">نشط</option>
+            </select>
+          </div>
           <label className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl cursor-pointer">
             <input type="checkbox" checked={form.isPremium} onChange={e => setForm(p => ({ ...p, isPremium: e.target.checked }))} className="w-5 h-5 accent-amber-600" />
             <span className="font-bold text-amber-900">👑 قالب Premium مدفوع</span>
+          </label>
+          <label className="flex items-center gap-3 p-3 bg-indigo-50 border border-indigo-200 rounded-xl cursor-pointer">
+            <input type="checkbox" checked={form.openBuilder} onChange={e => setForm(p => ({ ...p, openBuilder: e.target.checked }))} className="w-5 h-5 accent-indigo-600" />
+            <span className="font-bold text-indigo-900">فتح الـ Builder مباشرة بعد الإنشاء</span>
           </label>
           <button type="submit" disabled={saving} className="w-full py-3 bg-matgarco-600 hover:bg-matgarco-700 text-white font-bold rounded-xl transition-colors disabled:bg-slate-400 flex justify-center mt-2 items-center gap-2">
             {saving ? <Loader2 size={20} className="animate-spin" /> : 'إنشاء الهيكل'}

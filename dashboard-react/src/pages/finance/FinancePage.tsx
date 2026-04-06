@@ -19,10 +19,6 @@ interface PayoutData {
   pendingOrders: any[];
 }
 
-const PLAN_COLORS: Record<string, string> = {
-  free_trial: 'slate', starter: 'blue', professional: 'purple', business: 'amber'
-};
-
 export default function FinancePage() {
   const [data, setData] = useState<PayoutData | null>(null);
   const [loading, setLoading] = useState(true);

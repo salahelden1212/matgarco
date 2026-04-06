@@ -9,7 +9,11 @@ import { uploadImage, uploadMultipleImages } from '../config/cloudinary';
  */
 export const uploadSingleImage = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
-    const merchantId = req.merchant?.id;
+    const merchantId = req.user?.merchantId;
+
+    if (!merchantId) {
+      throw new AppError('Merchant context is required', 400);
+    }
 
     if (!req.file) {
       throw new AppError('No file uploaded', 400);
@@ -36,7 +40,11 @@ export const uploadSingleImage = asyncHandler(
  */
 export const uploadMultipleImagesController = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
-    const merchantId = req.merchant?.id;
+    const merchantId = req.user?.merchantId;
+
+    if (!merchantId) {
+      throw new AppError('Merchant context is required', 400);
+    }
 
     if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
       throw new AppError('No files uploaded', 400);

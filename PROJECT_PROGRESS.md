@@ -1,6 +1,6 @@
 # Matgarco - Multi-Tenant SaaS E-commerce Platform
 **تاريخ البدء:** 30 يناير 2026  
-**آخر تحديث:** 17 مارس 2026
+**آخر تحديث:** 31 مارس 2026
 
 ---
 
@@ -8,17 +8,41 @@
 
 | المكون | الحالة | النسبة |
 |--------|--------|--------|
-| Backend API | ✅ مكتمل | 100% |
-| Merchant Dashboard | ✅ مكتمل | 100% |
-| Customer Storefront | 🟡 أساسي جاهز | 80% |
-| Payment (Paymob) | ❌ لم يبدأ | 0% |
-| Landing Page | ❌ لم يبدأ | 0% |
-| Super Admin | ❌ لم يبدأ | 0% |
-| AI Service | ❌ لم يبدأ | 0% |
+| Backend API | 🟡 Feature-Complete + Build مستقر | 90% |
+| Merchant Dashboard | 🟡 Feature-Complete + Build مستقر | 92% |
+| Customer Storefront | 🟡 Core جاهز + Build مستقر | 86% |
+| Payment (Paymob) | 🟡 منفذ جزئيا (Core Flow موجود) | 60% |
+| Landing Page | ✅ منفذ ويعمل Build | 90% |
+| Super Admin | 🟡 منفذ جزئيا بشكل كبير | 70% |
+| AI Service | 🟠 Setup Docs فقط | 15% |
+| Theme Engine | 🟡 Sprint A مكتمل + جزء من Sprint B | 68% |
 
 ---
 
-## ✅ Phase 1 — Backend API (100% ✓)
+## 🚨 تحديث واقعي (Audit: 31 مارس 2026)
+
+### صحة البناء (Build Health)
+- [x] Backend build مستقر بالكامل
+- [x] Dashboard build مستقر بالكامل
+- [x] Storefront build مستقر بالكامل
+- [x] Super Admin build مستقر بالكامل
+- [x] Landing build ناجح (مع warning config فقط)
+
+### أهم ما تم فعليا (بعيدا عن التوثيق القديم)
+- [x] Backend routes مضافة فعليا: super-admin + subscriptions + payments + payouts
+- [x] Paymob create-intention + webhook implemented
+- [x] Super Admin Frontend موجود بصفحات متعددة (Merchants/Plans/Payouts/Support/Themes)
+- [x] Landing pages موجودة فعليا (home/about/features/pricing/resources/solutions)
+
+### أهم الفجوات الحالية قبل Sprint جديد
+- [ ] توحيد Contract الـ Checkout بين storefront و backend orders
+- [x] تصفير أخطاء build في backend + dashboard
+- [x] فك الربط المباشر في theme registry core عبر package مشترك (super-admin + storefront wrappers)
+- [ ] إضافة اختبارات smoke على الأقل لـ Auth + Checkout + Payment webhook
+
+---
+
+## 🟡 Phase 1 — Backend API (90% — Feature Complete + Stable Build)
 
 ### الكود الفعلي:
 - **11 Controller** | **7 Models** | **11 Route Files** | **~55+ endpoint**
@@ -67,7 +91,7 @@
 
 ---
 
-## ✅ Phase 2 — Merchant Dashboard (100% ✓)
+## 🟡 Phase 2 — Merchant Dashboard (92% — Feature Complete + Stable Build)
 
 ### Tech Stack:
 - React 18.2 + Vite 5 + TypeScript
@@ -151,7 +175,7 @@
 
 ---
 
-## 🟡 Phase 3 — Customer Storefront (80%)
+## 🟡 Phase 3 — Customer Storefront (82% — Core جاهز)
 
 ### Tech Stack:
 - Next.js 14 (App Router) + TypeScript
@@ -203,7 +227,7 @@
 
 ---
 
-## ❌ Phase 4 — Payment Integration (0%)
+## 🟡 Phase 4 — Payment Integration (60% — Core Flow موجود)
 
 ### 💳 نموذج الدفع الطبقي (Tiered Payment Model):
 
@@ -222,17 +246,19 @@
 
 ### المطلوب:
 - [ ] إنشاء حساب Paymob للمنصة
-- [ ] Backend: إضافة `paymentConfig` في Merchant model
+- [x] Backend: إضافة `paymobConfig` في Merchant model
 - [ ] Backend: `getPaymentConfig()` — routing حسب الخطة
-- [ ] Backend: Paymob API integration (create intention, webhooks)
-- [ ] Backend: Webhook endpoint لتأكيد الدفع
-- [ ] Storefront: إضافة خيارات الدفع في checkout
+- [x] Backend: Paymob API integration (create intention)
+- [x] Backend: Webhook endpoint لتأكيد الدفع
+- [x] Storefront: Checkout فيه Cash + Card (via create-intention)
+- [ ] Storefront: استكمال Wallet + Fawry + حالات الفشل/العودة
 - [ ] Dashboard (Professional+): حقل "ربط حساب Paymob" + Test Connection
-- [ ] Dashboard: تحويلات التاجر (Payouts) — لاحقاً
+- [x] Super Admin: Payouts monitoring page
+- [ ] Dashboard: تحويلات التاجر (Merchant-facing payouts)
 
 ---
 
-## ❌ Phase 5 — Shipping Integration (0%)
+## 🟡 Phase 5 — Shipping Integration (25% — Manual Tracking جاهز)
 
 ### 🚚 نموذج الشحن الطبقي:
 
@@ -243,41 +269,42 @@
 | **Business** | أي شركة شحن (Aramex, J&T, DHL...) | ربط كامل |
 
 ### المطلوب:
-- [ ] Phase 5a: الشحن اليدوي (tracking number فقط) — **جاهز جزئياً** في OrderDetails
+- [x] Phase 5a: الشحن اليدوي (tracking number) — موجود في order tracking endpoints/dashboard
 - [ ] Phase 5b: Bosta API integration (حساب مركزي)
 - [ ] Phase 5c: ربط حساب Bosta خاص (Professional+)
 - [ ] Dashboard: إعدادات الشحن (مناطق، أسعار، شركات)
 
 ---
 
-## ❌ Phase 6 — Subscription Management (0%)
+## 🟡 Phase 6 — Subscription Management (65% — Core موجود)
 
 ### المطلوب:
-- [ ] Backend: Subscription model + plan enforcement
-- [ ] Backend: Upgrade/Downgrade/Cancel endpoints
+- [x] Backend: Subscription model + core endpoints
+- [x] Backend: Upgrade/Downgrade/Cancel endpoints
 - [ ] Backend: إنفاد حدود الخطة (products limit, AI credits)
-- [ ] Dashboard: صفحة الاشتراك (الخطة الحالية، الاستخدام، الترقية)
-- [ ] Dashboard: Invoices list
+- [x] Dashboard: صفحة الاشتراك (الخطة الحالية، الاستخدام، الترقية)
+- [x] Dashboard: Invoices list
 - [ ] Integration مع Paymob لدفع الاشتراكات
 
 ---
 
-## ❌ Phase 7 — Landing Page (0%)
+## 🟡 Phase 7 — Landing Page (90% — جاهز تقريبا)
 
 ### المطلوب:
-- [ ] Next.js 14 project
-- [ ] Homepage (Hero, Features, Testimonials, CTA)
-- [ ] Pricing page (مقارنة الخطط)
-- [ ] Features page + About page + Contact page
-- [ ] Responsive + Animations
-- [ ] SEO optimization
+- [x] Next.js project
+- [x] Homepage
+- [x] Pricing page
+- [x] Features + About + Resources + Solutions pages
+- [x] Responsive layout and interactions
+- [ ] SEO optimization النهائي + ضبط warnings في next.config
 
 ---
 
-## ❌ Phase 8 — AI Features (0%)
+## 🟠 Phase 8 — AI Features (15% — Setup فقط)
 
 ### المطلوب:
-- [ ] FastAPI + Ollama setup
+- [x] README + requirements + setup instructions جاهزة
+- [ ] FastAPI app code فعلي (routes + handlers)
 - [ ] Product description generator
 - [ ] SEO optimizer
 - [ ] Category suggester
@@ -286,15 +313,16 @@
 
 ---
 
-## ❌ Phase 9 — Super Admin Dashboard (0%)
+## 🟡 Phase 9 — Super Admin Dashboard (70% — Core موجود)
 
 ### المطلوب:
-- [ ] React SPA project setup
-- [ ] Admin auth (super_admin role)
-- [ ] Dashboard (KPIs, revenue charts)
-- [ ] Merchants management (list, details, suspend/activate)
-- [ ] Revenue analytics
-- [ ] Subscriptions overview
+- [x] React SPA project setup
+- [x] Admin auth flow + auth store
+- [x] Dashboard pages (KPIs/charts)
+- [x] Merchants management (list/details/status)
+- [x] Revenue analytics and payouts views
+- [x] Subscriptions overview
+- [ ] Stabilization: فك التبعية المباشرة من storefront-next + تصفير build errors
 
 ---
 
@@ -447,5 +475,5 @@ npx next dev -p 3001
 
 ---
 
-**Last Updated:** 17 مارس 2026  
-**Next Milestone:** Phase 4 — Payment Integration (Paymob)
+**Last Updated:** 31 مارس 2026  
+**Next Milestone:** Stabilization Sprint (Build Health + Checkout Contract + Theme Engine Phase 1)

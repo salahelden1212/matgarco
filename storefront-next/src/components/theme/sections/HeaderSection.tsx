@@ -83,7 +83,7 @@ export default function HeaderSection({ settings = {}, storeData }: { settings?:
             
             {showCart && (
               <Link 
-                href="/cart" 
+                href={merchant.subdomain ? `/store/${merchant.subdomain}/cart` : '/cart'} 
                 title="السلة"
                 className="p-2 hover:bg-[var(--surface)] hover:text-[var(--primary)] rounded-full transition-colors relative flex items-center gap-2"
               >

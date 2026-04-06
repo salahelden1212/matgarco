@@ -308,10 +308,11 @@ export const forgotPassword = asyncHandler(
     
     if (!user) {
       // Don't reveal if email exists
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         message: 'If an account exists, a password reset email has been sent.',
       });
+      return;
     }
     
     // Generate reset token

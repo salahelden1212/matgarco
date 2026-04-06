@@ -1,50 +1,81 @@
 import React from 'react';
-import Link from 'next/link';
+import BlockRenderer from '../blocks/BlockRenderer';
 
-export default function ImageWithTextSection({ settings }: { settings: Record<string, any> }) {
+interface ThemeBlock {
+  id: string;
+  type: string;
+  settings: Record<string, any>;
+}
+
+interface ImageWithTextProps {
+  variant?: string;
+  settings: Record<string, any>;
+  blocks?: ThemeBlock[];
+}
+
+const createLegacyBlocks = (settings: Record<string, any>): ThemeBlock[] => {
+  const title = settings.title;
+  const text = settings.text || settings.content;
+  const image = settings.image;
+  const buttonLabel = settings.buttonText || settings.ctaText;
+  const buttonLink = settings.buttonLink || settings.ctaLink;
+
+  const blocks: ThemeBlock[] = [];
+
+  if (image) {
+    blocks.push({ id: 'legacy-image', type: 'image', settings: { src: image, alt: title || 'Image', fit: 'cover', radius: 'lg', maxWidth: 100 } });
+  }
+  if (title) {
+    blocks.push({ id: 'legacy-heading', type: 'heading', settings: { text: title, size: 'h2', align: 'left' } });
+  }
+  if (text) {
+    blocks.push({ id: 'legacy-paragraph', type: 'paragraph', settings: { text, size: 'md', align: 'left' } });
+  }
+  if (buttonLabel) {
+    blocks.push({ id: 'legacy-button', type: 'button', settings: { label: buttonLabel, link: buttonLink || '/about', style: 'solid', size: 'md' } });
+  }
+
+  return blocks;
+};
+
+export default function ImageWithTextSection({ variant = 'text_right', settings, blocks = [] }: ImageWithTextProps) {
   const {
-    title = 'نوفر لك أفضل جودة',
-    content = 'نحن نهتم بأدق التفاصيل لضمان حصولك على منتجات تدوم طويلاً وتلبي كافة احتياجاتك اليومية.',
-    image = 'https://picsum.photos/seed/imagetext/800/800',
-    imagePosition = 'right', // left, right
-    buttonText = 'اعرف المزيد',
-    buttonLink = '/about',
+    imagePosition = 'right',
     backgroundColor = 'var(--surface)',
   } = settings;
+
+  const effectiveBlocks = blocks.length > 0 ? blocks : createLegacyBlocks(settings);
+  const imageBlocks = effectiveBlocks.filter((block) => block.type === 'image');
+  const contentBlocks = effectiveBlocks.filter((block) => block.type !== 'image');
+  const shouldImageBeLeft = variant === 'text_left' || imagePosition === 'left';
+  const layoutClass = shouldImageBeLeft ? 'lg:flex-row-reverse' : 'lg:flex-row';
 
   return (
     <section className="py-16" style={{ backgroundColor }}>
       <div className="container mx-auto px-4">
-        <div className={`flex flex-col gap-12 items-center ${imagePosition === 'left' ? 'lg:flex-row-reverse' : 'lg:flex-row'}`}>
+        <div className={`flex flex-col gap-12 items-center ${layoutClass}`}>
           <div className="w-full lg:w-1/2">
             <div className="aspect-square md:aspect-[4/3] rounded-[var(--radius)] overflow-hidden shadow-lg relative">
-              <img 
-                src={image} 
-                alt={title} 
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
+              {imageBlocks.length > 0 ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  {imageBlocks.map((block) => (
+                    <BlockRenderer key={block.id} block={block} context={{ sectionType: 'image_with_text', align: 'center' }} />
+                  ))}
+                </div>
+              ) : (
+                <div className="w-full h-full bg-slate-200 flex items-center justify-center text-slate-400 font-bold">
+                  Placeholder Image
+                </div>
+              )}
             </div>
           </div>
           
           <div className="w-full lg:w-1/2 flex flex-col justify-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-[var(--text)] mb-6 leading-tight">
-              {title}
-            </h2>
-            <div className="text-lg text-[var(--text-muted)] mb-8 prose prose-lg prose-p:leading-relaxed">
-              <p>{content}</p>
+            <div className="space-y-5">
+              {contentBlocks.map((block) => (
+                <BlockRenderer key={block.id} block={block} context={{ sectionType: 'image_with_text', tone: 'light', align: 'left' }} />
+              ))}
             </div>
-            
-            {buttonText && (
-              <div>
-                <Link 
-                  href={buttonLink}
-                  className="inline-block px-8 py-3 bg-[var(--text)] text-[var(--background)] font-medium rounded-[var(--radius)] hover:opacity-90 transition-opacity"
-                >
-                  {buttonText}
-                </Link>
-              </div>
-            )}
           </div>
         </div>
       </div>

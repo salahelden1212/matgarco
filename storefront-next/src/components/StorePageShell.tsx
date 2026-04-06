@@ -6,8 +6,8 @@
 import { notFound } from 'next/navigation';
 import { fetchStorefrontTheme, fetchPreviewTheme, fetchMasterThemePreview } from '@/lib/api';
 import { isPreviewMode, getMasterThemeId } from '@/lib/preview';
-import HeaderSection from '@/components/theme/sections/HeaderSection';
-import FooterSection from '@/components/theme/sections/FooterSection';
+import HeaderSection from '@/components/theme/sections/header';
+import FooterSection from '@/components/theme/sections/footer';
 
 interface Props {
   subdomain: string;
@@ -27,10 +27,14 @@ export default async function StorePageShell({ subdomain, children }: Props) {
 
   const { theme, merchant } = data;
 
-  // Extract global sections or use defaults
+  // Extract global header/footer sections from pages.global
   const globalSections = theme?.pages?.global?.sections || [];
-  const headerSettings = globalSections.find((s: any) => s.type === 'header')?.settings || {};
-  const footerSettings = globalSections.find((s: any) => s.type === 'footer')?.settings || {};
+  const headerSection  = globalSections.find((s: any) => s.type === 'header');
+  const footerSection  = globalSections.find((s: any) => s.type === 'footer');
+  const headerSettings = headerSection?.settings || {};
+  const footerSettings = footerSection?.settings || {};
+  const headerVariant  = headerSection?.variant || 'split';
+  const footerVariant  = footerSection?.variant  || 'classic';
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--background)] text-[var(--text)]">
@@ -40,13 +44,13 @@ export default async function StorePageShell({ subdomain, children }: Props) {
         </div>
       )}
 
-      <HeaderSection settings={headerSettings} storeData={{ merchant }} />
+      <HeaderSection variant={headerVariant} settings={headerSettings} storeData={{ merchant }} />
 
       <main className="flex-1 w-full bg-[var(--background)]">
         {children}
       </main>
 
-      <FooterSection settings={footerSettings} storeData={{ merchant }} />
+      <FooterSection variant={footerVariant} settings={footerSettings} storeData={{ merchant }} />
     </div>
   );
 }

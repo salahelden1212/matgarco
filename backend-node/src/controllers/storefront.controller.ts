@@ -9,6 +9,7 @@ import Product from '../models/Product';
 import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { calculatePagination } from '../utils/helpers';
 import StoreTheme from '../models/StoreTheme'; // Added import for StoreTheme
+import { normalizeThemePages } from '../utils/themeNormalization';
 
 /** GET /api/storefront/:subdomain/products */
 export const getStorefrontProducts = asyncHandler(async (req: Request, res: Response) => {
@@ -130,10 +131,17 @@ export const getStorefrontTheme = asyncHandler(async (req: Request, res: Respons
   const activeTheme = await StoreTheme.findOne({ merchantId: (merchant as any)._id, isActive: true })
     .populate('themeId', 'slug isPremium').lean();
 
+  const normalizedTheme = activeTheme
+    ? {
+        ...activeTheme,
+        pages: normalizeThemePages((activeTheme as any).pages || {}, {}),
+      }
+    : null;
+
   res.json({
     success: true,
     data: {
-      theme: activeTheme || null,
+      theme: normalizedTheme,
       merchant,
     }
   });
@@ -155,6 +163,8 @@ export const getStorefrontThemePreview = asyncHandler(async (req: Request, res: 
   const baseTheme = await Theme.findById(themeId).lean();
   if (!baseTheme) throw new AppError('Base Theme not found', 404);
 
+  const normalizedPages = normalizeThemePages((baseTheme as any).pages || {}, {});
+
   // Return a mock payload that translates BaseTheme to the StoreTheme schema expected by the render engine
   res.json({
     success: true,
@@ -166,11 +176,11 @@ export const getStorefrontThemePreview = asyncHandler(async (req: Request, res: 
         isActive: true,
         published: {
           globalSettings: (baseTheme as any).globalSettings,
-          pages: (baseTheme as any).pages,
+          pages: normalizedPages,
         },
         draft: {
           globalSettings: (baseTheme as any).globalSettings,
-          pages: (baseTheme as any).pages,
+          pages: normalizedPages,
         }
       },
       merchant: {

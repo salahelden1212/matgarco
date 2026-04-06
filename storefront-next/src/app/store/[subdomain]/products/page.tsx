@@ -1,29 +1,37 @@
-import { fetchProducts, fetchStorefrontTheme } from '@/lib/api';
+import { fetchProducts, fetchStorefrontTheme, fetchMasterThemePreview, fetchPreviewTheme } from '@/lib/api';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import StorePageShell from '@/components/StorePageShell';
 import { ProductCard } from '@/components/theme/ProductCard';
 
 interface Props {
   params: { subdomain: string };
-  searchParams: { q?: string; sort?: string; page?: string; category?: string };
+  searchParams: { q?: string; sort?: string; page?: string; category?: string; preview?: string; master_theme_id?: string };
 }
 
 export default async function ProductsPage({ params, searchParams }: Props) {
   const { subdomain } = params;
+  const isPreview = searchParams.preview === '1';
+  const masterThemeId = searchParams.master_theme_id;
+  const isMasterPreview = isPreview && !!masterThemeId;
   const currentPage = parseInt(searchParams.page || '1');
 
-  const [themeRes, productsRes] = await Promise.all([
-    fetchStorefrontTheme(subdomain),
-    fetchProducts(subdomain, {
-      search:   searchParams.q,
-      sort:     searchParams.sort,
-      category: searchParams.category,
-      page:     currentPage,
-      limit:    20,
-    }),
-  ]);
+  // In master preview mode, use demo products (no real merchant needed)
+  const realSubdomain = isMasterPreview ? 'demo' : subdomain;
+
+  const themeRes = isMasterPreview
+    ? await fetchMasterThemePreview(masterThemeId!)
+    : isPreview
+      ? await fetchPreviewTheme(subdomain)
+      : await fetchStorefrontTheme(subdomain);
+
+  const productsRes = await fetchProducts(realSubdomain, {
+    search:   searchParams.q,
+    sort:     searchParams.sort,
+    category: searchParams.category,
+    page:     currentPage,
+    limit:    20,
+  });
 
   if (!themeRes) return notFound();
 

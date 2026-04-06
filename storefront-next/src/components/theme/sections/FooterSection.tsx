@@ -48,10 +48,10 @@ export default function FooterSection({ settings = {}, storeData }: { settings: 
           <div>
             <h4 className="font-bold text-lg mb-6 uppercase tracking-wider text-white">خدمة العملاء</h4>
             <ul className="space-y-4 font-medium opacity-80">
-              <li><Link href="/faq" className="hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span>الأسئلة الشائعة</Link></li>
-              <li><Link href="/shipping" className="hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span>سياسة الشحن</Link></li>
-              <li><Link href="/returns" className="hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span>سياسة الاسترجاع</Link></li>
-              <li><Link href="/privacy" className="hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span>سياسة الخصوصية</Link></li>
+              <li><Link href={merchant.subdomain ? `/store/${merchant.subdomain}/faq` : '/faq'} className="hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span>الأسئلة الشائعة</Link></li>
+              <li><Link href={merchant.subdomain ? `/store/${merchant.subdomain}/shipping` : '/shipping'} className="hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span>سياسة الشحن</Link></li>
+              <li><Link href={merchant.subdomain ? `/store/${merchant.subdomain}/returns` : '/returns'} className="hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span>سياسة الاسترجاع</Link></li>
+              <li><Link href={merchant.subdomain ? `/store/${merchant.subdomain}/privacy` : '/privacy'} className="hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span>سياسة الخصوصية</Link></li>
             </ul>
           </div>
 

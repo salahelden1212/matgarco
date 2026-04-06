@@ -1,18 +1,47 @@
 import React from 'react';
+import BlockRenderer from '../blocks/BlockRenderer';
 
-export default function NewsletterSection({ settings }: { settings: Record<string, any> }) {
+interface ThemeBlock {
+  id: string;
+  type: string;
+  settings: Record<string, any>;
+}
+
+const createLegacyBlocks = (settings: Record<string, any>): ThemeBlock[] => {
+  const title = settings.title || 'اشترك في نشرتنا البريدية';
+  const subtitle = settings.subtitle || 'احصل على أحدث العروض والتخفيضات في بريدك مباشرة';
+  const buttonText = settings.buttonText || 'اشترك مجاناً';
+
+  return [
+    { id: 'legacy-heading', type: 'heading', settings: { text: title, size: 'h2', align: 'center' } },
+    { id: 'legacy-subtitle', type: 'paragraph', settings: { text: subtitle, size: 'md', align: 'center' } },
+    { id: 'legacy-button', type: 'button', settings: { label: buttonText, link: '#', style: 'outline', size: 'md' } },
+  ];
+};
+
+export default function NewsletterSection({ settings = {}, blocks = [] }: { settings: Record<string, any>; blocks?: ThemeBlock[] }) {
   const {
-    title       = 'اشترك في نشرتنا البريدية',
-    subtitle    = 'احصل على أحدث العروض والتخفيضات في بريدك مباشرة',
+    backgroundColor = 'var(--primary)',
+    textColor = '#ffffff',
     placeholder = 'بريدك الإلكتروني',
-    buttonText  = 'اشترك مجاناً',
   } = settings;
 
+  const effectiveBlocks = blocks.length > 0 ? blocks : createLegacyBlocks(settings);
+  const contentBlocks = effectiveBlocks.filter((block) => block.type !== 'button');
+  const ctaBlocks = effectiveBlocks.filter((block) => block.type === 'button');
+
   return (
-    <section className="py-16 px-4 bg-[var(--color-primary,#3B82F6)]">
+    <section className="py-16 px-4" style={{ backgroundColor }}>
       <div className="container mx-auto text-center text-white max-w-xl">
-        <h2 className="text-3xl font-black mb-3">{title}</h2>
-        <p className="text-white/80 mb-8">{subtitle}</p>
+        <div className="space-y-3 mb-8">
+          {contentBlocks.map((block) => (
+            <BlockRenderer
+              key={block.id}
+              block={block}
+              context={{ sectionType: 'newsletter', tone: 'dark', align: 'center', textColor }}
+            />
+          ))}
+        </div>
         <form
           className="flex flex-col sm:flex-row gap-3"
           onSubmit={(e) => e.preventDefault()}
@@ -22,12 +51,11 @@ export default function NewsletterSection({ settings }: { settings: Record<strin
             placeholder={placeholder}
             className="flex-1 px-5 py-3 rounded-full text-gray-900 outline-none text-sm font-medium placeholder:text-gray-400 shadow"
           />
-          <button
-            type="submit"
-            className="px-6 py-3 rounded-full bg-white text-[var(--color-primary,#3B82F6)] font-bold hover:shadow-lg hover:scale-105 transition-all duration-200 whitespace-nowrap"
-          >
-            {buttonText}
-          </button>
+          {ctaBlocks.map((block) => (
+            <div key={block.id} className="shrink-0">
+              <BlockRenderer block={block} context={{ sectionType: 'newsletter', tone: 'dark', align: 'center' }} />
+            </div>
+          ))}
         </form>
       </div>
     </section>

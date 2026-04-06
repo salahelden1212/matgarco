@@ -4,7 +4,7 @@ import { JWTPayload } from '../types';
 // Generate access token
 export const generateAccessToken = (payload: JWTPayload): string => {
   const secret = process.env.JWT_SECRET;
-  const expiry = process.env.JWT_ACCESS_EXPIRY || '15m';
+  const expiry = (process.env.JWT_ACCESS_EXPIRY || '15m') as jwt.SignOptions['expiresIn'];
   
   if (!secret) {
     throw new Error('JWT_SECRET is not defined');
@@ -16,7 +16,7 @@ export const generateAccessToken = (payload: JWTPayload): string => {
 // Generate refresh token
 export const generateRefreshToken = (payload: JWTPayload): string => {
   const secret = process.env.JWT_REFRESH_SECRET;
-  const expiry = process.env.JWT_REFRESH_EXPIRY || '7d';
+  const expiry = (process.env.JWT_REFRESH_EXPIRY || '7d') as jwt.SignOptions['expiresIn'];
   
   if (!secret) {
     throw new Error('JWT_REFRESH_SECRET is not defined');

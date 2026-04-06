@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { X, Save, Loader2, Plus, Trash2 } from 'lucide-react';
+import { X, Save, Loader2, Plus } from 'lucide-react';
 import { productAPI } from '../../lib/api';
 import { ImageUpload } from '../../components/ImageUpload';
 
@@ -103,7 +103,7 @@ export const AddProduct: React.FC = () => {
     });
   };
 
-  const handleImageRemoved = (index: number, url: string) => {
+  const handleImageRemoved = (index: number) => {
     const newImages = [...formData.images];
     const newImagePublicIds = [...formData.imagePublicIds];
     newImages.splice(index, 1);

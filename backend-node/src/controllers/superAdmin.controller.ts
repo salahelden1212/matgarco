@@ -7,6 +7,75 @@ import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import { AppError } from '../middleware/error.middleware';
 
+const DEFAULT_THEME_GLOBAL_SETTINGS = {
+  colors: {
+    primary: '#3B82F6',
+    secondary: '#1E40AF',
+    background: '#F8FAFC',
+    surface: '#FFFFFF',
+    text: '#111827',
+    textMuted: '#6B7280',
+    accent: '#10B981',
+    border: '#E5E7EB',
+  },
+  typography: {
+    headingFont: 'Cairo',
+    fontFamily: 'Cairo',
+    fontSize: 'md',
+  },
+  layout: {
+    direction: 'rtl',
+    language: 'ar',
+  },
+};
+
+const DEFAULT_THEME_PAGES = {
+  global: {
+    sections: [
+      { id: 'global-header', type: 'header', enabled: true, variant: 'split', settings: { isSticky: true, showSearch: true, showCart: true }, blocks: [] },
+      { id: 'global-footer', type: 'footer', enabled: true, variant: 'classic', settings: { showNewsletter: true, showQuickLinks: true, showSupportLinks: true }, blocks: [] },
+    ],
+  },
+  home: {
+    sections: [
+      { id: 'home-announcement', type: 'announcement_bar', enabled: true, variant: 'simple', settings: { text: '🎉 مرحباً بك في متجرنا! شحن مجاني على الطلبات فوق 200 جنيه' }, blocks: [] },
+      {
+        id: 'home-hero',
+        type: 'hero',
+        enabled: true,
+        variant: 'centered',
+        settings: { overlayOpacity: 40, height: 'medium' },
+        blocks: [
+          { id: 'home-hero-blk-1', type: 'heading', settings: { text: 'مرحباً بك في متجرنا', size: 'h1' } },
+          { id: 'home-hero-blk-2', type: 'subtext', settings: { text: 'اكتشف أحدث المنتجات بأسعار منافسة' } },
+          { id: 'home-hero-blk-3', type: 'button', settings: { label: 'تسوق الآن', link: '/products', style: 'solid' } },
+        ],
+      },
+      { id: 'home-featured', type: 'featured_products', enabled: true, variant: 'grid', settings: { title: 'منتجات مميزة', limit: 8 }, blocks: [] },
+      { id: 'home-categories', type: 'categories_grid', enabled: true, variant: 'grid', settings: { title: 'تسوق حسب الفئة', style: '3col' }, blocks: [] },
+      { id: 'home-trust', type: 'trust_badges', enabled: true, variant: 'icons_row', settings: { badges: ['shipping', 'guarantee', 'secure', 'support'] }, blocks: [] },
+    ],
+  },
+  categories: { sections: [{ id: 'categories-grid', type: 'categories_grid', enabled: true, variant: 'grid', settings: { title: 'التصنيفات', style: '3col' }, blocks: [] }] },
+  products: { sections: [{ id: 'products-featured', type: 'featured_products', enabled: true, variant: 'grid', settings: { title: 'كل المنتجات', limit: 20 }, blocks: [] }] },
+  about: { sections: [{ id: 'about-image-text', type: 'image_with_text', enabled: true, variant: 'text_right', settings: { title: 'من نحن', text: 'متجر احترافي يوفر أفضل تجربة تسوق لعملائك.' }, blocks: [] }] },
+  contact: { sections: [{ id: 'contact-image-text', type: 'image_with_text', enabled: true, variant: 'text_left', settings: { title: 'تواصل معنا', text: 'يمكنك التواصل معنا عبر البريد والهاتف لأي استفسار.' }, blocks: [] }] },
+  faq: { sections: [{ id: 'faq-text', type: 'image_with_text', enabled: true, variant: 'text_right', settings: { title: 'الأسئلة الشائعة', text: 'أضف أهم الأسئلة وإجاباتها هنا.' }, blocks: [] }] },
+  shipping: { sections: [{ id: 'shipping-text', type: 'image_with_text', enabled: true, variant: 'text_right', settings: { title: 'سياسة الشحن', text: 'اكتب سياسة الشحن والتوصيل بالتفصيل.' }, blocks: [] }] },
+  returns: { sections: [{ id: 'returns-text', type: 'image_with_text', enabled: true, variant: 'text_right', settings: { title: 'سياسة الاسترجاع', text: 'وضح شروط وإجراءات الاسترجاع والاستبدال.' }, blocks: [] }] },
+  privacy: { sections: [{ id: 'privacy-text', type: 'image_with_text', enabled: true, variant: 'text_right', settings: { title: 'سياسة الخصوصية', text: 'وضح كيف يتم جمع واستخدام بيانات العملاء.' }, blocks: [] }] },
+  terms: { sections: [{ id: 'terms-text', type: 'image_with_text', enabled: true, variant: 'text_right', settings: { title: 'الشروط والأحكام', text: 'اكتب الشروط والأحكام الخاصة باستخدام المتجر.' }, blocks: [] }] },
+};
+
+const normalizeSlug = (raw: string) =>
+  raw
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+  const cloneThemeDefaults = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+
 /**
  * @desc    Get top level platform KPIs
  * @route   GET /api/superadmin/kpis
@@ -183,7 +252,61 @@ export const getTheme = async (req: AuthRequest, res: Response) => {
  * @access  Private (super_admin)
  */
 export const createTheme = async (req: AuthRequest, res: Response) => {
-  const theme = await Theme.create(req.body);
+  const name = String(req.body?.name || '').trim();
+  if (!name) {
+    throw new AppError('Theme name is required', 400);
+  }
+
+  const slugCandidate = normalizeSlug(String(req.body?.slug || name));
+  if (!slugCandidate) {
+    throw new AppError('Valid theme slug is required', 400);
+  }
+
+  const exists = await Theme.findOne({ slug: slugCandidate });
+  if (exists) {
+    throw new AppError('Theme slug already exists', 409);
+  }
+
+  const isPremium = !!req.body?.isPremium;
+  const allowedPlans = Array.isArray(req.body?.allowedPlans) && req.body.allowedPlans.length > 0
+    ? req.body.allowedPlans
+    : isPremium
+      ? ['professional', 'business']
+      : ['free_trial', 'starter', 'professional', 'business'];
+
+  const theme = await Theme.create({
+    name,
+    slug: slugCandidate,
+    description: req.body?.description || '',
+    category: req.body?.category || 'general',
+    status: req.body?.status || 'draft',
+    isPremium,
+    allowedPlans,
+    isBuiltIn: false,
+    thumbnail: req.body?.thumbnail || 'https://picsum.photos/seed/theme/600/400',
+    globalSettings: {
+      ...DEFAULT_THEME_GLOBAL_SETTINGS,
+      ...(req.body?.globalSettings || {}),
+      colors: {
+        ...DEFAULT_THEME_GLOBAL_SETTINGS.colors,
+        ...(req.body?.globalSettings?.colors || {}),
+      },
+      typography: {
+        ...DEFAULT_THEME_GLOBAL_SETTINGS.typography,
+        ...(req.body?.globalSettings?.typography || {}),
+      },
+      layout: {
+        ...DEFAULT_THEME_GLOBAL_SETTINGS.layout,
+        ...(req.body?.globalSettings?.layout || {}),
+      },
+    },
+    pages: req.body?.pages && typeof req.body.pages === 'object'
+      ? { ...cloneThemeDefaults(DEFAULT_THEME_PAGES), ...req.body.pages }
+      : cloneThemeDefaults(DEFAULT_THEME_PAGES),
+    version: req.body?.version || '1.0.0',
+    changelog: req.body?.changelog || '',
+  });
+
   res.status(201).json({ success: true, data: theme });
 };
 
@@ -450,7 +573,46 @@ export const getAdvancedFinanceReports = async (_req: AuthRequest, res: Response
  * @access  Private (super_admin)
  */
 export const updateThemeDetails = async (req: AuthRequest, res: Response) => {
-  const updates = req.body;
+  const updates: Record<string, any> = { ...req.body };
+
+  if (updates.slug) {
+    const nextSlug = normalizeSlug(String(updates.slug));
+    if (!nextSlug) {
+      throw new AppError('Invalid slug', 400);
+    }
+    const duplicate = await Theme.findOne({ slug: nextSlug, _id: { $ne: req.params.id } });
+    if (duplicate) {
+      throw new AppError('Theme slug already exists', 409);
+    }
+    updates.slug = nextSlug;
+  }
+
+  if (updates.globalSettings) {
+    updates.globalSettings = {
+      ...DEFAULT_THEME_GLOBAL_SETTINGS,
+      ...(updates.globalSettings || {}),
+      colors: {
+        ...DEFAULT_THEME_GLOBAL_SETTINGS.colors,
+        ...(updates.globalSettings?.colors || {}),
+      },
+      typography: {
+        ...DEFAULT_THEME_GLOBAL_SETTINGS.typography,
+        ...(updates.globalSettings?.typography || {}),
+      },
+      layout: {
+        ...DEFAULT_THEME_GLOBAL_SETTINGS.layout,
+        ...(updates.globalSettings?.layout || {}),
+      },
+    };
+  }
+
+  if (updates.pages && typeof updates.pages === 'object') {
+    updates.pages = {
+      ...cloneThemeDefaults(DEFAULT_THEME_PAGES),
+      ...updates.pages,
+    };
+  }
+
   const theme = await Theme.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
   if (!theme) throw new AppError('Theme not found', 404);
   res.status(200).json({ success: true, data: theme });

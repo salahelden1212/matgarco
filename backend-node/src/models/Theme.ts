@@ -3,7 +3,9 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IThemeSection {
   id: string;
   type: string;
-  name: string;
+  name?: string;
+  enabled?: boolean;
+  variant?: string;
   settings: Record<string, any>;
   blocks?: Array<{
     id: string;
@@ -18,6 +20,11 @@ export interface ITheme extends Document {
   description: string;
   version: string;
   changelog: string;
+  previousVersions?: Array<{
+    version: string;
+    releasedAt: Date;
+    changelog?: string;
+  }>;
   category: 'general' | 'fashion' | 'electronics' | 'food' | 'digital' | 'services';
   thumbnail: string;
   screenshots: string[];
@@ -46,6 +53,13 @@ const themeSchema = new Schema(
     description: { type: String, default: '' },
     version: { type: String, default: '1.0.0' },
     changelog: { type: String, default: '' },
+    previousVersions: [
+      {
+        version: { type: String, required: true },
+        releasedAt: { type: Date, required: true },
+        changelog: { type: String, default: '' },
+      },
+    ],
     category: {
       type: String,
       enum: ['general', 'fashion', 'electronics', 'food', 'digital', 'services'],

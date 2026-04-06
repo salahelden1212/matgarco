@@ -137,7 +137,7 @@ export const EditProduct: React.FC = () => {
     });
   };
 
-  const handleImageRemoved = (index: number, url: string) => {
+  const handleImageRemoved = (index: number) => {
     const newImages = [...formData.images];
     const newImagePublicIds = [...formData.imagePublicIds];
     newImages.splice(index, 1);

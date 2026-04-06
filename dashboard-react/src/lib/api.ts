@@ -77,6 +77,7 @@ export const orderAPI = {
   getAll: (params?: {
     page?: number;
     limit?: number;
+    sort?: string;
     status?: string;
     paymentStatus?: string;
     search?: string;

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
   CreditCard, CheckCircle2, XCircle, AlertCircle, Loader2,
-  Zap, Star, Rocket, Crown, Receipt, X, ChevronRight,
-  CalendarDays, RefreshCw, TrendingUp, Infinity
+  Zap, Star, Crown, Receipt, X, ChevronRight,
+  CalendarDays, RefreshCw, TrendingUp
 } from 'lucide-react';
 import clsx from 'clsx';
 import axios from '../lib/axios';

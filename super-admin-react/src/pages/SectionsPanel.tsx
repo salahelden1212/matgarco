@@ -1,19 +1,52 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronUp, ChevronDown, Plus, Trash2, GripVertical, Settings2, LayoutPanelLeft } from 'lucide-react';
-import { SectionRegistry } from '../../../storefront-next/src/components/theme/registry/index';
-import type { SchemaInput } from '../../../storefront-next/src/components/theme/registry/types';
-import { normalizeThemeData, denormalizeThemeData, addSection, updateSection, removeSection, addBlock } from '../../../storefront-next/src/components/theme/registry/state';
-import type { ThemeState } from '../../../storefront-next/src/components/theme/registry/state';
+import { DndContext, PointerSensor, KeyboardSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
+  SectionRegistry,
+  resolveSectionBlocks,
+  normalizeThemeData,
+  denormalizeThemeData,
+  addSection,
+  updateSection,
+  removeSection,
+  addBlock,
+} from '../../../packages/theme-engine/src';
+import type { SchemaInput, ThemeState } from '../../../packages/theme-engine/src';
 
 interface Props {
   sections: any[];
   onChange: (newSections: any[]) => void;
 }
 
+interface SortableBlockCardProps {
+  blockId: string;
+  children: (dragHandleProps: { attributes: any; listeners: any }) => React.ReactNode;
+}
+
+function SortableBlockCard({ blockId, children }: SortableBlockCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: blockId });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={isDragging ? 'opacity-70' : ''}
+    >
+      {children({ attributes, listeners })}
+    </div>
+  );
+}
+
 export default function SectionsPanel({ sections, onChange }: Props) {
   const [state, setState] = useState<ThemeState>(() => normalizeThemeData(sections));
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   // Sync if external data changes initially
   useEffect(() => {
@@ -56,6 +89,24 @@ export default function SectionsPanel({ sections, onChange }: Props) {
     })));
   };
 
+  const handleBlockDragEnd = (sectionId: string, event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const section = state.sectionsById[sectionId];
+    const blocks = Array.isArray(section?.blocks) ? section.blocks : [];
+    const oldIndex = blocks.findIndex((block: any) => block.id === active.id);
+    const newIndex = blocks.findIndex((block: any) => block.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    commitState(
+      updateSection(state, sectionId, (prev: any) => ({
+        ...prev,
+        blocks: arrayMove(prev.blocks || [], oldIndex, newIndex),
+      }))
+    );
+  };
+
   const moveSection = (index: number, direction: 'up' | 'down') => {
     const newIds = [...state.sectionIds];
     const swap = direction === 'up' ? index - 1 : index + 1;
@@ -83,8 +134,46 @@ export default function SectionsPanel({ sections, onChange }: Props) {
         </div>
       );
     }
+    if (input.type === 'textarea') {
+      return (
+        <textarea
+          value={v ?? ''}
+          onChange={(e) => onChangeFn(e.target.value)}
+          rows={3}
+          className="w-full text-xs p-2 border rounded-md resize-y"
+        />
+      );
+    }
+    if (input.type === 'toggle' || input.type === 'boolean') {
+      return (
+        <label className="inline-flex items-center gap-2 text-xs font-bold text-slate-700">
+          <input
+            type="checkbox"
+            checked={!!v}
+            onChange={(e) => onChangeFn(e.target.checked)}
+            className="w-4 h-4 accent-matgarco-600"
+          />
+          {v ? 'مفعل' : 'غير مفعل'}
+        </label>
+      );
+    }
+    if (input.type === 'number') {
+      return (
+        <input
+          type="number"
+          min={input.min}
+          max={input.max}
+          step={input.step || 1}
+          value={v ?? ''}
+          onChange={(e) => onChangeFn(e.target.value === '' ? '' : Number(e.target.value))}
+          className="w-full text-xs p-2 border rounded-md"
+        />
+      );
+    }
+
+    const htmlInputType = input.type === 'image' ? 'url' : input.type;
     return (
-      <input type={input.type} value={v} onChange={e => onChangeFn(e.target.value)} className="w-full text-xs p-2 border rounded-md" />
+      <input type={htmlInputType} value={v ?? ''} onChange={e => onChangeFn(e.target.value)} className="w-full text-xs p-2 border rounded-md" />
     );
   };
 
@@ -95,6 +184,7 @@ export default function SectionsPanel({ sections, onChange }: Props) {
           const section = state.sectionsById[id];
           const schema = SectionRegistry[section.type];
           if (!schema) return null; // Fallback missing
+          const sectionBlockSchemas = resolveSectionBlocks(schema);
 
           const isExpanded = expandedId === id;
 
@@ -138,7 +228,7 @@ export default function SectionsPanel({ sections, onChange }: Props) {
                         className="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-matgarco-500 focus:ring-1 focus:ring-matgarco-500"
                       >
                         {schema.variants.map(v => (
-                          <option key={v.value} value={v.value}>{v.label}</option>
+                          <option key={v.id} value={v.id}>{v.label}</option>
                         ))}
                       </select>
                     </div>
@@ -165,43 +255,62 @@ export default function SectionsPanel({ sections, onChange }: Props) {
                   )}
 
                   {/* Blocks */}
-                  {schema.blocks && schema.blocks.length > 0 && (
+                  {sectionBlockSchemas.length > 0 && (
                     <div className="space-y-3 pt-4 border-t border-slate-200">
                       <h5 className="text-[11px] font-black uppercase text-slate-400">مكونات القسم (Blocks)</h5>
                       
-                      <div className="space-y-2">
-                        {section.blocks?.map((block: any, bIdx: number) => {
-                          const blockSchema = schema.blocks.find(b => b.type === block.type);
-                          if (!blockSchema) return null;
-                          return (
-                            <div key={block.id} className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
-                              <div className="flex justify-between items-center mb-3">
-                                <span className="text-xs font-bold text-slate-800">{blockSchema.name}</span>
-                                <button onClick={() => handleRemoveBlock(id, block.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button>
-                              </div>
-                              <div className="space-y-2">
-                                {blockSchema.settings.map(input => (
-                                  <div key={input.id}>
-                                    <label className="block text-[10px] font-bold text-slate-600 mb-1">{input.label}</label>
-                                    {renderInput(input, block.settings?.[input.id], (val) => {
-                                      handleUpdateSection(id, (prev: any) => {
-                                        const newBlocks = [...prev.blocks];
-                                        newBlocks[bIdx] = { ...newBlocks[bIdx] };
-                                        newBlocks[bIdx].settings = { ...newBlocks[bIdx].settings, [input.id]: val };
-                                        return { ...prev, blocks: newBlocks };
-                                      });
-                                    })}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(event) => handleBlockDragEnd(id, event)}>
+                        <SortableContext items={(section.blocks || []).map((block: any) => block.id)} strategy={verticalListSortingStrategy}>
+                          <div className="space-y-2">
+                            {section.blocks?.map((block: any, bIdx: number) => {
+                              const blockSchema = sectionBlockSchemas.find(b => b.type === block.type);
+                              if (!blockSchema) return null;
+
+                              return (
+                                <SortableBlockCard key={block.id} blockId={block.id}>
+                                  {({ attributes, listeners }) => (
+                                    <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
+                                      <div className="flex justify-between items-center mb-3">
+                                        <div className="flex items-center gap-2">
+                                          <button
+                                            {...attributes}
+                                            {...listeners}
+                                            className="text-slate-400 hover:text-slate-700 cursor-grab active:cursor-grabbing"
+                                            title="اسحب لإعادة الترتيب"
+                                          >
+                                            <GripVertical size={14} />
+                                          </button>
+                                          <span className="text-xs font-bold text-slate-800">{blockSchema.name}</span>
+                                        </div>
+                                        <button onClick={() => handleRemoveBlock(id, block.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button>
+                                      </div>
+                                      <div className="space-y-2">
+                                        {blockSchema.settings.map(input => (
+                                          <div key={input.id}>
+                                            <label className="block text-[10px] font-bold text-slate-600 mb-1">{input.label}</label>
+                                            {renderInput(input, block.settings?.[input.id], (val) => {
+                                              handleUpdateSection(id, (prev: any) => {
+                                                const newBlocks = [...prev.blocks];
+                                                newBlocks[bIdx] = { ...newBlocks[bIdx] };
+                                                newBlocks[bIdx].settings = { ...newBlocks[bIdx].settings, [input.id]: val };
+                                                return { ...prev, blocks: newBlocks };
+                                              });
+                                            })}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </SortableBlockCard>
+                              );
+                            })}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
 
                       {/* Add Block Buttons */}
                       <div className="flex flex-wrap gap-2 pt-2">
-                        {schema.blocks.map(allowedBlock => {
+                        {sectionBlockSchemas.map(allowedBlock => {
                           const currentCount = section.blocks?.filter((b:any) => b.type === allowedBlock.type).length || 0;
                           const limit = schema.blockLimits?.[allowedBlock.type] ?? (schema.maxBlocks || Infinity);
                           const canAdd = currentCount < limit;

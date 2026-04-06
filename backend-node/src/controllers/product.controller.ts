@@ -293,10 +293,7 @@ export const duplicateProduct = asyncHandler(
     }
 
     // Create copy
-    const productData = originalProduct.toObject();
-    delete productData._id;
-    delete productData.createdAt;
-    delete productData.updatedAt;
+    const { _id, createdAt, updatedAt, ...productData } = originalProduct.toObject() as any;
     
     // Update name and slug
     productData.name = `${productData.name} (Copy)`;

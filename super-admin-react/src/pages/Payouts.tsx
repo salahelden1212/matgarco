@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Wallet, CheckCircle, Clock, AlertCircle, Building2, ChevronRight, Loader2, X, FileText } from 'lucide-react';
+import { Wallet, CheckCircle, AlertCircle, Building2, ChevronRight, Loader2, X } from 'lucide-react';
 import api from '../lib/api';
 import clsx from 'clsx';
 

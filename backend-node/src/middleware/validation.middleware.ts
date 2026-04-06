@@ -21,11 +21,12 @@ export const validate = (schema: z.ZodSchema) => {
           message: err.message,
         }));
         
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: 'Validation error',
           details: errors,
         });
+        return;
       }
       next(error);
     }

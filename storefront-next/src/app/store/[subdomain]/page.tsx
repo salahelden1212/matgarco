@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { fetchStorefrontTheme, fetchPreviewTheme, fetchMasterThemePreview, fetchProducts } from '@/lib/api';
 import ThemeRenderer from '@/components/theme/ThemeRenderer';
+import StorePageShell from '@/components/StorePageShell';
 
 interface Props {
   params: { subdomain: string };
@@ -79,9 +80,11 @@ export default async function StorefrontHomePage({ params, searchParams }: Props
   const products = productsData?.products ?? [];
 
   return (
-    <ThemeRenderer
-      sections={sections}
-      storeData={{ products, merchant, isPreview: isPreview || !!masterThemeId }}
-    />
+    <StorePageShell subdomain={subdomain}>
+      <ThemeRenderer
+        sections={sections}
+        storeData={{ products, merchant, isPreview: isPreview || !!masterThemeId }}
+      />
+    </StorePageShell>
   );
 }

@@ -1,4 +1,4 @@
-import { SectionSchema } from '../../registry/types';
+import type { SectionSchema } from '../../registry/types';
 
 export const HeroSchema: SectionSchema = {
   type: 'hero',
@@ -6,8 +6,8 @@ export const HeroSchema: SectionSchema = {
   version: 1,
 
   variants: [
-    { value: 'centered', label: 'صورة في المنتصف' },
-    { value: 'split', label: 'مقسم (نص وصورة)' },
+    { id: 'centered', label: 'صورة في المنتصف' },
+    { id: 'split', label: 'مقسم (نص وصورة)' },
   ],
   defaultVariant: 'centered',
 

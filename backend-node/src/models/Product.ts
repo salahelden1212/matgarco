@@ -246,14 +246,14 @@ const productSchema = new Schema<IProduct>(
       virtuals: true,
       transform: function(doc, ret) {
         // Map quantity to stock for frontend compatibility
-        ret.stock = ret.quantity;
+        (ret as any).stock = ret.quantity;
         return ret;
       }
     },
     toObject: {
       virtuals: true,
       transform: function(doc, ret) {
-        ret.stock = ret.quantity;
+        (ret as any).stock = ret.quantity;
         return ret;
       }
     }

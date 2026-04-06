@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TrendingUp, Users, Store, DollarSign, Loader2, AlertCircle, ShoppingCart, Zap, Clock } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import api from '../lib/api';
@@ -111,7 +111,7 @@ export default function Home() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 12 }} />
               <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} />
-              <Tooltip formatter={(v: number) => `${v.toLocaleString()} ج.م`} />
+              <Tooltip formatter={(value) => `${Number(value ?? 0).toLocaleString()} ج.م`} />
               <Area type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={2.5} fill="url(#colorRevenue)" />
             </AreaChart>
           </ResponsiveContainer>

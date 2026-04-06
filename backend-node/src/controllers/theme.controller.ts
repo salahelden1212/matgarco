@@ -18,6 +18,7 @@ import Theme from '../models/Theme';
 import Merchant from '../models/Merchant';
 import { AppError } from '../middleware/error.middleware';
 import { AuthRequest } from '../types';
+import { normalizeThemePages, normalizeThemeSection } from '../utils/themeNormalization';
 
 // ─── Default colors & typography ──────────────────────────────────────────────
 const DEFAULT_GLOBAL_SETTINGS = {
@@ -45,17 +46,112 @@ const DEFAULT_GLOBAL_SETTINGS = {
 const DEFAULT_PAGES = {
   home: {
     sections: [
-      { id: 'announcement_bar',  type: 'announcement_bar',  enabled: true,  settings: { text: '🎉 مرحباً بك في متجرنا! شحن مجاني على الطلبات فوق 200 جنيه' } },
-      { id: 'hero',              type: 'hero',              enabled: true,  settings: { title: 'مرحباً بك', subtitle: 'اكتشف أحدث المنتجات', buttonText: 'تسوق الآن', buttonLink: '/products' } },
-      { id: 'featured_products', type: 'featured_products', enabled: true,  settings: { title: 'منتجات مميزة', limit: 8 } },
-      { id: 'categories_grid',   type: 'categories_grid',   enabled: true,  settings: { title: 'تسوق حسب الفئة', style: '3col' } },
-      { id: 'promo_banner',      type: 'promo_banner',      enabled: false, settings: {} },
-      { id: 'new_arrivals',      type: 'new_arrivals',      enabled: true,  settings: { title: 'وصل حديثاً', limit: 6 } },
-      { id: 'trust_badges',      type: 'trust_badges',      enabled: true,  settings: { badges: ['shipping', 'guarantee', 'secure', 'support'] } },
-      { id: 'newsletter',        type: 'newsletter',        enabled: false, settings: {} },
+      {
+        id: 'announcement_bar',
+        type: 'announcement_bar',
+        enabled: true,
+        variant: 'simple',
+        settings: { text: '🎉 مرحباً بك في متجرنا! شحن مجاني على الطلبات فوق 200 جنيه' },
+        blocks: [],
+      },
+      {
+        id: 'hero',
+        type: 'hero',
+        enabled: true,
+        variant: 'centered',
+        settings: { overlayOpacity: 40, height: 'medium' },
+        blocks: [
+          { id: 'hero-blk-1', type: 'heading', settings: { text: 'مرحباً بك في متجرنا', size: 'h1' } },
+          { id: 'hero-blk-2', type: 'subtext', settings: { text: 'اكتشف أحدث المنتجات بأسعار منافسة' } },
+          { id: 'hero-blk-3', type: 'button', settings: { label: 'تسوق الآن', link: '/products', style: 'solid' } },
+        ],
+      },
+      {
+        id: 'featured_products',
+        type: 'featured_products',
+        enabled: true,
+        variant: 'grid',
+        settings: { title: 'منتجات مميزة', limit: 8 },
+        blocks: [],
+      },
+      {
+        id: 'categories_grid',
+        type: 'categories_grid',
+        enabled: true,
+        variant: 'grid',
+        settings: { title: 'تسوق حسب الفئة', style: '3col' },
+        blocks: [],
+      },
+      {
+        id: 'promo_banner',
+        type: 'promo_banner',
+        enabled: false,
+        variant: 'fullwidth',
+        settings: {},
+        blocks: [],
+      },
+      {
+        id: 'new_arrivals',
+        type: 'new_arrivals',
+        enabled: true,
+        variant: 'grid',
+        settings: { title: 'وصل حديثاً', limit: 6 },
+        blocks: [],
+      },
+      {
+        id: 'trust_badges',
+        type: 'trust_badges',
+        enabled: true,
+        variant: 'icons_row',
+        settings: { badges: ['shipping', 'guarantee', 'secure', 'support'] },
+        blocks: [],
+      },
+      {
+        id: 'newsletter',
+        type: 'newsletter',
+        enabled: false,
+        variant: 'simple',
+        settings: {},
+        blocks: [],
+      },
     ],
   },
 };
+
+function normalizeSection(section: any): any {
+  const sectionFallbacks = {
+    hero: {
+      variant: 'centered',
+      settings: { overlayOpacity: 40, height: 'medium' },
+      blocks: [
+        { type: 'heading', settings: { text: 'مرحباً بك في متجرنا', size: 'h1' } },
+        { type: 'subtext', settings: { text: 'اكتشف أفضل المنتجات' } },
+        { type: 'button', settings: { label: 'تصفح المنتجات', link: '/products', style: 'solid' } },
+      ],
+    },
+    categories_grid: {
+      variant: 'grid',
+      settings: { title: 'تسوق حسب الفئة', style: '3col' },
+      blocks: [],
+    },
+    header: {
+      variant: 'split',
+      settings: { isSticky: true, showSearch: true, showCart: true },
+      blocks: [],
+    },
+    footer: {
+      variant: 'classic',
+      settings: { showNewsletter: true, showQuickLinks: true, showSupportLinks: true },
+      blocks: [],
+    },
+  };
+
+  return normalizeThemeSection(section, sectionFallbacks);
+}
+
+function normalizePages(pages: any): Record<string, { sections: any[] }> {
+  return normalizeThemePages(pages, DEFAULT_PAGES as any) as Record<string, { sections: any[] }>;
+}
 
 // ─── Helper: ensure merchant has a StoreTheme doc ─────────────────────────────
 async function ensureStoreTheme(merchantId: string) {
@@ -63,10 +159,10 @@ async function ensureStoreTheme(merchantId: string) {
   
   if (!storeTheme) {
     // Find default theme in DB (first active one)
-    let baseTheme = await Theme.findOne({ status: 'active' }).sort({ createdAt: 1 });
+    const baseTheme = await Theme.findOne({ status: 'active' }).sort({ createdAt: 1 });
     
     const gs = baseTheme?.globalSettings || DEFAULT_GLOBAL_SETTINGS;
-    const pages = baseTheme?.pages || DEFAULT_PAGES;
+    const pages = normalizePages(baseTheme?.pages || DEFAULT_PAGES);
 
     storeTheme = await StoreTheme.create({
       merchantId,
@@ -76,6 +172,14 @@ async function ensureStoreTheme(merchantId: string) {
       globalSettings: gs,
       pages: pages,
     });
+  } else {
+    const normalizedPages = normalizePages(storeTheme.pages || DEFAULT_PAGES);
+    const currentPagesRaw = JSON.stringify(storeTheme.pages || {});
+    const normalizedPagesRaw = JSON.stringify(normalizedPages);
+    if (currentPagesRaw !== normalizedPagesRaw) {
+      storeTheme.pages = normalizedPages;
+      await storeTheme.save();
+    }
   }
   
   return storeTheme;
@@ -172,18 +276,26 @@ export const saveDraft = async (req: AuthRequest, res: Response): Promise<void> 
   if (update.sections) {
     newPages.home = { 
       ...(newPages.home || {}),
-      sections: update.sections.map((s: any) => ({
-        id: s.id,
-        type: s.type || s.id,
-        enabled: s.enabled ?? true,
-        settings: s.settings || s.config || {},
-        blocks: s.blocks || [],
-      })),
+      sections: update.sections.map((s: any) => normalizeSection(s)),
     };
   }
   // Direct pages update (new system)
   if (update.pages) {
-    Object.assign(newPages, update.pages);
+    for (const [pageKey, pageValue] of Object.entries(update.pages)) {
+      const incomingPage = (pageValue as any) || {};
+      const currentPage = (newPages as any)[pageKey] || {};
+      const mergedPage = {
+        ...currentPage,
+        ...incomingPage,
+      };
+      const candidateSections = incomingPage.sections ?? currentPage.sections ?? [];
+      (newPages as any)[pageKey] = {
+        ...mergedPage,
+        sections: Array.isArray(candidateSections)
+          ? candidateSections.map((s: any) => normalizeSection(s))
+          : [],
+      };
+    }
   }
 
   // Handle store settings (legacy)
@@ -196,7 +308,7 @@ export const saveDraft = async (req: AuthRequest, res: Response): Promise<void> 
   }
 
   storeTheme.globalSettings = newGlobalSettings;
-  storeTheme.pages = newPages;
+  storeTheme.pages = normalizePages(newPages);
   await storeTheme.save();
 
   // Return in legacy format for dashboard compatibility
@@ -240,7 +352,7 @@ export const resetDraft = async (req: AuthRequest, res: Response): Promise<void>
   const baseTheme = storeTheme.themeId as any;
   if (baseTheme) {
     storeTheme.globalSettings = baseTheme.globalSettings || DEFAULT_GLOBAL_SETTINGS;
-    storeTheme.pages = baseTheme.pages || DEFAULT_PAGES;
+    storeTheme.pages = normalizePages(baseTheme.pages || DEFAULT_PAGES);
     await storeTheme.save();
   }
 
@@ -275,7 +387,7 @@ export const applyTemplate = async (req: AuthRequest, res: Response): Promise<vo
     name: `Custom ${baseTheme.name}`,
     isActive: true,
     globalSettings: baseTheme.globalSettings || DEFAULT_GLOBAL_SETTINGS,
-    pages: baseTheme.pages || DEFAULT_PAGES,
+    pages: normalizePages(baseTheme.pages || DEFAULT_PAGES),
   });
 
   const draft = {

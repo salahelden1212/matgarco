@@ -1,4 +1,4 @@
-import { SectionSchema } from '../../registry/types';
+import type { SectionSchema } from '../../registry/types';
 
 export const CategoriesGridSchema: SectionSchema = {
   type: 'categories_grid',
@@ -6,8 +6,8 @@ export const CategoriesGridSchema: SectionSchema = {
   version: 1,
 
   variants: [
-    { value: 'grid', label: 'شبكة كلاسيكية' },
-    { value: 'slider', label: 'شريط سحب (Slider)' }
+    { id: 'grid', label: 'شبكة كلاسيكية' },
+    { id: 'slider', label: 'شريط سحب (Slider)' }
   ],
   defaultVariant: 'grid',
 

@@ -222,13 +222,14 @@ export const checkSubdomainAvailability = asyncHandler(
 
     // Validate format
     if (!isValidSubdomain(subdomain)) {
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         data: {
           available: false,
           reason: 'Subdomain is reserved or invalid format',
         },
       });
+      return;
     }
 
     // Check if exists

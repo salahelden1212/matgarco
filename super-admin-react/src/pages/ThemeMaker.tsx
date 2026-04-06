@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Palette, LayoutPanelLeft, Type, Save, Smartphone, Monitor, ChevronRight, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
+import { Palette, LayoutPanelLeft, Type, Save, Smartphone, Monitor, ChevronRight, Loader2, AlertCircle, RotateCcw, CheckCircle2, Circle } from 'lucide-react';
 import clsx from 'clsx';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
@@ -9,6 +9,21 @@ import SectionsPanel from './SectionsPanel';
 
 type ViewportSize = 'desktop' | 'mobile';
 type SidebarTab = 'colors' | 'typography' | 'sections';
+type BuilderPageId = 'global' | 'home' | 'categories' | 'products' | 'about' | 'contact' | 'faq' | 'shipping' | 'returns' | 'privacy' | 'terms';
+
+const BUILDER_PAGES: Array<{ id: BuilderPageId; label: string; path: string }> = [
+  { id: 'global', label: 'Global (Header/Footer)', path: '' },
+  { id: 'home', label: 'الرئيسية', path: '' },
+  { id: 'categories', label: 'التصنيفات', path: '/categories' },
+  { id: 'products', label: 'المنتجات', path: '/products' },
+  { id: 'about', label: 'من نحن', path: '/about' },
+  { id: 'contact', label: 'اتصل بنا', path: '/contact' },
+  { id: 'faq', label: 'الأسئلة الشائعة', path: '/faq' },
+  { id: 'shipping', label: 'سياسة الشحن', path: '/shipping' },
+  { id: 'returns', label: 'سياسة الاسترجاع', path: '/returns' },
+  { id: 'privacy', label: 'سياسة الخصوصية', path: '/privacy' },
+  { id: 'terms', label: 'الشروط والأحكام', path: '/terms' },
+];
 
 // ─── All 8 color fields ──────────────────────────────────────────────────────
 const COLOR_FIELDS = [
@@ -41,6 +56,7 @@ export default function ThemeMaker() {
   
   const [viewport, setViewport] = useState<ViewportSize>('desktop');
   const [activeTab, setActiveTab] = useState<SidebarTab>('colors');
+  const [selectedPage, setSelectedPage] = useState<BuilderPageId>('home');
   const [isSaving, setIsSaving] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -85,21 +101,21 @@ export default function ThemeMaker() {
 
   // Debounced save — instant UI + CSS update, debounced API save
   const handleThemeChange = useCallback((update: Record<string, any>) => {
-    if (!themeData) return;
-    
-    // Deep merge globalSettings
-    let merged = { ...themeData };
+    const currentTheme = (qc.getQueryData(['masterTheme', id]) as any) || themeData;
+    if (!currentTheme) return;
+
+    let merged = { ...currentTheme, ...update };
     if (update.globalSettings) {
       merged.globalSettings = {
-        ...(themeData.globalSettings || {}),
+        ...(currentTheme.globalSettings || {}),
         ...update.globalSettings,
-        colors: { ...(themeData.globalSettings?.colors || {}), ...(update.globalSettings.colors || {}) },
-        typography: { ...(themeData.globalSettings?.typography || {}), ...(update.globalSettings.typography || {}) },
-        layout: { ...(themeData.globalSettings?.layout || {}), ...(update.globalSettings.layout || {}) },
+        colors: { ...(currentTheme.globalSettings?.colors || {}), ...(update.globalSettings.colors || {}) },
+        typography: { ...(currentTheme.globalSettings?.typography || {}), ...(update.globalSettings.typography || {}) },
+        layout: { ...(currentTheme.globalSettings?.layout || {}), ...(update.globalSettings.layout || {}) },
       };
     }
     if (update.pages) {
-      merged.pages = { ...(themeData.pages || {}), ...update.pages };
+      merged.pages = { ...(currentTheme.pages || {}), ...update.pages };
     }
     
     // 1. Instant live preview
@@ -109,7 +125,11 @@ export default function ThemeMaker() {
     // 3. Debounced save
     clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      saveMutation.mutate({ globalSettings: merged.globalSettings, pages: merged.pages });
+      saveMutation.mutate({
+        globalSettings: merged.globalSettings,
+        pages: merged.pages,
+        status: merged.status,
+      });
     }, 600);
   }, [themeData, id, qc, dispatchLiveUpdate, saveMutation]);
 
@@ -125,6 +145,37 @@ export default function ThemeMaker() {
   const setTypography = (key: string, value: string) => {
     handleThemeChange({ globalSettings: { typography: { [key]: value } } });
   };
+
+  const completionItems = useMemo(() => {
+    if (!themeData) {
+      return [
+        { id: 'meta', label: 'تعريف القالب (اسم + slug + تصنيف)', done: false },
+        { id: 'visual', label: 'الهوية البصرية (ألوان + خطوط)', done: false },
+        { id: 'global', label: 'Global Layout (Header/Footer)', done: false },
+        { id: 'home', label: 'تجهيز صفحة الرئيسية', done: false },
+        { id: 'content', label: 'تجهيز صفحات المحتوى', done: false },
+        { id: 'publish', label: 'جاهزية النشر', done: false },
+      ];
+    }
+
+    const hasMeta = !!(themeData.name && themeData.slug && themeData.category);
+    const hasVisual = !!(Object.keys(colors).length >= 8 && typography.headingFont && typography.fontFamily);
+    const globalSections = themeData.pages?.global?.sections || [];
+    const hasGlobal = globalSections.some((s: any) => s.type === 'header') && globalSections.some((s: any) => s.type === 'footer');
+    const hasHome = (themeData.pages?.home?.sections || []).length > 0;
+    const contentPages = BUILDER_PAGES.filter((p) => !['global', 'home'].includes(p.id));
+    const hasContentPages = contentPages.some((p) => (themeData.pages?.[p.id]?.sections || []).length > 0);
+    const isPublished = themeData.status === 'active';
+
+    return [
+      { id: 'meta', label: 'تعريف القالب (اسم + slug + تصنيف)', done: hasMeta },
+      { id: 'visual', label: 'الهوية البصرية (ألوان + خطوط)', done: hasVisual },
+      { id: 'global', label: 'Global Layout (Header/Footer)', done: hasGlobal },
+      { id: 'home', label: 'تجهيز صفحة الرئيسية', done: hasHome },
+      { id: 'content', label: 'تجهيز صفحات المحتوى', done: hasContentPages },
+      { id: 'publish', label: 'جاهزية النشر', done: isPublished },
+    ];
+  }, [themeData, colors, typography]);
 
   // ─── Loading / Error ────────────────────────────────────────────────────────
   if (isLoading) {
@@ -146,7 +197,8 @@ export default function ThemeMaker() {
   }
 
   const storefrontPort = import.meta.env.VITE_STOREFRONT_PORT || '3001';
-  const iframeSrc = `http://localhost:${storefrontPort}/store/demo-preview?master_theme_id=${id}&preview=1`;
+  const selectedPageMeta = BUILDER_PAGES.find((p) => p.id === selectedPage) || BUILDER_PAGES[1];
+  const iframeSrc = `http://localhost:${storefrontPort}/store/demo-preview${selectedPageMeta.path}?master_theme_id=${id}&preview=1`;
 
   const SIDEBAR_TABS = [
     { id: 'colors'     as const, label: 'الألوان',  Icon: Palette },
@@ -173,10 +225,19 @@ export default function ThemeMaker() {
           </div>
           
           <div className="flex items-center gap-1">
+            <select
+              value={themeData.status || 'draft'}
+              onChange={(e) => handleThemeChange({ status: e.target.value })}
+              className="h-7 px-2 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 outline-none"
+            >
+              <option value="draft">مسودة</option>
+              <option value="maintenance">صيانة</option>
+              <option value="active">نشط</option>
+            </select>
             <button onClick={refreshIframe} className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors" title="تحديث المعاينة">
               <RotateCcw size={14} />
             </button>
-            <button onClick={() => saveMutation.mutate({ globalSettings: gs, pages: themeData.pages })} disabled={isSaving} className="text-xs font-bold text-white bg-matgarco-500 hover:bg-matgarco-600 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors disabled:opacity-50">
+            <button onClick={() => saveMutation.mutate({ globalSettings: gs, pages: themeData.pages, status: themeData.status })} disabled={isSaving} className="text-xs font-bold text-white bg-matgarco-500 hover:bg-matgarco-600 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors disabled:opacity-50">
               {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} حفظ
             </button>
           </div>
@@ -203,6 +264,18 @@ export default function ThemeMaker() {
 
         {/* Panel Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-5">
+
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+            <h4 className="text-xs font-black text-slate-700">Workflow إنشاء قالب جديد</h4>
+            <div className="space-y-1.5">
+              {completionItems.map((item) => (
+                <div key={item.id} className="flex items-center gap-2 text-[11px] font-bold text-slate-600">
+                  {item.done ? <CheckCircle2 size={14} className="text-emerald-600" /> : <Circle size={14} className="text-slate-300" />}
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* Admin Warning */}
           <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl flex items-start gap-2">
@@ -348,16 +421,28 @@ export default function ThemeMaker() {
           {/* ═══ SECTIONS TAB ═══ */}
           {activeTab === 'sections' && (
             <div className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-black uppercase text-slate-400 mb-1.5">الصفحة</label>
+                <select
+                  value={selectedPage}
+                  onChange={(e) => setSelectedPage(e.target.value as BuilderPageId)}
+                  className="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-matgarco-500 focus:ring-1 focus:ring-matgarco-500"
+                >
+                  {BUILDER_PAGES.map((p) => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+
               <h3 className="font-black text-sm text-slate-800 flex items-center gap-2">
-                <LayoutPanelLeft size={15} /> أقسام الصفحة الرئيسية
+                <LayoutPanelLeft size={15} /> أقسام: {selectedPageMeta.label}
               </h3>
               <SectionsPanel 
-                sections={themeData.pages?.home?.sections || []} 
+                sections={themeData.pages?.[selectedPage]?.sections || []} 
                 onChange={(newSections) => {
                   handleThemeChange({
                     pages: {
-                      ...(themeData.pages || {}),
-                      home: { ...(themeData.pages?.home || {}), sections: newSections }
+                      [selectedPage]: { ...(themeData.pages?.[selectedPage] || {}), sections: newSections }
                     }
                   });
                 }} 

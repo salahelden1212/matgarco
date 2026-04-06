@@ -1,4 +1,4 @@
-import { fetchStorefrontTheme, fetchPreviewTheme, fetchCategories } from '@/lib/api';
+import { fetchStorefrontTheme, fetchPreviewTheme, fetchCategories, fetchMasterThemePreview } from '@/lib/api';
 import { notFound } from 'next/navigation';
 import ThemeRenderer from '@/components/theme/ThemeRenderer';
 import StorePageShell from '@/components/StorePageShell';
@@ -8,16 +8,23 @@ interface Props {
   searchParams: { preview?: string; master_theme_id?: string };
 }
 
-export const revalidate = 60; // Cache for 1 minute in production
+export const revalidate = 60;
 
 export default async function CategoriesPage({ params, searchParams }: Props) {
   const { subdomain } = params;
-
   const isPreview = searchParams.preview === '1';
-  
+  const masterThemeId = searchParams.master_theme_id;
+  const isMasterPreview = isPreview && !!masterThemeId;
+  // demo-preview has no real merchant — fall back to 'demo' for categories
+  const realSubdomain = isMasterPreview ? 'demo' : subdomain;
+
   const [themeRes, categoriesRes] = await Promise.all([
-    isPreview ? fetchPreviewTheme(subdomain) : fetchStorefrontTheme(subdomain),
-    fetchCategories(subdomain),
+    isMasterPreview
+      ? fetchMasterThemePreview(masterThemeId!)
+      : isPreview
+        ? fetchPreviewTheme(subdomain)
+        : fetchStorefrontTheme(subdomain),
+    fetchCategories(realSubdomain),
   ]);
 
   if (!themeRes) return notFound();
