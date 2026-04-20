@@ -6,6 +6,7 @@ import DashboardLayout from './components/layout/DashboardLayout';
 import { RequirePermission } from './components/RequirePermission';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import AuthCallback from './pages/auth/AuthCallback';
 import NotFound from './pages/NotFound';
 import Overview from './pages/dashboard/Overview';
 import { ProductsList } from './pages/products/ProductsList';
@@ -41,6 +42,7 @@ function App() {
           {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/auth-callback" element={<AuthCallback />} />
 
           {/* Dashboard Routes */}
           <Route

@@ -31,6 +31,7 @@ export interface IUser extends Document {
   // OAuth
   googleId?: string;
   facebookId?: string;
+  appleId?: string;
   
   // Meta
   lastLogin?: Date;
@@ -130,6 +131,11 @@ const userSchema = new Schema<IUser>(
       sparse: true,
     },
     facebookId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    appleId: {
       type: String,
       unique: true,
       sparse: true,

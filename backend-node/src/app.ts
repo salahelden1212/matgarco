@@ -4,11 +4,13 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
+import passport from './config/passport';
 import { errorHandler } from './middleware/error.middleware';
 import { notFoundHandler } from './middleware/notFound.middleware';
 
 // Import routes
 import authRoutes from './routes/auth.routes';
+import oauthRoutes from './routes/oauth.routes';
 import merchantRoutes from './routes/merchant.routes';
 import productRoutes from './routes/product.routes';
 import orderRoutes from './routes/order.routes';
@@ -50,6 +52,10 @@ app.use(express.urlencoded({ extended: true }));
 // Cookie parser middleware
 app.use(cookieParser());
 
+// Passport authentication middleware
+app.use(passport.initialize());
+app.use(passport.session());
+
 // Logging middleware
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
@@ -77,6 +83,7 @@ app.get('/api', (req, res) => {
 
 // Mount routes
 app.use('/api/auth', authRoutes);
+app.use('/api/auth/oauth', oauthRoutes);
 app.use('/api/merchants', merchantRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
