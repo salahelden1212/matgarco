@@ -313,6 +313,74 @@ export const duplicateProduct = asyncHandler(
 );
 
 /**
+ * Generate product description using AI
+ * POST /api/products/:id/generate-description
+ */
+export const generateProductDescription = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    const merchantId = req.user?.merchantId;
+
+    if (!merchantId) {
+      throw new AppError('No merchant associated', 400);
+    }
+
+    const product = await Product.findOne({ _id: id, merchantId });
+
+    if (!product) {
+      throw new AppError('Product not found', 404);
+    }
+
+    try {
+      // Call AI service to generate description
+      const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+      const aiResponse = await fetch(`${aiServiceUrl}/api/generate-description`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productName: product.name,
+          category: product.category || 'general',
+          price: product.price,
+          tags: product.tags || [],
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        throw new AppError('Failed to generate description from AI service', 500);
+      }
+
+      const aiData = await aiResponse.json();
+      const generatedDescription = (aiData as any).description || (aiData as any).result;
+
+      // Update product with AI-generated description
+      product.description = generatedDescription;
+      product.aiGenerated = product.aiGenerated || {};
+      product.aiGenerated.description = true;
+      product.updatedAt = new Date();
+
+      await product.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'Description generated successfully',
+        data: {
+          product,
+          generatedDescription,
+        },
+      });
+    } catch (error: any) {
+      console.error('AI Service Error:', error.message);
+      throw new AppError(
+        error.message || 'Failed to connect to AI service',
+        error.status || 503
+      );
+    }
+  }
+);
+
+/**
  * Get featured products (public)
  * GET /api/products/featured
  */

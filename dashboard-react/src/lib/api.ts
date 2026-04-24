@@ -70,6 +70,8 @@ export const productAPI = {
   delete: (id: string) => axios.delete(`/products/${id}`),
 
   duplicate: (id: string) => axios.post(`/products/${id}/duplicate`),
+
+  generateDescription: (id: string) => axios.post(`/products/${id}/generate-description`),
 };
 
 // Order API
