@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
+import rateLimit from 'express-rate-limit';
 import passport from './config/passport';
 import { errorHandler } from './middleware/error.middleware';
 import { notFoundHandler } from './middleware/notFound.middleware';
@@ -27,8 +28,40 @@ import paymentRoutes from './routes/payment.routes';
 import payoutRoutes from './routes/payout.routes';
 import storeThemeRoutes from './routes/storeTheme.routes';
 import publicThemesRoutes from './routes/publicThemes.routes';
+import aiRoutes from './routes/ai.routes';
+import discountRoutes from './routes/discount.routes';
 
 const app: Application = express();
+
+// C5 FIX: Rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // 20 requests per window
+  message: { success: false, error: 'Too many requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const strictLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5, // 5 requests per window for password reset
+  message: { success: false, error: 'Too many requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// H9 FIX: Rate limiting for order creation (prevent spam orders)
+const orderLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10, // 10 orders per 5 minutes
+  message: { success: false, error: 'Too many orders. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// C10 FIX: CSRF protection - refresh token cookie already has sameSite: 'strict'
+// which prevents CSRF attacks. Access token is in localStorage (not cookie-based).
+// No additional CSRF middleware needed.
 
 // Security middleware
 app.use(helmet());
@@ -54,7 +87,6 @@ app.use(cookieParser());
 
 // Passport authentication middleware
 app.use(passport.initialize());
-app.use(passport.session());
 
 // Logging middleware
 if (process.env.NODE_ENV === 'development') {
@@ -82,7 +114,7 @@ app.get('/api', (req, res) => {
 });
 
 // Mount routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/auth/oauth', oauthRoutes);
 app.use('/api/merchants', merchantRoutes);
 app.use('/api/products', productRoutes);
@@ -100,6 +132,8 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/payouts', payoutRoutes);
 app.use('/api/store-themes', storeThemeRoutes);
 app.use('/api/themes', publicThemesRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/discounts', discountRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

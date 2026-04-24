@@ -7,7 +7,9 @@ import {
   getPayoutHistory,
   getMyPayouts,
   markPayoutPaid,
+  getBankInfo,
   updateBankInfo,
+  getPaymobConfig,
   updatePaymobConfig,
 } from '../controllers/payout.controller';
 
@@ -15,6 +17,8 @@ const router = Router();
 
 // ── Merchant routes ────────────────────────────────────────────────
 router.get('/my', authenticate, getMyPayouts);
+router.get('/bank-info', authenticate, getBankInfo);
+router.get('/paymob-config', authenticate, getPaymobConfig);
 router.put('/bank-info', authenticate, updateBankInfo);
 router.put('/paymob-config', authenticate, updatePaymobConfig);    // Business plan only
 

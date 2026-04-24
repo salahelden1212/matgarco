@@ -6,6 +6,8 @@ import DashboardLayout from './components/layout/DashboardLayout';
 import { RequirePermission } from './components/RequirePermission';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import EmailVerification from './pages/auth/EmailVerification';
 import AuthCallback from './pages/auth/AuthCallback';
 import NotFound from './pages/NotFound';
 import Overview from './pages/dashboard/Overview';
@@ -24,6 +26,7 @@ import OnboardingWizard from './pages/onboarding/OnboardingWizard';
 import StoreDesignPage from './pages/store-design/StoreDesignPage';
 import SubscriptionPage from './pages/SubscriptionPage';
 import FinancePage from './pages/finance/FinancePage';
+import MarketingPage from './pages/marketing/MarketingPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,6 +45,8 @@ function App() {
           {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-email" element={<EmailVerification />} />
           <Route path="/auth-callback" element={<AuthCallback />} />
 
           {/* Dashboard Routes */}
@@ -68,6 +73,7 @@ function App() {
             <Route path="store-design" element={<StoreDesignPage />} />
             <Route path="subscription" element={<SubscriptionPage />} />
             <Route path="finance" element={<FinancePage />} />
+            <Route path="marketing" element={<MarketingPage />} />
           </Route>
 
           {/* Redirect root to dashboard */}

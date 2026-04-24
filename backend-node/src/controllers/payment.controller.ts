@@ -109,15 +109,18 @@ export const createIntention = async (req: Request, res: Response) => {
 // ─────────────────────────────────────────────
 export const handleWebhook = async (req: Request, res: Response) => {
   const hmac = (req.query.hmac as string) || '';
-  const body = req.body;
 
-  // Verify HMAC signature
-  if (hmac && !verifyPaymobHmac(body?.obj || body, hmac)) {
+  // C7 FIX: Always verify HMAC - never skip verification
+  if (!hmac) {
+    return res.status(401).json({ success: false, message: 'HMAC signature required' });
+  }
+
+  if (!verifyPaymobHmac(req.body?.obj || req.body, hmac)) {
     return res.status(401).json({ success: false, message: 'Invalid HMAC signature' });
   }
 
-  // Transaction data is nested under body.obj for v2
-  const transaction = body?.obj || body;
+  // Transaction data is nested under req.body.obj for v2
+  const transaction = req.body?.obj || req.body;
   const isSuccess = transaction?.success === true || transaction?.success === 'true';
   const merchantOrderId = transaction?.order?.merchant_order_id || transaction?.extras?.merchant_order_id;
   const transactionId = transaction?.id?.toString();

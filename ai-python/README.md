@@ -1,90 +1,82 @@
 # Matgarco AI Service
 
-AI-powered features using local LLM (Ollama).
-
-## Tech Stack
-
-- **Framework:** FastAPI
-- **Language:** Python 3.11+
-- **LLM:** Ollama (Llama 3 / Mistral)
-- **Image Processing:** Pillow
-
-## Setup
-
-### 1. Install Ollama
-
-```bash
-# Windows (PowerShell as Admin)
-Invoke-WebRequest -Uri https://ollama.com/download/windows -OutFile ollama-setup.exe
-.\ollama-setup.exe
-
-# Start Ollama
-ollama serve
-```
-
-### 2. Download AI Model
-
-```bash
-ollama pull llama3
-# or
-ollama pull mistral
-```
-
-### 3. Create Virtual Environment
-
-```bash
-python -m venv venv
-
-# Windows
-.\venv\Scripts\activate
-
-# Linux/Mac
-source venv/bin/activate
-```
-
-### 4. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 5. Environment Variables
-
-Copy `.env.example` to `.env`:
-
-```bash
-cp .env.example .env
-```
-
-### 6. Run Server
-
-```bash
-uvicorn app.main:app --reload --port 8000
-```
-
-The API will be available at `http://localhost:8000`
-
-API Documentation: `http://localhost:8000/docs`
+Scalable AI microservice powered by Qwen (DashScope/Alibaba Cloud) for the Matgarco multi-tenant e-commerce platform.
 
 ## Features
 
-- **Product Description Generator** - Generate engaging product descriptions
-- **SEO Optimizer** - Create SEO-friendly titles, descriptions, and keywords
-- **Category Suggester** - Suggest relevant product categories and tags
+| Feature | Endpoint | Description |
+|---|---|---|
+| Product Descriptions | `POST /api/generate-description` | Generate professional product descriptions in Arabic/English |
+| SEO Metadata | `POST /api/generate-seo` | Auto-generate SEO titles, descriptions, keywords, slugs |
+| Translation | `POST /api/translate` | Translate between AR, EN, FR, DE, ES, ZH |
+| General Chat | `POST /api/chat` | Open-ended AI completion |
+| Analytics Insights | `POST /api/analytics/insights` | AI-powered store performance analysis |
+| Product Recommendations | `POST /api/analytics/product-recommendations` | Data-driven product management suggestions |
+| Customer Insights | `POST /api/analytics/customer-insights` | Customer behavior analysis and segmentation |
+| Smart Assistant | `POST /api/assistant/chat` | Context-aware merchant assistant |
+| Action Suggestions | `POST /api/assistant/suggest-actions` | AI-suggested store actions |
 
-## Available Models
+## Quick Start
 
-- **llama3:8b** - Best quality, requires 8GB+ RAM
-- **mistral:7b** - Faster, good quality
-- **phi:2.7b** - Lightweight, basic tasks
+### 1. Setup (one-time)
+```bash
+cd ai-python
+setup.bat
+```
 
-## API Endpoints
+### 2. Configure
+Edit `.env`:
+```env
+QWEN_API_KEY=sk-your-api-key-here
+QWEN_MODEL=qwen-turbo
+```
 
-- `POST /api/generate-description` - Generate product description
-- `POST /api/optimize-seo` - Optimize product SEO
-- `POST /api/suggest-categories` - Suggest categories
-- `GET /health` - Health check
+### 3. Start
+```bash
+start.bat
+```
 
-## License
+Service runs on `http://localhost:8000`
 
-MIT
+### 4. Test
+```bash
+test.bat
+```
+
+Or visit http://localhost:8000/docs for interactive Swagger UI.
+
+## Architecture
+
+```
+ai-python/
+├── config.py              # Environment settings with validation
+├── main.py                # FastAPI app entry point
+├── services/              # Business logic
+│   ├── qwen_client.py     # Singleton Qwen API client
+│   ├── description.py     # Product description generation
+│   ├── seo.py             # SEO metadata generation
+│   ├── translation.py     # Translation service
+│   ├── chat.py            # General chat completion
+│   ├── analytics.py       # Analytics & insights
+│   └── assistant.py       # Smart assistant
+├── models/                # Pydantic request/response schemas
+└── routes/                # API route handlers
+```
+
+## Integration
+
+The Node.js backend (`backend-node/`) proxies all AI requests through:
+- `POST /api/ai/*` routes
+- Configured via `AI_SERVICE_URL=http://localhost:8000` in `.env`
+
+The React dashboard (`dashboard-react/`) accesses AI via:
+- `aiAPI` object in `src/lib/api.ts`
+- `AIAssistant` chatbot component in the dashboard layout
+
+## API Key Issue
+
+If you get `Incorrect API key provided` errors:
+1. Go to https://dashscope.console.aliyun.com/
+2. Create a new API key
+3. Update `QWEN_API_KEY` in `ai-python/.env`
+4. Restart the AI service

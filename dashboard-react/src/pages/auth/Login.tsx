@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { authAPI } from '../../lib/api';
@@ -216,13 +216,6 @@ export default function Login() {
             >
               إنشاء حساب جديد
             </Link>
-          </p>
-        </div>
-
-        {/* Demo Account */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-xs text-gray-600 text-center">
-            🔐 للتجربة: demo@matgarco.com / Demo1234
           </p>
         </div>
       </div>

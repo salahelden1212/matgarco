@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, MoreVertical, ShieldAlert, CheckCircle2, XCircle, Store, Eye, Loader2, AlertCircle } from 'lucide-react';
+import { Search, MoreVertical, ShieldAlert, CheckCircle2, XCircle, Store, Eye, Loader2, AlertCircle, Ban, Power } from 'lucide-react';
 import api from '../lib/api';
+import { toast } from 'sonner';
 
 interface Merchant {
   _id: string;
@@ -26,6 +27,8 @@ export default function MerchantsList() {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPlan, setFilterPlan] = useState('all');
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchMerchants = async () => {
@@ -41,6 +44,38 @@ export default function MerchantsList() {
     };
     fetchMerchants();
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSuspend = async (id: string) => {
+    try {
+      await api.patch(`/super-admin/merchants/${id}/status`, { status: 'suspended' });
+      setMerchants((prev) => prev.map((m) => m._id === id ? { ...m, subscriptionStatus: 'suspended' } : m));
+      toast.success('تم إيقاف المتجر بنجاح');
+    } catch {
+      toast.error('فشل في إيقاف المتجر');
+    }
+    setOpenMenuId(null);
+  };
+
+  const handleActivate = async (id: string) => {
+    try {
+      await api.patch(`/super-admin/merchants/${id}/status`, { status: 'active' });
+      setMerchants((prev) => prev.map((m) => m._id === id ? { ...m, subscriptionStatus: 'active' } : m));
+      toast.success('تم تفعيل المتجر بنجاح');
+    } catch {
+      toast.error('فشل في تفعيل المتجر');
+    }
+    setOpenMenuId(null);
+  };
 
   const filteredMerchants = merchants.filter(m => {
     const matchesSearch = m.storeName.includes(searchTerm) || m.subdomain.includes(searchTerm) || `${m.ownerId?.firstName} ${m.ownerId?.lastName}`.includes(searchTerm);
@@ -146,13 +181,44 @@ export default function MerchantsList() {
                   <td className="px-6 py-4 text-slate-500 font-mono text-xs">
                     {new Date(merchant.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 flex justify-center items-center gap-2">
+                  <td className="px-6 py-4 flex justify-center items-center gap-2 relative">
                     <Link to={`/merchants/${merchant._id}`} className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors" title="عرض التفاصيل">
                       <Eye size={16} />
                     </Link>
-                    <button className="w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-100 flex items-center justify-center transition-colors">
-                      <MoreVertical size={16} />
-                    </button>
+                    <div ref={openMenuId === merchant._id ? menuRef : undefined}>
+                      <button
+                        onClick={() => setOpenMenuId(openMenuId === merchant._id ? null : merchant._id)}
+                        className="w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-100 flex items-center justify-center transition-colors"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                      {openMenuId === merchant._id && (
+                        <div className="absolute left-0 top-full mt-1 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-10">
+                          <Link
+                            to={`/merchants/${merchant._id}`}
+                            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                            onClick={() => setOpenMenuId(null)}
+                          >
+                            <Eye size={14} /> عرض التفاصيل
+                          </Link>
+                          {merchant.subscriptionStatus !== 'suspended' ? (
+                            <button
+                              onClick={() => handleSuspend(merchant._id)}
+                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-rose-600 hover:bg-rose-50"
+                            >
+                              <Ban size={14} /> إيقاف المتجر
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleActivate(merchant._id)}
+                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50"
+                            >
+                              <Power size={14} /> تفعيل المتجر
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

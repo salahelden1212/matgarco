@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import Merchant from '../models/Merchant';
 import User from '../models/User';
+import Subscription from '../models/Subscription';
 import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { AuthRequest } from '../types';
 import { generateSlug } from '../utils/helpers';
@@ -74,6 +75,20 @@ export const createMerchant = asyncHandler(
     // Update user with merchantId
     await User.findByIdAndUpdate(userId, {
       merchantId: merchant._id,
+    });
+
+    // C4 FIX: Create subscription record alongside merchant
+    await Subscription.create({
+      merchantId: merchant._id,
+      plan: 'free_trial',
+      billingCycle: 'monthly',
+      amount: 0,
+      currency: 'EGP',
+      status: 'trialing',
+      startDate: new Date(),
+      currentPeriodStart: new Date(),
+      currentPeriodEnd: trialEndDate,
+      autoRenew: true,
     });
 
     res.status(201).json({

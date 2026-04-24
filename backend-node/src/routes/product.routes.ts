@@ -8,6 +8,7 @@ import {
   deleteProduct,
   duplicateProduct,
   generateProductDescription,
+  generateDescriptionDraft,
   getFeaturedProducts,
 } from '../controllers/product.controller';
 import { authenticate } from '../middleware/auth.middleware';
@@ -125,6 +126,12 @@ router.post(
   authenticate,
   tenantIsolation,
   generateProductDescription
+);
+
+router.post(
+  '/generate-description',
+  authenticate,
+  generateDescriptionDraft
 );
 
 export default router;

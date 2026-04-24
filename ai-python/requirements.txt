@@ -1,22 +1,12 @@
 # FastAPI Framework
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-python-multipart==0.0.6
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
 
 # Environment
-python-dotenv==1.0.0
+python-dotenv>=1.0.0
 
 # HTTP Client
-httpx==0.26.0
-
-# Ollama / LLM
-ollama==0.1.6
-
-# Image Processing
-Pillow==10.2.0
+httpx>=0.26.0
 
 # Validation
-pydantic==2.5.3
-
-# CORS
-fastapi-cors==0.0.6
+pydantic>=2.5.3

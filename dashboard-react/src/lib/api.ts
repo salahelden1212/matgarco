@@ -7,6 +7,7 @@ export const authAPI = {
     password: string;
     firstName: string;
     lastName: string;
+    phone?: string;
     role?: string;
   }) => axios.post('/auth/register', data),
 
@@ -28,6 +29,9 @@ export const authAPI = {
 
   resetPassword: (token: string, password: string) =>
     axios.post('/auth/reset-password', { token, password }),
+
+  verifyEmail: (token: string) =>
+    axios.post('/auth/verify-email', { token }),
 };
 
 // Merchant API
@@ -72,6 +76,13 @@ export const productAPI = {
   duplicate: (id: string) => axios.post(`/products/${id}/duplicate`),
 
   generateDescription: (id: string) => axios.post(`/products/${id}/generate-description`),
+
+  generateDescriptionDraft: (data: {
+    productName: string;
+    category?: string;
+    price?: number;
+    tags?: string[];
+  }) => axios.post('/products/generate-description', data),
 };
 
 // Order API
@@ -195,4 +206,41 @@ export const subscriptionAPI = {
     axios.post('/subscriptions/downgrade', { planId }),
   cancel: (reason?: string) =>
     axios.post('/subscriptions/cancel', { reason }),
+};
+
+// AI API
+export const aiAPI = {
+  generateDescription: (data: {
+    productName: string;
+    category?: string;
+    price?: number;
+    tags?: string[];
+    language?: string;
+  }) => axios.post('/products/generate-description', data),
+
+  generateSEO: (data: {
+    productName: string;
+    description?: string;
+    category?: string;
+    language?: string;
+  }) => axios.post('/ai/seo', data),
+
+  getAnalyticsInsights: (data: {
+    question?: string;
+    language?: string;
+  }) => axios.post('/ai/analytics/insights', data),
+
+  getProductRecommendations: () =>
+    axios.post('/ai/analytics/product-recommendations'),
+
+  getCustomerInsights: () =>
+    axios.post('/ai/analytics/customer-insights'),
+
+  assistantChat: (data: {
+    message: string;
+    conversationHistory?: Array<{ role: string; content: string }>;
+  }) => axios.post('/ai/assistant/chat', data),
+
+  suggestActions: () =>
+    axios.post('/ai/assistant/suggest-actions'),
 };

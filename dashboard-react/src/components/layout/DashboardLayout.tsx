@@ -6,6 +6,7 @@ import { orderAPI } from '../../lib/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PermissionKey } from '../../lib/permissions';
 import { NotificationBell } from '../NotificationPanel';
+import { AIAssistant } from '../AIAssistant';
 import SearchBar from '../SearchBar';
 import {
   LayoutDashboard,
@@ -20,6 +21,7 @@ import {
   UserRound,
   Palette,
   Wallet,
+  Megaphone,
 } from 'lucide-react';
 
 export default function DashboardLayout() {
@@ -49,18 +51,21 @@ export default function DashboardLayout() {
     badge: number;
     permission?: PermissionKey;
     ownerOnly?: boolean;
+    section?: string;
   }
 
   const allMenuItems: MenuItem[] = [
-    { name: 'لوحة التحكم', path: '/dashboard', icon: LayoutDashboard, badge: 0 },
-    { name: 'المنتجات', path: '/dashboard/products', icon: Package, badge: 0, permission: 'products.view' },
-    { name: 'الطلبات', path: '/dashboard/orders', icon: ShoppingCart, badge: pendingCount, permission: 'orders.view' },
-    { name: 'العملاء', path: '/dashboard/customers', icon: Users, badge: 0, permission: 'customers.view' },
-    { name: 'تصميم المتجر', path: '/dashboard/store-design', icon: Palette, badge: 0 },
-    { name: 'الماليات', path: '/dashboard/finance', icon: Wallet, badge: 0 },
-    { name: 'التقارير', path: '/dashboard/reports', icon: BarChart2, badge: 0, permission: 'reports.view' },
-    { name: 'الإعدادات', path: '/dashboard/settings', icon: Settings, badge: 0, permission: 'settings.view' },
-    { name: 'الموظفون', path: '/dashboard/staff', icon: UserRound, badge: 0, permission: 'staff.view' as PermissionKey },
+    { name: 'لوحة التحكم', path: '/dashboard', icon: LayoutDashboard, badge: 0, section: 'main' },
+    { name: 'المنتجات', path: '/dashboard/products', icon: Package, badge: 0, permission: 'products.view', section: 'main' },
+    { name: 'الطلبات', path: '/dashboard/orders', icon: ShoppingCart, badge: pendingCount, permission: 'orders.view', section: 'main' },
+    { name: 'العملاء', path: '/dashboard/customers', icon: Users, badge: 0, permission: 'customers.view', section: 'main' },
+    { name: 'التسويق', path: '/dashboard/marketing', icon: Megaphone, badge: 0, section: 'main' },
+    { name: 'التقارير', path: '/dashboard/reports', icon: BarChart2, badge: 0, permission: 'reports.view', section: 'main' },
+    { name: 'تصميم المتجر', path: '/dashboard/store-design', icon: Palette, badge: 0, section: 'store' },
+    { name: 'الماليات', path: '/dashboard/finance', icon: Wallet, badge: 0, section: 'store' },
+    { name: 'الاشتراك', path: '/dashboard/subscription', icon: BarChart2, badge: 0, section: 'store' },
+    { name: 'الإعدادات', path: '/dashboard/settings', icon: Settings, badge: 0, permission: 'settings.view', section: 'settings' },
+    { name: 'الموظفون', path: '/dashboard/staff', icon: UserRound, badge: 0, permission: 'staff.view' as PermissionKey, section: 'settings' },
   ];
 
   const menuItems = allMenuItems.filter((item) => {
@@ -99,33 +104,51 @@ export default function DashboardLayout() {
           </div>
 
           {/* Navigation */}
-          <nav className="mt-8 flex-1 px-4 space-y-1">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = item.path === '/dashboard'
-                ? location.pathname === item.path
-                : location.pathname.startsWith(item.path);
-              
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition ${
-                    isActive
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <Icon className="ml-3 h-5 w-5 flex-shrink-0" />
-                  <span className="flex-1">{item.name}</span>
-                  {item.badge > 0 && (
-                    <span className="mr-auto bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
-                      {item.badge > 99 ? '99+' : item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
+          <nav className="mt-6 flex-1 px-4">
+            {(() => {
+              let currentSection = '';
+              const sectionLabels: Record<string, string> = {
+                main: '',
+                store: 'المتجر',
+                settings: 'النظام',
+              };
+
+              return menuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = item.path === '/dashboard'
+                  ? location.pathname === item.path
+                  : location.pathname.startsWith(item.path);
+                
+                const showSectionHeader = item.section && item.section !== currentSection;
+                if (item.section) currentSection = item.section;
+
+                return (
+                  <div key={item.path}>
+                    {showSectionHeader && sectionLabels[item.section!] && (
+                      <p className="px-4 pt-4 pb-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        {sectionLabels[item.section!]}
+                      </p>
+                    )}
+                    <Link
+                      to={item.path}
+                      className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition mb-0.5 ${
+                        isActive
+                          ? 'bg-blue-50 text-blue-600'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
+                    >
+                      <Icon className="ml-3 h-5 w-5 flex-shrink-0" />
+                      <span className="flex-1">{item.name}</span>
+                      {item.badge > 0 && (
+                        <span className="mr-auto bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                          {item.badge > 99 ? '99+' : item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  </div>
+                );
+              });
+            })()}
           </nav>
 
           {/* Logout */}
@@ -154,34 +177,52 @@ export default function DashboardLayout() {
               </button>
             </div>
 
-            <nav className="flex-1 px-4 mt-6 space-y-1">
-              {menuItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = item.path === '/dashboard'
-                  ? location.pathname === item.path
-                  : location.pathname.startsWith(item.path);
-                
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition ${
-                      isActive
-                        ? 'bg-blue-50 text-blue-600'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <Icon className="ml-3 h-5 w-5 flex-shrink-0" />
-                    <span className="flex-1">{item.name}</span>
-                    {item.badge > 0 && (
-                      <span className="mr-auto bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
-                        {item.badge > 99 ? '99+' : item.badge}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
+            <nav className="flex-1 px-4 mt-4">
+              {(() => {
+                let currentSection = '';
+                const sectionLabels: Record<string, string> = {
+                  main: '',
+                  store: 'المتجر',
+                  settings: 'النظام',
+                };
+
+                return menuItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = item.path === '/dashboard'
+                    ? location.pathname === item.path
+                    : location.pathname.startsWith(item.path);
+                  
+                  const showSectionHeader = item.section && item.section !== currentSection;
+                  if (item.section) currentSection = item.section;
+
+                  return (
+                    <div key={item.path}>
+                      {showSectionHeader && sectionLabels[item.section!] && (
+                        <p className="px-4 pt-4 pb-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          {sectionLabels[item.section!]}
+                        </p>
+                      )}
+                      <Link
+                        to={item.path}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition mb-0.5 ${
+                          isActive
+                            ? 'bg-blue-50 text-blue-600'
+                            : 'text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Icon className="ml-3 h-5 w-5 flex-shrink-0" />
+                        <span className="flex-1">{item.name}</span>
+                        {item.badge > 0 && (
+                          <span className="mr-auto bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                            {item.badge > 99 ? '99+' : item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    </div>
+                  );
+                });
+              })()}
             </nav>
 
             <div className="px-4 pb-4">
@@ -225,6 +266,9 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* AI Assistant */}
+      <AIAssistant />
     </div>
   );
 }

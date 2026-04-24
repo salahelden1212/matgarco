@@ -27,8 +27,10 @@ import {
   CreditCard,
   Loader2,
   Download,
+  Sparkles,
+  Lightbulb,
 } from 'lucide-react';
-import { orderAPI, customerAPI, productAPI } from '../../lib/api';
+import { orderAPI, customerAPI, productAPI, aiAPI } from '../../lib/api';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -162,6 +164,9 @@ const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent
 
 export const Reports: React.FC = () => {
   const [rangeDays, setRangeDays] = useState(30);
+  const [showAIInsights, setShowAIInsights] = useState(false);
+  const [aiInsights, setAiInsights] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
 
   // Fetch a large batch of orders for aggregation
   const { data: ordersRes, isLoading: ordersLoading } = useQuery({
@@ -270,6 +275,19 @@ export const Reports: React.FC = () => {
 
   const isLoading = ordersLoading;
 
+  const fetchAIInsights = async () => {
+    setShowAIInsights(true);
+    setAiLoading(true);
+    try {
+      const response = await aiAPI.getAnalyticsInsights({});
+      setAiInsights(response.data?.data?.insights || '');
+    } catch (error) {
+      setAiInsights('حدث خطأ أثناء تحليل البيانات. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   // ── Export all report data as multi-section CSV ───────────────────────────
   const exportReport = () => {
     const escape = (v: unknown) => {
@@ -292,7 +310,7 @@ export const Reports: React.FC = () => {
       // ── Revenue Over Time
       row('=== الإيرادات عبر الزمن ==='),
       row('التاريخ', 'الإيراد', 'الطلبات'),
-      ...revenueData.map((d: any) => row(d.تاريخ, d.إيراد, d.طلبات)),
+      ...revenueData.map((d: any) => row(d.label, d.إيراد, d.طلبات)),
       '',
       // ── Order Status
       row('=== توزيع حالة الطلبات ==='),
@@ -710,6 +728,57 @@ export const Reports: React.FC = () => {
             );
           })}
         </div>
+      </div>
+
+      {/* AI Insights Section */}
+      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-indigo-100 p-2.5 rounded-xl">
+              <Sparkles className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="font-bold text-gray-900 text-lg">تحليل الذكاء الاصطناعي</h2>
+              <p className="text-sm text-gray-500">رؤى وتوصيات ذكية بناءً على بيانات متجرك</p>
+            </div>
+          </div>
+          <button
+            onClick={fetchAIInsights}
+            disabled={aiLoading}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors font-medium text-sm"
+          >
+            {aiLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>جاري التحليل...</span>
+              </>
+            ) : (
+              <>
+                <Lightbulb className="w-4 h-4" />
+                <span>حلل بياناتي</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {showAIInsights && (
+          <div className="bg-white rounded-xl border border-indigo-100 p-5 min-h-[10rem]">
+            {aiLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-3" />
+                  <p className="text-gray-500 text-sm">جاري تحليل بيانات المتجر وتوليد الرؤى...</p>
+                </div>
+              </div>
+            ) : aiInsights ? (
+              <div className="prose prose-sm max-w-none" dir="rtl">
+                <div className="whitespace-pre-wrap text-gray-700 leading-relaxed text-sm">
+                  {aiInsights}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
     </div>
   );

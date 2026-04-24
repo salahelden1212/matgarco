@@ -129,7 +129,8 @@ export default function ProductDetailClient({ product, subdomain, relatedProduct
                 <span className="px-4 font-semibold text-[var(--text)]">{qty}</span>
                 <button
                   onClick={() => setQty(qty + 1)}
-                  className="px-4 py-3 text-lg font-bold hover:opacity-70 text-[var(--text)]"
+                  disabled={qty >= (product.stock || 0)}
+                  className="px-4 py-3 text-lg font-bold hover:opacity-70 text-[var(--text)] disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   +
                 </button>

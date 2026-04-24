@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { authAPI, merchantAPI } from '../../lib/api';
@@ -14,6 +14,7 @@ export default function Register() {
     firstName: '',
     lastName: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     
@@ -24,14 +25,43 @@ export default function Register() {
   });
   const [errors, setErrors] = useState<any>({});
   const [subdomainAvailable, setSubdomainAvailable] = useState<boolean | null>(null);
+  const [subdomainChecking, setSubdomainChecking] = useState(false);
+  const subdomainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Check subdomain availability
+  // C1 FIX: Track if merchant was created successfully
+  const [merchantError, setMerchantError] = useState<string | null>(null);
+
+  // Check subdomain availability with debounce (H1 FIX)
   const checkSubdomainMutation = useMutation({
     mutationFn: merchantAPI.checkSubdomain,
+    onMutate: () => setSubdomainChecking(true),
     onSuccess: (response) => {
       setSubdomainAvailable(response.data.data.available);
+      setSubdomainChecking(false);
+    },
+    onError: () => {
+      setSubdomainChecking(false);
     },
   });
+
+  // Debounced subdomain check
+  const debouncedCheckSubdomain = useCallback((value: string) => {
+    if (subdomainTimerRef.current) {
+      clearTimeout(subdomainTimerRef.current);
+    }
+    subdomainTimerRef.current = setTimeout(() => {
+      checkSubdomainMutation.mutate(value);
+    }, 400);
+  }, []);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (subdomainTimerRef.current) {
+        clearTimeout(subdomainTimerRef.current);
+      }
+    };
+  }, []);
 
   // Register user
   const registerMutation = useMutation({
@@ -48,25 +78,23 @@ export default function Register() {
           description: formData.description,
         });
         
-        // Success! Navigate to onboarding wizard
+        setMerchantError(null);
         navigate('/onboarding');
       } catch (error: any) {
         console.error('Merchant creation error:', error.response?.data);
         
-        // Show error but user is already logged in
-        // They can retry creating merchant later
         const errorMessage = error.response?.data?.message || 
                             error.response?.data?.error || 
                             'فشل في إنشاء المتجر. حاول مرة أخرى.';
         
+        setMerchantError(errorMessage);
         setErrors({ 
-          merchant: errorMessage + ' تم إنشاء حسابك بنجاح. يمكنك تسجيل الدخول.' 
+          merchant: errorMessage + ' تم إنشاء حسابك بنجاح. يمكنك المحاولة مرة أخرى من لوحة التحكم.' 
         });
         
-        // After 3 seconds, navigate to onboarding anyway
-        setTimeout(() => {
-          navigate('/onboarding');
-        }, 3000);
+        // C1 FIX: Don't navigate to onboarding if merchant creation failed
+        // User is logged in but has no merchant - they need to retry merchant creation
+        // Navigate to a special page or show retry option
       }
     },
     onError: (error: any) => {
@@ -115,10 +143,10 @@ export default function Register() {
     // Clear errors
     setErrors({ ...errors, [name]: '' });
     
-    // Check subdomain availability
+    // Check subdomain availability with debounce (H1 FIX)
     if (name === 'subdomain' && value.length >= 3) {
       setSubdomainAvailable(null);
-      checkSubdomainMutation.mutate(value);
+      debouncedCheckSubdomain(value);
     }
   };
 
@@ -154,7 +182,12 @@ export default function Register() {
     
     if (!formData.storeName) newErrors.storeName = 'اسم المتجر مطلوب';
     if (!formData.subdomain) newErrors.subdomain = 'النطاق الفرعي مطلوب';
-    if (!subdomainAvailable) newErrors.subdomain = 'النطاق الفرعي غير متاح';
+    
+    // H2 FIX: Allow submission when subdomainAvailable is null (pending check)
+    // Server-side validation will catch duplicates anyway
+    if (subdomainAvailable === false) {
+      newErrors.subdomain = 'النطاق الفرعي غير متاح';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -175,6 +208,7 @@ export default function Register() {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
+        phone: formData.phone || undefined,
         password: formData.password,
       });
     }
@@ -210,6 +244,19 @@ export default function Register() {
         {(errors.register || errors.merchant) && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
             {errors.register || errors.merchant}
+            {/* C1 FIX: Retry button if merchant creation failed */}
+            {merchantError && (
+              <button
+                onClick={() => {
+                  setMerchantError(null);
+                  setErrors({});
+                  setStep(2);
+                }}
+                className="mt-2 px-4 py-1.5 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition"
+              >
+                إعادة المحاولة
+              </button>
+            )}
           </div>
         )}
 
@@ -264,6 +311,21 @@ export default function Register() {
                 }`}
               />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                رقم الهاتف (اختياري)
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="01xxxxxxxxx"
+                dir="ltr"
+              />
             </div>
 
             <div>
@@ -356,6 +418,9 @@ export default function Register() {
               )}
               {subdomainAvailable === false && (
                 <p className="text-red-500 text-xs mt-1">✗ النطاق غير متاح</p>
+              )}
+              {subdomainChecking && (
+                <p className="text-gray-400 text-xs mt-1">جاري التحقق...</p>
               )}
               {errors.subdomain && <p className="text-red-500 text-xs mt-1">{errors.subdomain}</p>}
             </div>

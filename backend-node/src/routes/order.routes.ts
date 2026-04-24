@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import {
   getOrders,
   getOrderById,
@@ -14,6 +15,15 @@ import { validate } from '../middleware/validation.middleware';
 import { z } from 'zod';
 
 const router = Router();
+
+// H9 FIX: Rate limit order creation (10 orders per 5 minutes per IP)
+const orderCreationLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 10,
+  message: { success: false, error: 'Too many orders. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Validation schemas
 const createOrderSchema = z.object({
@@ -76,6 +86,7 @@ const updatePaymentSchema = z.object({
 // Public route (storefront checkout)
 router.post(
   '/',
+  orderCreationLimiter,
   validate(createOrderSchema),
   createOrder
 );

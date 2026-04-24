@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { X, Save, Loader2, Plus } from 'lucide-react';
+import { X, Save, Loader2, Plus, Sparkles } from 'lucide-react';
 import { productAPI } from '../../lib/api';
 import { ImageUpload } from '../../components/ImageUpload';
 
@@ -38,6 +38,7 @@ export const AddProduct: React.FC = () => {
   });
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState<any>({});
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
 
   // Create product mutation
   const createMutation = useMutation({
@@ -57,6 +58,46 @@ export const AddProduct: React.FC = () => {
       setErrors({ submit: errorMessage });
     },
   });
+
+  // Generate description mutation
+  const generateDescriptionMutation = useMutation({
+    mutationFn: () =>
+      productAPI.generateDescriptionDraft({
+        productName: formData.name,
+        category: formData.category,
+        price: formData.price,
+        tags: formData.tags,
+      }),
+    onSuccess: (response: any) => {
+      const generatedDescription = response.data?.data?.description;
+      if (generatedDescription) {
+        setFormData({
+          ...formData,
+          description: generatedDescription,
+        });
+        toast.success('تم إنشاء الوصف باستخدام الذكاء الاصطناعي ✨');
+      }
+    },
+    onError: (error: any) => {
+      let errorMessage = 'فشل في توليد الوصف';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      toast.error(errorMessage);
+    },
+    onSettled: () => {
+      setIsGeneratingDescription(false);
+    },
+  });
+
+  const handleGenerateDescription = async () => {
+    if (!formData.name.trim()) {
+      toast.error('يرجى إدخال اسم المنتج أولاً');
+      return;
+    }
+    setIsGeneratingDescription(true);
+    generateDescriptionMutation.mutate();
+  };
 
   const handleSubmit = (e: React.FormEvent, isDraft: boolean = false) => {
     e.preventDefault();
@@ -116,9 +157,15 @@ export const AddProduct: React.FC = () => {
   };
 
   const handleImagesReordered = (reorderedImages: string[]) => {
+    // H3 FIX: Reorder imagePublicIds to match reordered images
+    const reorderedPublicIds = reorderedImages.map((url) => {
+      const idx = formData.images.indexOf(url);
+      return idx >= 0 ? formData.imagePublicIds[idx] : '';
+    });
     setFormData({
       ...formData,
       images: reorderedImages,
+      imagePublicIds: reorderedPublicIds,
     });
   };
 
@@ -185,9 +232,20 @@ export const AddProduct: React.FC = () => {
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                الوصف
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  الوصف
+                </label>
+                <button
+                  type="button"
+                  onClick={handleGenerateDescription}
+                  disabled={isGeneratingDescription}
+                  className="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {isGeneratingDescription ? 'جاري الإنشاء...' : 'إنشاء بـ AI'}
+                </button>
+              </div>
               <textarea
                 value={formData.description}
                 onChange={(e) =>

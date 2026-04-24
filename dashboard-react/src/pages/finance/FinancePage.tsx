@@ -37,8 +37,27 @@ export default function FinancePage() {
   const [paymobSuccess, setPaymobSuccess] = useState('');
 
   useEffect(() => {
-    api.get('/payouts/my').then((res) => {
-      setData(res.data.data);
+    Promise.all([
+      api.get('/payouts/my'),
+      api.get('/payouts/bank-info').catch(() => null),
+      api.get('/payouts/paymob-config').catch(() => null),
+    ]).then(([payoutRes, bankRes, paymobRes]) => {
+      setData(payoutRes.data.data);
+      if (bankRes?.data?.data) {
+        setBankForm({
+          bankName: bankRes.data.data.bankName || '',
+          accountNumber: bankRes.data.data.accountNumber || '',
+          accountName: bankRes.data.data.accountName || '',
+          iban: bankRes.data.data.iban || '',
+        });
+      }
+      if (paymobRes?.data?.data) {
+        setPaymobForm({
+          secretKey: paymobRes.data.data.secretKey || '',
+          publicKey: paymobRes.data.data.publicKey || '',
+          integrationId: paymobRes.data.data.integrationId || '',
+        });
+      }
     }).catch((e) => {
       setError(e.response?.data?.message || 'فشل تحميل بيانات المالية');
     }).finally(() => setLoading(false));

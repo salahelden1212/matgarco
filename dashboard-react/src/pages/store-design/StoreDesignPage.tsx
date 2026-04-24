@@ -128,10 +128,12 @@ export default function StoreDesignPage() {
     const merged = shallowMergeDraft(currentDraft, update);
 
     // 1. Send live preview update to iframe instantly over active link
+    // C9 FIX: Use specific storefront URL instead of wildcard '*'
+    const storefrontUrl = import.meta.env.VITE_STOREFRONT_URL || 'http://localhost:3001';
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
         { type: 'STORE_THEME_UPDATE', payload: merged },
-        '*'
+        storefrontUrl
       );
     }
 

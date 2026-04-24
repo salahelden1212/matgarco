@@ -6,6 +6,38 @@ import { AuthRequest } from '../types';
 import { generateSlug } from '../utils/helpers';
 import { calculatePagination } from '../utils/helpers';
 
+async function callAIService(productName: string, category: string, price?: number, tags?: string[]): Promise<string> {
+  const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+
+  const response = await fetch(`${aiServiceUrl}/api/generate-description`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      productName,
+      category,
+      price,
+      tags,
+      language: 'ar',
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`AI service error (${response.status}): ${errorText}`);
+  }
+
+  const data = await response.json();
+  const description = (data as any).description;
+
+  if (!description) {
+    throw new Error('Empty response from AI service');
+  }
+
+  return description.trim();
+}
+
 /**
  * Get all products (for merchant)
  * GET /api/products
@@ -313,7 +345,7 @@ export const duplicateProduct = asyncHandler(
 );
 
 /**
- * Generate product description using AI
+ * Generate product description using AI (for existing product)
  * POST /api/products/:id/generate-description
  */
 export const generateProductDescription = asyncHandler(
@@ -332,29 +364,13 @@ export const generateProductDescription = asyncHandler(
     }
 
     try {
-      // Call AI service to generate description
-      const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
-      const aiResponse = await fetch(`${aiServiceUrl}/api/generate-description`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          productName: product.name,
-          category: product.category || 'general',
-          price: product.price,
-          tags: product.tags || [],
-        }),
-      });
+      const generatedDescription = await callAIService(
+        product.name,
+        product.category || 'general',
+        product.price,
+        product.tags || []
+      );
 
-      if (!aiResponse.ok) {
-        throw new AppError('Failed to generate description from AI service', 500);
-      }
-
-      const aiData = await aiResponse.json();
-      const generatedDescription = (aiData as any).description || (aiData as any).result;
-
-      // Update product with AI-generated description
       product.description = generatedDescription;
       product.aiGenerated = product.aiGenerated || {};
       product.aiGenerated.description = true;
@@ -368,6 +384,43 @@ export const generateProductDescription = asyncHandler(
         data: {
           product,
           generatedDescription,
+        },
+      });
+    } catch (error: any) {
+      console.error('AI Service Error:', error.message);
+      throw new AppError(
+        error.message || 'Failed to connect to AI service',
+        error.status || 503
+      );
+    }
+  }
+);
+
+/**
+ * Generate product description using AI (for new product, no ID needed)
+ * POST /api/products/generate-description
+ */
+export const generateDescriptionDraft = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { productName, category, price, tags } = req.body;
+
+    if (!productName || !productName.trim()) {
+      throw new AppError('Product name is required', 400);
+    }
+
+    try {
+      const generatedDescription = await callAIService(
+        productName.trim(),
+        category || 'general',
+        price,
+        tags || []
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Description generated successfully',
+        data: {
+          description: generatedDescription,
         },
       });
     } catch (error: any) {

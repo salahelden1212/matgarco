@@ -250,6 +250,23 @@ export const markPayoutPaid = async (req: AuthRequest, res: Response) => {
 };
 
 // ─────────────────────────────────────────────
+// GET /api/payouts/bank-info  [Merchant]
+// Get merchant bank details
+// ─────────────────────────────────────────────
+export const getBankInfo = async (req: AuthRequest, res: Response) => {
+  const merchantId = req.user?.merchantId;
+  if (!merchantId) throw new Error('Merchant not found');
+
+  const merchant = await Merchant.findById(merchantId).select('payoutInfo');
+  if (!merchant) return res.status(404).json({ success: false, message: 'Merchant not found' });
+
+  return res.status(200).json({
+    success: true,
+    data: merchant.payoutInfo || {},
+  });
+};
+
+// ─────────────────────────────────────────────
 // PUT /api/payouts/bank-info  [Merchant]
 // Update merchant bank details for payouts
 // ─────────────────────────────────────────────
@@ -267,6 +284,26 @@ export const updateBankInfo = async (req: AuthRequest, res: Response) => {
   });
 
   return res.status(200).json({ success: true, message: 'Bank info updated' });
+};
+
+// ─────────────────────────────────────────────
+// GET /api/payouts/paymob-config  [Merchant]
+// Get merchant Paymob configuration
+// ─────────────────────────────────────────────
+export const getPaymobConfig = async (req: AuthRequest, res: Response) => {
+  const merchantId = req.user?.merchantId;
+  if (!merchantId) throw new Error('Merchant not found');
+
+  const merchant = await Merchant.findById(merchantId).select('paymobConfig subscriptionPlan');
+  if (!merchant) return res.status(404).json({ success: false, message: 'Merchant not found' });
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      ...merchant.paymobConfig,
+      plan: merchant.subscriptionPlan,
+    },
+  });
 };
 
 // ─────────────────────────────────────────────

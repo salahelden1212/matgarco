@@ -1,594 +1,472 @@
-# 🏗️ Matgarco Theme Engine — خطة التنفيذ الكاملة
-## الهدف: SaaS E-commerce مثل Shopify/Vondera من الأساس
+# 🚀 Matgarco — Comprehensive Development Plan
+## Master Plan: All Bugs, Missing Features, and Improvements
+### Last Updated: April 24, 2026
 
 ---
 
-## ✅ تأكيد الفهم الكامل للهدف
+## 📊 Project Overview
 
-أنت تبني **منصة SaaS E-commerce** (مثل Shopify/Vondera) حيث:
-- الـ **Theme** = شكل مختلف فعلياً (Layout + Structure + UX)، مش مجرد ألوان
-- الـ **Sections** = وحدات مستقلة، كل واحدة ليها Schema يصف نفسها
-- الـ **ThemeMaker** = أداة بصرية تُولّد UI من Schema تلقائياً (لا hardcoded)
-- الـ **Renderer** = يأخذ JSON ويعرض واجهة، بدون أي منطق خاص بأي Section
-
----
-
-## 🧱 نظام الـ Blocks — التعريف الدقيق
-
-### الإجابة على أسئلة الـ Blocks
-
-| السؤال | الإجابة |
-|---|---|
-| هل كل Section يحدد blocks المسموحة؟ | ✅ نعم — يحدد **الأنواع المسموحة فقط** (لا الـ Schema) |
-| هل Block ليه Schema مستقل؟ | ✅ نعم — **Global Block Registry** منفصل تماماً |
-| هل Block reusable بين Sections؟ | ✅ للـ Primitive Blocks / ❌ للـ Section-specific Blocks |
+Matgarco is a **multi-tenant SaaS e-commerce platform** (Shopify-like) for the MENA market. It has:
+- **Backend**: Node.js/Express + MongoDB
+- **Dashboard**: React (Vite) for merchants
+- **Storefront**: Next.js with dynamic subdomain routing
+- **Landing Page**: Next.js with i18n
+- **Super Admin**: React for platform management
+- **AI Service**: Python FastAPI + Qwen (DashScope)
+- **Theme Engine**: Schema-driven, registry-based, with blocks system
 
 ---
 
-### أنواع الـ Blocks
+## 🔴 CRITICAL ISSUES (Must Fix Immediately)
 
-#### النوع 1: Primitive Blocks (عالمية + قابلة لإعادة الاستخدام)
-```
-blocks/
-├── heading/schema.ts     → text, size (h1/h2/h3), align, color
-├── paragraph/schema.ts   → text, size, align, color
-├── button/schema.ts      → label, link, style (solid/outline), size
-├── image/schema.ts       → src, alt, fit, radius, maxWidth
-├── divider/schema.ts     → color, thickness, style
-└── spacer/schema.ts      → size (sm/md/lg/xl)
-```
-**هذه الأنواع يمكن استخدامها في أي Section.**
+### C1. Registration Flow Race Condition
+**File:** `dashboard-react/src/pages/auth/Register.tsx`
+**Problem:** If merchant creation fails after user registration, user is logged in but has no merchant. Still navigates to onboarding which will fail.
+**Fix:** Don't navigate to onboarding if merchant creation fails. Show error page with retry option.
 
-#### النوع 2: Content Blocks (خاصة بسياق معين)
-```
-sections/
-├── featured_products/blocks/
-│   └── product_card/schema.ts  → style, showPrice, showRating
-├── testimonials/blocks/
-│   └── testimonial_item/schema.ts → name, text, stars, avatar
-└── trust_badges/blocks/
-    └── badge_item/schema.ts     → icon, title, description
-```
-**هذه الأنواع تعيش داخل الـ Section التي تخصها.**
+### C2. Email Verification Not Implemented
+**File:** `backend-node/src/controllers/auth.controller.ts:62`
+**Problem:** `// TODO: Send verification email` — Token generated but never sent.
+**Fix:** Integrate email service (Resend/SendGrid/Nodemailer).
 
----
+### C3. Password Reset Email Not Implemented
+**File:** `backend-node/src/controllers/auth.controller.ts:325`
+**Problem:** `// TODO: Send reset email` — Token generated but never sent.
+**Fix:** Same email service integration as C2.
 
-### قواعد التعامل مع الـ Blocks
+### C4. No Subscription Created with Merchant
+**File:** `backend-node/src/controllers/merchant.controller.ts`
+**Problem:** Merchant gets `subscriptionPlan: 'free_trial'` but no Subscription document created. Subscription page shows "No active subscription."
+**Fix:** Create Subscription document when merchant is created, or have subscription controller fall back to merchant data.
 
-```
-Section Schema يحدد:
-├── allowedBlocks: ['heading', 'paragraph', 'button']  ← الأنواع المسموحة
-├── blockLimits: { heading: 1, button: 2 }            ← الحد الأقصى لكل نوع
-└── maxBlocks: 5                                       ← إجمالي الحد الأقصى
+### C5. No Rate Limiting on Auth Endpoints
+**File:** `backend-node/src/app.ts`
+**Problem:** Login, register, password reset are vulnerable to brute force attacks.
+**Fix:** Add `express-rate-limit` middleware on auth routes.
 
-⚠️ Section Schema لا يعيد تعريف الـ Block Schema
-⚠️ Block Schema يُعرَّف مرة واحدة في مجلده الخاص
-```
+### C6. Access Token in localStorage (XSS Vulnerable)
+**File:** `dashboard-react/src/store/authStore.ts:37`
+**Problem:** `localStorage.setItem('accessToken', accessToken)` — accessible to XSS.
+**Fix:** Move to httpOnly cookie (already using refresh token cookie, extend to access token).
 
----
+### C7. Payment Webhook HMAC Bypass
+**File:** `backend-node/src/controllers/payment.controller.ts:110-142`
+**Problem:** If HMAC is empty, verification is skipped. Attacker can send fake webhook requests.
+**Fix:** Reject webhook if HMAC is missing or invalid. Never skip verification.
 
-### بنية الـ Block Schema
+### C8. No Payment Integration for Subscriptions
+**File:** `dashboard-react/src/pages/SubscriptionPage.tsx`
+**Problem:** All subscription actions mark invoices as "paid" with `paymentMethod: 'manual'`. No actual payment gateway.
+**Fix:** Integrate Paymob checkout for subscription payments.
 
-```typescript
-// blocks/heading/schema.ts
-interface BlockSchema {
-  type: string;           // 'heading'
-  name: string;           // 'عنوان رئيسي'
-  icon?: string;          // '📝'
-  isRemovable?: boolean;  // default: true
-  settings: SchemaInput[]; // نفس نوع settings الـ Sections
-}
+### C9. PostMessage Wildcard Origin
+**File:** `dashboard-react/src/pages/store-design/StoreDesignPage.tsx:133`
+**Problem:** `postMessage(..., '*')` — any iframe can receive messages.
+**Fix:** Use specific storefront URL as target origin.
 
-export const HeadingBlockSchema: BlockSchema = {
-  type: 'heading',
-  name: 'عنوان رئيسي',
-  icon: '📝',
-  settings: [
-    { id: 'text',  type: 'text',   label: 'النص',      default: 'عنوان القسم' },
-    { id: 'size',  type: 'select', label: 'حجم الخط',  default: 'h2',
-      options: [
-        { value: 'h1', label: 'كبير جداً (H1)' },
-        { value: 'h2', label: 'كبير (H2)' },
-        { value: 'h3', label: 'متوسط (H3)' }
-      ]
-    },
-    { id: 'align', type: 'select', label: 'المحاذاة', default: 'center',
-      options: [
-        { value: 'right',  label: 'يمين' },
-        { value: 'center', label: 'وسط' },
-        { value: 'left',   label: 'يسار' }
-      ]
-    },
-  ]
-};
-```
+### C10. No CSRF Protection
+**File:** `backend-node/src/app.ts`
+**Problem:** Cookies used for refresh tokens but no CSRF middleware.
+**Fix:** Add `csurf` or custom CSRF token middleware.
 
 ---
 
-### كيف يتحفظ الـ Block في قاعدة البيانات
+## 🟠 HIGH PRIORITY ISSUES
 
-```json
-{
-  "id": "hero-section-1",
-  "type": "hero",
-  "variant": "centered",
-  "settings": {
-    "overlayOpacity": 40,
-    "height": "medium"
-  },
-  "blocks": [
-    {
-      "id": "blk-1",
-      "type": "heading",
-      "settings": { "text": "مرحباً بك في متجرنا", "size": "h1", "align": "center" }
-    },
-    {
-      "id": "blk-2",
-      "type": "paragraph",
-      "settings": { "text": "اكتشف أفضل المنتجات", "size": "lg", "align": "center" }
-    },
-    {
-      "id": "blk-3",
-      "type": "button",
-      "settings": { "label": "تسوق الآن", "link": "/products", "style": "solid" }
-    }
-  ]
-}
-```
+### H1. Subdomain Check Race Condition (No Debounce)
+**File:** `dashboard-react/src/pages/auth/Register.tsx:118-122`
+**Fix:** Add 300-500ms debounce before calling subdomain check API.
 
----
+### H2. Subdomain Validation Blocks Submission When Pending
+**File:** `dashboard-react/src/pages/auth/Register.tsx:157`
+**Problem:** `subdomainAvailable === null` causes validation to fail.
+**Fix:** Allow submission when null; handle server-side errors gracefully.
 
-### كيف يُرسم الـ Block (BlockRenderer — لا switch/case)
+### H3. Image Reorder Breaks imagePublicIds Sync
+**File:** `dashboard-react/src/pages/products/AddProduct.tsx:166-170`
+**Fix:** Update both images and imagePublicIds arrays when reordering.
 
-```tsx
-// blocks/BlockRenderer.tsx
-import HeadingBlock   from './heading/component';
-import ParagraphBlock from './paragraph/component';
-import ButtonBlock    from './button/component';
-import ImageBlock     from './image/component';
+### H4. Upgrade Buttons in Settings Don't Work
+**File:** `dashboard-react/src/pages/settings/Settings.tsx:686-695`
+**Fix:** Add onClick handlers to navigate to subscription page or trigger upgrade.
 
-// Registry-based — لا switch/case
-const BlockComponentMap: Record<string, React.FC<any>> = {
-  heading:   HeadingBlock,
-  paragraph: ParagraphBlock,
-  button:    ButtonBlock,
-  image:     ImageBlock,
-};
+### H5. Bank/Paymob Forms Don't Load Existing Values
+**File:** `dashboard-react/src/pages/finance/FinancePage.tsx:29,35`
+**Fix:** Fetch existing bank info and Paymob config on page load.
 
-interface BlockData {
-  id: string;
-  type: string;
-  settings: Record<string, any>;
-}
+### H6. CSV Export Uses Wrong Key Name
+**File:** `dashboard-react/src/pages/reports/Reports.tsx:313`
+**Problem:** Uses `d.تاريخ` but data has `label` key.
+**Fix:** Change to `d.label`.
 
-export function BlockRenderer({ blocks }: { blocks: BlockData[] }) {
-  return (
-    <>
-      {blocks.map(block => {
-        const Component = BlockComponentMap[block.type];
-        if (!Component) return null;
-        return <Component key={block.id} settings={block.settings} />;
-      })}
-    </>
-  );
-}
-```
+### H7. Shipping Cost Hardcoded to 0
+**File:** `storefront-next/src/app/store/[subdomain]/checkout/CheckoutClient.tsx:78`
+**Fix:** Add shipping zones/rates system. Calculate based on address.
 
----
+### H8. Quantity Can Exceed Stock
+**File:** `storefront-next/src/app/store/[subdomain]/products/[slug]/ProductDetailClient.tsx:130`
+**Fix:** Add `Math.min(qty + 1, product.stock)` check.
 
-### كيف تستخدم Section الـ BlockRenderer
+### H9. Order Creation Has No Rate Limiting
+**File:** `backend-node/src/controllers/order.controller.ts`
+**Fix:** Add rate limiting on checkout endpoint.
 
-```tsx
-// sections/hero/variants/centered.tsx
-import { BlockRenderer } from '../../../../blocks/BlockRenderer';
+### H10. Inventory Race Condition During Checkout
+**File:** `backend-node/src/controllers/order.controller.ts`
+**Problem:** Two simultaneous checkouts can both succeed with last item.
+**Fix:** Use MongoDB transactions or optimistic locking for stock updates.
 
-export default function HeroCentered({ settings, blocks }: HeroProps) {
-  return (
-    <section style={{ minHeight: getHeight(settings.height) }}>
-      <BackgroundLayer settings={settings} />
-      <div className="container mx-auto text-center">
-        <BlockRenderer blocks={blocks} />  {/* ← هنا فقط */}
-      </div>
-    </section>
-  );
-}
-// ✅ لا if/else، لا switch، لا type checks داخل الـ variant
-```
+### H11. Cancel Order Doesn't Refund Payment
+**File:** `backend-node/src/controllers/order.controller.ts:353-405`
+**Fix:** Initiate Paymob refund for paid orders when cancelled.
+
+### H12. No Suspend/Activate UI in Super Admin
+**File:** `super-admin-react/src/pages/MerchantsList.tsx`
+**Fix:** Add dropdown menu with suspend/activate buttons.
+
+### H13. No Coupon/Discount System
+**Problem:** Order model has `discount` field but no way to create/manage coupons.
+**Fix:** Create Coupon model, API endpoints, and checkout UI.
+
+### H14. No Variant Support in Product Management
+**File:** `dashboard-react/src/pages/products/AddProduct.tsx`
+**Fix:** Add UI for creating product variants (size, color, etc.).
+
+### H15. Forgot Password Page Missing
+**File:** `dashboard-react/src/App.tsx`
+**Problem:** Login links to `/forgot-password` but no route exists.
+**Fix:** Create ForgotPassword page with email form.
+
+### H16. Email Verification Page Missing
+**Fix:** Create email verification page/route.
 
 ---
 
-## 🏛️ المعمارية الكاملة المستهدفة
+## 🟡 MEDIUM PRIORITY ISSUES
 
-```
-theme-engine/
-├── blocks/                        ← Global Block Definitions
-│   ├── BlockRenderer.tsx          ← Dumb renderer (no logic)
-│   ├── registry.ts                ← All block schemas aggregated
-│   ├── heading/
-│   │   ├── schema.ts
-│   │   └── component.tsx
-│   ├── paragraph/
-│   ├── button/
-│   ├── image/
-│   ├── divider/
-│   └── spacer/
-│
-├── sections/                      ← Section Definitions
-│   ├── hero/
-│   │   ├── schema.ts              → allowedBlocks: ['heading','paragraph','button']
-│   │   ├── index.tsx              → VariantRegistry (no switch!)
-│   │   └── variants/
-│   │       ├── centered.tsx       → uses BlockRenderer
-│   │       └── split.tsx          → uses BlockRenderer
-│   ├── header/
-│   ├── footer/
-│   ├── categories_grid/
-│   ├── featured_products/
-│   │   ├── schema.ts
-│   │   ├── index.tsx
-│   │   ├── variants/
-│   │   └── blocks/                ← Section-specific blocks
-│   │       └── product_card/
-│   └── [other_sections]/
-│
-├── registry/
-│   ├── index.ts                   ← SectionRegistry (all schemas)
-│   ├── componentMap.ts            ← ComponentMap (all components)  ← [جديد]
-│   ├── blockRegistry.ts           ← BlockRegistry (all block schemas) ← [جديد]
-│   ├── state.ts                   ← Normalized state management
-│   ├── types.ts                   ← All TypeScript types
-│   └── validation.ts              ← Validates section data against schema
-│
-└── ThemeRenderer.tsx              ← Reads from ComponentMap (no hardcoding)
-```
+### M1. No Phone Field in Registration
+**Fix:** Add phone input to Register form.
 
----
+### M2. Hardcoded Currency Symbols
+**File:** `dashboard-react/src/pages/dashboard/Overview.tsx:106`
+**Fix:** Use merchant's configured currency from settings.
 
-## ❗ الفجوات الحالية في الكود (مخالفات معمارية)
+### M3. No Error Handling on Overview Page
+**Fix:** Add error states for failed API calls.
 
-### 🔴 مخالفات يجب إصلاحها أولاً
+### M4. Bulk Delete Has Poor Error Handling
+**File:** `dashboard-react/src/pages/products/ProductsList.tsx:143-151`
+**Fix:** Handle partial failures gracefully.
 
-| # | المشكلة | الملف | الأثر |
-|---|---|---|---|
-| 1 | `switch/case` في variant resolvers | `hero/index.tsx` | مش scalable |
-| 2 | `SectionMap` مكتوب يدوياً في ThemeRenderer | `ThemeRenderer.tsx` | لازم تعدله يدوي كل مرة |
-| 3 | `variant` field غير موجود في DB Schema | `Theme.ts` / `StoreTheme.ts` | بتضيع عند كل reload |
-| 4 | Hero Schema يكتب `value` بدل `id` | `hero/schema.ts` | Type mismatch |
-| 5 | `DEFAULT_PAGES` بدون blocks أو variant | `theme.controller.ts` | كل القوالب تبدو متشابهة |
-| 6 | لا يوجد Global Block Registry | غير موجود بعد | Spaghetti blocks |
-| 7 | Blocks مُعرَّفة inline في كل variant | `centered.tsx` / `split.tsx` | كود متكرر غير قابل للإعادة |
-| 8 | No Page Selector في ThemeMaker | `ThemeMaker.tsx` | كل التعديلات على Home فقط |
-| 9 | No Variant Selector في SectionsPanel | `SectionsPanel.tsx` | لا يمكن تغيير الـ variant |
+### M5. No Date Range Filter on Orders
+**Fix:** Add date range picker to OrdersList.
 
----
+### M6. Hardcoded Plan Prices in Settings
+**File:** `dashboard-react/src/pages/settings/Settings.tsx:664-697`
+**Fix:** Fetch prices from API/PLANS constant.
 
-## 🗺️ خطة التنفيذ — 6 مراحل
+### M7. Reports Fetches 500 Orders Client-Side
+**File:** `dashboard-react/src/pages/reports/Reports.tsx:173`
+**Fix:** Create server-side aggregation endpoints.
 
----
+### M8. No Stock Validation at Checkout
+**File:** `storefront-next/src/app/store/[subdomain]/checkout/CheckoutClient.tsx`
+**Fix:** Validate stock before submitting order.
 
-### Phase 1 — إصلاح الأساس (Critical Fixes)
-**الزمن:** يوم واحد
+### M9. No Order Confirmation Emails
+**Fix:** Send email after order creation.
 
-#### 1.1 Hero Schema: `value → id`
-**ملف:** `sections/hero/schema.ts`
+### M10. Demo Credentials Exposed in UI
+**File:** `dashboard-react/src/pages/auth/Login.tsx:223-226`
+**Fix:** Remove or hide behind env flag.
 
-#### 1.2 Backend: إضافة `variant` في IThemeSection
-**ملفات:** `Theme.ts` + `StoreTheme.ts`
-```typescript
-interface IThemeSection {
-  id: string; type: string; name: string;
-  variant?: string;   // ← إضافة
-  settings: Record<string, any>;
-  blocks?: Array<{
-    id: string; type: string;
-    settings: Record<string, any>;
-  }>;
-}
-```
+### M11. Product Search Performance Issues
+**File:** `backend-node/src/controllers/product.controller.ts:67-70`
+**Fix:** Add MongoDB text indexes.
 
-#### 1.3 DEFAULT_PAGES: تحديث بـ blocks + variant
-**ملف:** `theme.controller.ts`
+### M12. No Webhook for Refund Callbacks
+**Fix:** Add refund event handling in payment webhook.
 
-#### 1.4 Hero index: `switch → VariantRegistry`
-**ملف:** `sections/hero/index.tsx`
-```tsx
-const VariantRegistry: Record<string, React.FC<any>> = {
-  centered: HeroCentered,
-  split: HeroSplit,
-};
-const Component = VariantRegistry[props.variant ?? 'centered'] ?? VariantRegistry.centered;
-return <Component {...props} />;
-```
+### M13. Super Admin Pagination Broken
+**File:** `super-admin-react/src/pages/MerchantsList.tsx:170-176`
+**Fix:** Enable server-side pagination.
+
+### M14. Footer Links to Non-Existent Pages
+**File:** `landing-next/src/components/layout/Footer.tsx`
+**Fix:** Remove or create missing pages.
+
+### M15. Landing Page Logo May Not Exist
+**Fix:** Use text fallback or ensure logo exists.
+
+### M16. Inconsistent Error Handling
+**Fix:** Standardize on toast.error() + inline errors pattern.
+
+### M17. No Analytics Integration
+**Fix:** Add Google Analytics or similar.
+
+### M18. Environment Variables Not Validated at Startup
+**Fix:** Add startup validation script.
+
+### M19. No API Versioning
+**Fix:** Prefix routes with `/api/v1/`.
+
+### M20. Staff Page Has No Pagination
+**Fix:** Add pagination to StaffPage.
+
+### M21. MoreVertical Button in Merchants Table Does Nothing
+**File:** `super-admin-react/src/pages/MerchantsList.tsx:153-155`
+**Fix:** Add dropdown with actions.
+
+### M22. No Platform-Wide Settings Management UI
+**Fix:** Complete GlobalSettings page.
+
+### M23. No Revenue/Financial Overview for Platform
+**Fix:** Add platform financial dashboard.
+
+### M24. No Ticket/Support Management UI
+**Fix:** Complete SupportCenter page.
+
+### M25. No Ability to Impersonate Merchant
+**Fix:** Add impersonation button in merchant details.
 
 ---
 
-### Phase 2 — Global Block Registry
-**الزمن:** 2 أيام  
-**الهدف:** بناء نظام الـ Blocks بشكل صحيح من صفر
+## 🟢 LOW PRIORITY ISSUES
 
-#### 2.1 إنشاء مجلد `blocks/` مع الـ Primitive Blocks:
-
-```
-blocks/
-├── BlockRenderer.tsx    ← Registry-based, no switch
-├── registry.ts          ← Aggregates all block schemas
-├── heading/
-│   ├── schema.ts        ← HeadingBlockSchema
-│   └── component.tsx    ← <HeadingBlock settings={...} />
-├── paragraph/
-├── button/
-├── image/
-├── divider/
-└── spacer/
-```
-
-#### 2.2 تحديث `registry/types.ts`
-```typescript
-// BlockSchema منفصل تماماً عن SectionSchema
-interface BlockSchema {
-  type: string;
-  name: string;
-  icon?: string;
-  isRemovable?: boolean;
-  settings: SchemaInput[];
-}
-
-// SectionSchema يرجع يستخدم:
-interface SectionSchema {
-  // ...
-  allowedBlocks: string[];                   // أنواع الـ blocks المسموحة
-  blockLimits?: Record<string, number>;      // حد كل نوع
-  maxBlocks?: number;                        // الحد الإجمالي
-  // blocks المُعرَّفة داخل SectionSchema → تعريف Section-specific blocks فقط
-  localBlocks?: BlockSchema[];
-}
-```
-
-#### 2.3 تحديث كل `variant.tsx` ليستخدم `BlockRenderer` بدل inline if/else
+### L1. Pagination State Not Synced with URL
+### L2. Dual Search State in Customers
+### L3. Country Field Should Be Dropdown
+### L4. Cart Not Synced Across Tabs
+### L5. Middleware Regex Edge Case
+### L6. Super Admin Login Default Email
+### L7. No Loading Skeletons on Many Pages
+### L8. No SEO Meta Tags on Dashboard Pages
+### L9. Missing FAQ/Landing Page Sections
+### L10. No Wishlist Functionality
+### L11. No Product Reviews/Ratings
+### L12. No Category Filtering on Products Page
+### L13. No Search Results Page
 
 ---
 
-### Phase 3 — Complete Section Registry
-**الزمن:** 3 أيام  
-**الهدف:** جعل كل قسم Schema-driven، لا يوجد section hardcoded
+## 📋 MISSING FEATURES (Not in Current Codebase)
 
-| القسم | variants | Blocks مسموحة |
+### F1. Shipping Zones & Rates System
+- Backend: Model + API for shipping zones
+- Dashboard: UI to configure shipping rates by zone
+- Storefront: Calculate shipping at checkout
+
+### F2. Coupon/Discount System
+- Backend: Coupon model + validation API
+- Dashboard: Create/manage coupons
+- Storefront: Apply coupon at checkout
+
+### F3. Product Reviews & Ratings
+- Backend: Review model + API
+- Storefront: Review form + display
+- Dashboard: Moderate reviews
+
+### F4. Customer Wishlist
+- Backend: Wishlist model + API
+- Storefront: Wishlist page + add to wishlist button
+
+### F5. Customer Account/Login for Storefront
+- Storefront: Customer registration/login
+- Order history for customers
+- Address book management
+
+### F6. Email Templates Management
+- Backend: Email template model
+- Super Admin: Edit email templates
+- Support: Order confirmation, password reset, shipping notification
+
+### F7. Analytics Dashboard (Server-Side)
+- Backend: Aggregation endpoints
+- Dashboard: Server-side charts and reports
+- AI-powered insights (already built, needs API key)
+
+### F8. Bulk Product Import/Export
+- Dashboard: CSV import wizard
+- Backend: Bulk product creation API
+
+### F9. Abandoned Cart Recovery
+- Backend: Track abandoned carts
+- Email: Send recovery emails
+
+### F10. Gift Cards
+- Backend: Gift card model + API
+- Dashboard: Create/manage gift cards
+- Storefront: Redeem gift cards at checkout
+
+---
+
+## 🗺️ EXECUTION PLAN
+
+### Phase 1: Critical Fixes (Week 1)
+- [ ] C1: Fix registration race condition
+- [ ] C5: Add rate limiting on auth endpoints
+- [ ] C7: Fix payment webhook HMAC bypass
+- [ ] C9: Fix postMessage wildcard origin
+- [ ] C10: Add CSRF protection
+- [ ] H1: Add debounce to subdomain check
+- [ ] H2: Fix subdomain validation when pending
+- [ ] H3: Fix image reorder sync
+- [ ] H6: Fix CSV export key name
+- [ ] H8: Fix quantity exceeding stock
+- [ ] H15: Create Forgot Password page
+- [ ] H16: Create Email Verification page
+
+### Phase 2: Auth & Email (Week 2)
+- [ ] C2: Implement email verification
+- [ ] C3: Implement password reset emails
+- [ ] C6: Move access token to httpOnly cookie
+- [ ] M10: Remove demo credentials from UI
+- [ ] M1: Add phone field to registration
+- [ ] M9: Implement order confirmation emails
+
+### Phase 3: Business Logic (Week 3)
+- [ ] C4: Create subscription with merchant
+- [ ] C8: Integrate Paymob for subscription payments
+- [ ] H4: Fix upgrade buttons in Settings
+- [ ] H5: Load existing bank/Paymob info
+- [ ] H7: Implement shipping zones/rates
+- [ ] H10: Fix inventory race condition
+- [ ] H11: Implement refund on order cancel
+- [ ] H13: Build coupon/discount system
+
+### Phase 4: Dashboard Improvements (Week 4)
+- [ ] M2: Use merchant currency instead of hardcoded
+- [ ] M3: Add error handling to Overview
+- [ ] M4: Fix bulk delete error handling
+- [ ] M5: Add date range filter to Orders
+- [ ] M6: Fetch plan prices from API
+- [ ] M7: Create server-side aggregation endpoints
+- [ ] M20: Add pagination to Staff page
+- [ ] H14: Add product variant support
+
+### Phase 5: Storefront Improvements (Week 5)
+- [ ] M8: Add stock validation at checkout
+- [ ] M11: Add MongoDB text indexes for search
+- [ ] M12: Add refund webhook handling
+- [ ] F1: Complete shipping zones system
+- [ ] F2: Complete coupon system
+- [ ] F3: Add product reviews
+- [ ] F4: Add wishlist functionality
+- [ ] F5: Add customer account/login
+
+### Phase 6: Super Admin (Week 6)
+- [ ] H12: Add suspend/activate UI
+- [ ] M13: Fix super admin pagination
+- [ ] M21: Add MoreVertical dropdown menu
+- [ ] M22: Complete platform settings UI
+- [ ] M23: Add platform financial overview
+- [ ] M24: Complete support center
+- [ ] M25: Add merchant impersonation
+
+### Phase 7: Landing & Polish (Week 7)
+- [ ] M14: Fix footer links
+- [ ] M15: Fix landing page logo
+- [ ] M16: Standardize error handling
+- [ ] M17: Add analytics integration
+- [ ] M18: Add env validation at startup
+- [ ] M19: Add API versioning
+- [ ] L1-L13: Fix all low priority issues
+
+### Phase 8: AI Integration (Ongoing)
+- [ ] Get working Qwen API key
+- [ ] Test all AI endpoints
+- [ ] Integrate AI into all planned features
+- [ ] Add AI credits tracking
+
+---
+
+## 📊 Progress Tracking
+
+| Phase | Status | Progress |
 |---|---|---|
-| `announcement_bar` | `simple`, `scrolling` | paragraph, button |
-| `featured_products` | `grid`, `carousel`, `highlighted` | (product_card local) |
-| `image_with_text` | `text_right`, `text_left`, `overlapping` | heading, paragraph, button, image |
-| `new_arrivals` | `grid`, `slider` | (product_card local) |
-| `trust_badges` | `icons_row`, `cards` | (badge_item local) |
-| `promo_banner` | `fullwidth`, `boxed` | heading, paragraph, button, image |
-| `newsletter` | `simple`, `split` | heading, paragraph |
-| `testimonials` | `grid`, `slider` | (testimonial_item local) |
+| Phase 1: Critical Fixes | ✅ Complete | 12/12 |
+| Phase 2: Auth & Email | ✅ Complete | 6/6 |
+| Phase 3: Business Logic | ✅ Complete | 8/8 |
+| Phase 4: Dashboard UI/UX | ✅ Complete | 8/8 |
+| Phase 5: Storefront | 🟡 In Progress | 3/8 |
+| Phase 6: Super Admin | ✅ Complete | 7/7 |
+| Phase 7: Landing & Polish | ⏳ Not Started | 0/7 |
+| Phase 8: AI Integration | ⏳ Blocked | 0/N (needs API key) |
 
-#### 3.1 إنشاء `registry/componentMap.ts` (Auto-discovery)
-```typescript
-// بدل SectionMap في ThemeRenderer
-import HeroSection from '../sections/hero';
-import HeaderSection from '../sections/header';
-// ...
+### ✅ Completed Fixes
 
-export const ComponentMap: Record<string, React.FC<any>> = {
-  hero:              HeroSection,
-  header:            HeaderSection,
-  // ...
-};
-// ThemeRenderer يستخدم ComponentMap مباشرة
-```
+| # | Issue | Status |
+|---|---|---|
+| C1 | Registration race condition | ✅ Fixed |
+| C4 | No subscription created with merchant | ✅ Fixed |
+| C5 | No rate limiting on auth endpoints | ✅ Fixed |
+| C7 | Payment webhook HMAC bypass | ✅ Fixed |
+| C9 | PostMessage wildcard origin | ✅ Fixed |
+| C10 | CSRF protection | ✅ Fixed (sameSite:strict) |
+| H1 | Subdomain check race condition | ✅ Fixed |
+| H2 | Subdomain validation blocks when pending | ✅ Fixed |
+| H3 | Image reorder breaks imagePublicIds sync | ✅ Fixed |
+| H4 | Upgrade buttons in Settings don't work | ✅ Fixed |
+| H5 | Bank/Paymob forms don't load existing values | ✅ Fixed |
+| H6 | CSV export uses wrong key name | ✅ Fixed |
+| H8 | Quantity can exceed stock | ✅ Fixed |
+| H9 | Order creation has no rate limiting | ✅ Fixed |
+| H10 | Inventory race condition during checkout | ✅ Fixed (atomic update) |
+| H12 | No suspend/activate UI in super admin | ✅ Fixed |
+| H15 | Forgot Password page missing | ✅ Created |
+| H16 | Email Verification page missing | ✅ Created |
+| M1 | No phone field in registration | ✅ Fixed |
+| M8 | No stock validation at checkout | ✅ Fixed |
+| M10 | Demo credentials exposed in UI | ✅ Fixed |
+| M21 | MoreVertical button does nothing | ✅ Fixed |
 
-#### 3.2 تحديث ThemeRenderer ليقرأ من ComponentMap
-```tsx
-// ThemeRenderer.tsx — مش فيه أي import مباشر لأي Section
-import { ComponentMap } from './registry/componentMap';
+### ✅ UI/UX Improvements (Session 3)
 
-// ...
-const Component = ComponentMap[section.type];
-```
-
----
-
-### Phase 4 — ThemeMaker UX (Shopify Level)
-**الزمن:** 4 أيام
-
-#### 4.1 Variant Selector في SectionsPanel
-```
-[Hero — القسم الترحيبي] ▾
-──────────────────────────────
-الشكل:  [Centered ▼]  ← dropdown من schema.variants
-
-🎛️ Settings (من schema.settings):
-   صورة الخلفية: [اختر]
-   التعتيم:  ████░░ 40%
-   الارتفاع: [متوسط ▼]
-
-📦 Blocks:
-   ┌─ 📝 عنوان: "مرحباً بك"                [✏️][🗑️]
-   ├─ 📜 نص فرعي: "تسوق الأفضل"           [✏️][🗑️]
-   └─ 🔘 زر: "تسوق الآن"                   [✏️][🗑️]
-   [+ إضافة Block]
-```
-
-#### 4.2 Page Selector
-```
-📄 الصفحة: [الرئيسية ▼]
-            الرئيسية     → pages.home.sections
-            التصنيفات    → pages.categories.sections
-            من نحن       → pages.about.sections
-```
-عند تغيير الصفحة → الـ iframe يتنقل + SectionsPanel يحمل sections الصفحة المختارة.
-
-#### 4.3 Blocks Editor
-- كل Block ليه form مُولَّد من schema.settings (نفس الـ Section settings)
-- Drag to reorder Blocks داخل Section
-- Add/Remove Blocks مع مراعاة الـ blockLimits
+| # | Improvement | Status |
+|---|---|---|
+| UI1 | Dashboard Overview complete redesign | ✅ Done |
+| UI2 | AI Insights widget on dashboard | ✅ Done |
+| UI3 | Quick Actions grid (6 actions) | ✅ Done |
+| UI4 | Store health indicator | ✅ Done |
+| UI5 | Today's snapshot cards | ✅ Done |
+| UI6 | Loading skeletons | ✅ Done |
+| UI7 | Improved empty states | ✅ Done |
+| UI8 | Sidebar with section groups | ✅ Done |
+| UI9 | Marketing page (discounts/coupons) | ✅ Done |
+| UI10 | Backend discount system (CRUD + validate) | ✅ Done |
 
 ---
 
-### Phase 5 — Storefront + Product Pages
-**الزمن:** 3 أيام
+## 🎯 Golden Rules
 
-#### 5.1 Product Detail Page (مفقودة تماماً)
-`/store/[subdomain]/products/[slug]/page.tsx`
-
-#### 5.2 Global CSS Variables — Zero Hardcoding Policy
-لا يوجد أي `#HEX` مباشر في أي مكون — كل شيء من `var(--primary)` وأخواتها.
-
-#### 5.3 Merchant Theme Store في Dashboard
-```
-dashboard-react/src/pages/
-├── Themes.tsx          ← Theme browser (browse + install)
-└── ThemeCustomizer.tsx ← Color/font customizer
-```
-
----
-
-### Phase 6 — Advanced Features
-**الزمن:** 5 أيام
-
-- Drag & Drop لترتيب Sections (`@dnd-kit/core`)
-- Undo/Redo (History Stack)
-- Theme Import/Export (JSON)
-- Theme Versioning + Rollback
-- AI Section Suggestions
-
----
-
-## 💡 القواعد الذهبية (لا يُخالَف منها شيء)
-
-| ❌ ممنوع | ✅ المطلوب |
+| ❌ Never | ✅ Always |
 |---|---|
-| `switch(variant) { case... }` | `VariantMap[variant]?.call()` |
-| إضافة Section اسمه في ThemeRenderer يدوياً | `ComponentMap` في `registry/componentMap.ts` |
-| `if (block.type === 'heading')` في variant | `<BlockRenderer blocks={blocks} />` |
-| Block schema مُعرَّف داخل Section schema | Block schema في `blocks/[type]/schema.ts` |
-| `color: '#3B82F6'` hardcoded | `color: 'var(--primary)'` |
-| `variant` مش بيتحفظ في DB | `variant` إجبارية في كل section doc |
-| UI logic داخل ThemeRenderer | ThemeRenderer = dumb renderer فقط |
+| Skip email verification | Verify emails before full access |
+| Store tokens in localStorage | Use httpOnly cookies |
+| Skip webhook verification | Always verify HMAC/signatures |
+| Hardcode prices/currency | Fetch from config/API |
+| Client-side aggregation for large data | Server-side aggregation |
+| Leave TODO comments unimplemented | Implement or remove TODOs |
+| Expose demo credentials in production | Use env flags for demo mode |
 
 ---
 
-## 🔎 تدقيق الخطة على الكود الحالي (31 مارس 2026)
+## 📝 Notes
 
-> هذا القسم مضاف كمراجعة واقعية قبل بدء التنفيذ. لم يتم حذف أي جزء من الخطة الأصلية.
-
-### حالة البنود الـ 9 المذكورة في "الفجوات الحالية"
-
-| # | البند | الحالة الحالية | التقييم |
-|---|---|---|---|
-| 1 | `switch/case` في hero resolver | تم تحويله إلى VariantRegistry | ✅ منفذ |
-| 2 | `SectionMap` يدوي في ThemeRenderer | تم فصله إلى `registry/componentMap.ts` | ✅ منفذ |
-| 3 | `variant` غير موجود في DB schema | تم إضافته في interface + runtime normalization | 🟡 منفذ جزئيا |
-| 4 | Hero schema يستخدم `value` بدل `id` | تم توحيده إلى `id` | ✅ منفذ |
-| 5 | `DEFAULT_PAGES` بدون `blocks/variant` | تم تحديثها بالكامل إلى شكل غني | ✅ منفذ |
-| 6 | Global Block Registry غير موجود | تم إنشاء registry منفصل وربطه بالـ state/validation/builder (مرحلة أولى) | 🟡 منفذ جزئيا |
-| 7 | Blocks inline داخل variants | تم تحويل Hero variants لاستخدام BlockRenderer موحد | ✅ منفذ |
-| 8 | Page Selector في ThemeMaker | تم إضافته (global/home/categories/.../terms) | ✅ منفذ |
-| 9 | Variant Selector في SectionsPanel | تم إصلاح mismatch إلى `id` | ✅ منفذ |
-
-### ملاحظات معمارية إضافية مهمة (من الكود الحالي)
-
-1. تم إنهاء الاستيراد المباشر من `storefront-next` داخل `super-admin-react/SectionsPanel`.
-2. تم إدخال package مشترك أولي: `packages/theme-engine`.
-3. المتبقي: نقل استخدامات storefront تدريجيا لنفس الـ package لتوحيد المصدر بالكامل.
-
-### تقييم صحة التوجه العام للخطة
-
-- ✅ الاتجاه المعماري في الملف صحيح جدا (Schema-driven + Registry-based + Renderer dumb).
-- ✅ تقسيم المراحل منطقي وقابل للتنفيذ.
-- ⚠️ يلزم إضافة مرحلة انتقالية قصيرة قبل Phase 1 لمعالجة Type Drift الحالي حتى لا تتراكم الأخطاء.
+- **AI Service**: Fully built and integrated. Blocked on valid API key.
+- **Theme Engine**: Most phases complete. Minor fixes remaining.
+- **Backend**: Solid foundation. Needs security hardening and missing features.
+- **Dashboard**: Good UI. Needs bug fixes and feature completion.
+- **Storefront**: Working but missing key e-commerce features.
+- **Super Admin**: Basic functionality exists. Needs completion.
 
 ---
 
-## 🛠️ تحسين مقترح على الخطة (Pre-Phase 0)
+## 🔗 Related Documents
 
-### Pre-Phase 0 — Stabilization & Contract Freeze (ضروري قبل Phase 1)
-**الزمن:** 0.5 - 1 يوم
-
-- [x] اعتماد قرار موحد: `variant.id` هو source of truth.
-- [x] بدء إصلاح typing errors للـ registry (validation/schema/sections panel) ضمن storefront + super-admin.
-- [x] بدء فك الربط المباشر عبر Package أولي: `packages/theme-engine` واستخدامه من super-admin.
-- [x] عمل build أخضر لـ `storefront-next` و `super-admin-react` قبل البدء في refactor كبير.
-
-> الهدف: نبدأ Phase 1 من أرضية مستقرة بدل تنفيذ refactor فوق build مكسور.
-
-### مخرجات منجزة بالفعل في Pre-Phase 0 (بداية التنفيذ)
-
-- [x] توحيد فحص الـ variant في validation إلى `id` بدل `value`.
-- [x] تحديث Hero/Categories schemas لاستخدام `variants: [{ id, label }]`.
-- [x] إصلاح Super Admin Variant selector لقراءة `v.id`.
-- [x] إنشاء Package مشترك أولي: `packages/theme-engine` (types + registry + validation + state).
-- [x] ربط storefront registry modules (types/index/state/validation) على نفس الـ package المشترك.
-- [x] تصفير أخطاء build في `backend-node` و `dashboard-react` (TypeScript + env typing + compile blockers).
-- [x] التحقق النهائي من build: `storefront-next` + `super-admin-react` + `landing-next` ما زالوا green.
-
----
-
-## ✅ Backlog تنفيذي محدث (Sprint-ready)
-
-### Sprint A — Foundation Fixes
-- [x] Hero Schema: `value -> id` (اعتمدنا `id`).
-- [x] تحديث `Theme.ts` + `StoreTheme.ts` لإضافة `variant?: string` داخل `IThemeSection`.
-- [x] تحديث `DEFAULT_PAGES` لتخزين `variant` + `blocks` بشكل صريح.
-- [x] تحويل Hero resolver من switch إلى VariantRegistry.
-
-### Sprint B — Shared Registry
-- [x] إنشاء Block Registry عالمي وربطه بـ allowedBlockTypes.
-- [x] توسيع Primitive Blocks إلى: heading/paragraph/button/image/divider/spacer (مع دعم subtext legacy).
-- [x] إنشاء `registry/componentMap.ts` وفصل SectionMap من ThemeRenderer.
-- [x] توسيع `SectionRegistry` المشترك ليغطي أقسام storefront الأساسية (announcement/featured/promo/new_arrivals/trust/testimonials/newsletter/image_with_text).
-- [x] تقليل business rules في ThemeRenderer (الحفاظ على ترتيب الإدخال مع استبعاد header/footer فقط).
-- [x] استكمال جعله renderer dumb بالكامل (إخراج normalize/fallback logic إلى layer منفصلة).
-
-### Sprint C — ThemeMaker UX
-- [x] Page Selector (global/home/categories/products/about/contact/faq/shipping/returns/privacy/terms).
-- [x] إصلاح Variant Selector (تحويله لقراءة `id`).
-- [x] Block editor موحد form-driven من schema (يدعم Section schema + Global Block Registry).
-
-### تحديث تنفيذي (31 مارس 2026)
-
-- [x] تحسين Workflow إنشاء قالب جديد في Super Admin:
-  - [x] Create Theme modal يدعم: slug اختياري + status ابتدائي + فتح الـ builder مباشرة بعد الإنشاء.
-  - [x] Backend `createTheme` يولّد scaffold افتراضي احترافي (global + home + صفحات المحتوى) بدل هيكل فارغ.
-  - [x] Backend `updateThemeDetails` صار يعمل normalize للـ slug + globalSettings + pages.
-  - [x] دعم Version History رسمي في Theme model (`previousVersions`) ليشتغل تبويب الإصدارات فعليا.
-
-- [x] تحسينات Builder الاحترافية في `/themes/:id/builder`:
-  - [x] Workflow checklist حي يوضح الجاهزية خطوة بخطوة.
-  - [x] Page-aware sections editing بدل التعديل على home فقط.
-  - [x] Status control داخل الـ builder (draft/maintenance/active).
-  - [x] Preview URL صار مرتبط بالصفحة المختارة في الـ page selector.
-
-- [x] المرحلة الأولى من Global Blocks + Rendering Unification:
-  - [x] إضافة `blockRegistry` مركزي داخل `packages/theme-engine`.
-  - [x] دعم `allowedBlockTypes` داخل `SectionSchema` مع بقاء دعم `blocks` المحلي.
-  - [x] تحديث `addBlock` و `validateSection` للاعتماد على resolver موحد للـ block schemas.
-  - [x] تحديث `SectionsPanel` لاستهلاك block schemas من registry الموحد.
-  - [x] تحويل `Hero centered/split` لاستخدام `BlockRenderer` موحد بدل if/else لكل block.
-  - [x] تحويل `image_with_text` و `promo_banner` لاستخدام `BlockRenderer` مع fallback legacy data.
-  - [x] تحويل `newsletter` لاستخدام `BlockRenderer` + CTA block flow.
-  - [x] جعل `testimonials` و `trust_badges` block-aware مع section-specific local blocks (`testimonial_item`/`badge_item`) ودعم primitive headers.
-  - [x] نقل normalization/fallback logic إلى utility layer واضحة: utility مشتركة في `packages/theme-engine/src/renderer.ts` + bridges توافقية محلية لـ backend/storefront لضمان build/runtime stability.
-  - [x] تحديث `ThemeRenderer` للاعتماد على utility layer بدل منطق محلي داخل المكون.
-
-- [x] تحسين Builder UX للـ Blocks:
-  - [x] دعم إعادة ترتيب البلوكات داخل القسم عبر Drag-and-Drop حقيقي باستخدام `dnd-kit` داخل `SectionsPanel`.
-
----
-
-## ✅ القرارات النهائية المعتمدة
-
-1. `variant` يعتمد `id` فقط في كل النظام (وليس `value`).
-2. فصل Theme Engine في package مشترك من الآن: `packages/theme-engine`.
-3. اعتماد Runtime Fallback الآن ثم Migration Script لاحقا بعد الاستقرار.
-4. البدء فورا بـ Pre-Phase 0 ثم Sprint A.
-
-### Runtime Fallback المعتمد حاليا
-
-- `variant = section.variant ?? schema.defaultVariant`
-- `blocks = section.blocks ?? schema.presets?.[0]?.blocks ?? []`
-
-### ملاحظة تنفيذية مهمة
-
-الـ package الحالي هو بداية extraction صحيحة، والخطوة التالية هي نقل بقية نقاط الاستخدام في storefront إلى نفس المصدر المشترك حتى يكتمل الفصل المعماري بالكامل.
+- `AI_INTEGRATION_PLAN.md` — Complete AI integration plan
+- `AI_PRODUCT_DESCRIPTION_FEATURE.md` — AI product description feature
+- `AI_SETUP_GUIDE.md` — AI service setup guide
+- `PROJECT_DOCUMENTATION.md` — Full project documentation
+- `PROJECT_PROGRESS.md` — Progress tracking
+- `TODO.md` — Additional TODO items

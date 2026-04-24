@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -55,6 +56,7 @@ const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
 ];
 
 export const Settings: React.FC = () => {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const updateUser = useAuthStore((s) => s.updateUser);
   const queryClient = useQueryClient();
@@ -685,6 +687,7 @@ export const Settings: React.FC = () => {
                       </ul>
                       <button
                         disabled={merchant?.subscriptionPlan === plan.id}
+                        onClick={() => navigate('/dashboard/subscription')}
                         className={`w-full mt-4 py-2 rounded-lg text-sm font-medium transition ${
                           merchant?.subscriptionPlan === plan.id
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'

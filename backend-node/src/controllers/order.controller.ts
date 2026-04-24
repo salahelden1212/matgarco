@@ -136,11 +136,6 @@ export const createOrder = asyncHandler(
         throw new AppError(`Product ${item.productId} not found`, 404);
       }
 
-      // Check stock
-      if (product.trackQuantity && product.quantity! < item.quantity) {
-        throw new AppError(`Insufficient stock for ${product.name}`, 400);
-      }
-
       const itemSubtotal = product.price * item.quantity;
       subtotal += itemSubtotal;
 
@@ -153,14 +148,29 @@ export const createOrder = asyncHandler(
         subtotal: itemSubtotal,
       });
 
-      // Update product stock
+      // H10 FIX: Atomic stock check and decrement using findOneAndUpdate
+      // This prevents race conditions where two simultaneous checkouts
+      // could both succeed with the last item
       if (product.trackQuantity) {
-        product.quantity! -= item.quantity;
-        product.sales += item.quantity;
-        await product.save();
+        const updatedProduct = await Product.findOneAndUpdate(
+          {
+            _id: product._id,
+            merchantId,
+            quantity: { $gte: item.quantity },
+          },
+          {
+            $inc: { quantity: -item.quantity, sales: item.quantity },
+          },
+          { new: true }
+        );
+
+        if (!updatedProduct) {
+          throw new AppError(`Insufficient stock for ${product.name}`, 400);
+        }
+
         // Notify low stock (threshold: 5)
-        if (product.quantity! <= 5) {
-          notifyLowStock(merchantId, product.name, product._id.toString(), product.quantity!);
+        if (updatedProduct.quantity! <= 5) {
+          notifyLowStock(merchantId, product.name, product._id.toString(), updatedProduct.quantity!);
         }
       }
     }
