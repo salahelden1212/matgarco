@@ -3,17 +3,10 @@ import { ChevronUp, ChevronDown, Plus, Trash2, GripVertical, Settings2, LayoutPa
 import { DndContext, PointerSensor, KeyboardSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import {
-  SectionRegistry,
-  resolveSectionBlocks,
-  normalizeThemeData,
-  denormalizeThemeData,
-  addSection,
-  updateSection,
-  removeSection,
-  addBlock,
-} from '../../../packages/theme-engine/src';
-import type { SchemaInput, ThemeState } from '../../../packages/theme-engine/src';
+import { SectionRegistry } from '../../../packages/theme-engine/src/registry';
+import { resolveSectionBlocks } from '../../../packages/theme-engine/src/blockRegistry';
+import { normalizeThemeData, denormalizeThemeData, addSection, updateSection, removeSection, addBlock } from '../../../packages/theme-engine/src/state';
+import type { SchemaInput, ThemeState } from '../../../packages/theme-engine/src/types';
 
 interface Props {
   sections: any[];
