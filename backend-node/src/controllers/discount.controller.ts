@@ -97,7 +97,7 @@ export const validateDiscount = asyncHandler(async (req: AuthRequest, res: Respo
     discountAmount = discount.value;
   }
 
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     data: {
       code: discount.code,

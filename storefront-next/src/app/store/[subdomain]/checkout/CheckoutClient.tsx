@@ -41,14 +41,7 @@ export default function CheckoutClient({ subdomain }: Props) {
     e.preventDefault();
     if (items.length === 0) return;
 
-    // M8 FIX: Validate stock before submitting
-    for (const item of items) {
-      if (item.quantity > (item.stock || 0)) {
-        setError(`المنتج "${item.name}" غير متوفر بالكمية المطلوبة. المتاح: ${item.stock || 0}`);
-        return;
-      }
-    }
-
+    // Stock validation is handled by backend during order creation
     setLoading(true);
     setError('');
 
