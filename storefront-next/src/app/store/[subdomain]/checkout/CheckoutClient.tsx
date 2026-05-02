@@ -1,19 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/components/CartProvider';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Loader2, ShoppingBag, MapPin, User, CreditCard, Banknote, ArrowRight, ExternalLink } from 'lucide-react';
+import { Loader2, ShoppingBag, MapPin, User, CreditCard, Banknote, ArrowRight, ExternalLink, Truck } from 'lucide-react';
+import { getPlaceholderImage } from '@/lib/images';
+
+interface ShippingConfig {
+  flatRateEnabled?: boolean;
+  flatRateAmount?: number;
+  freeShippingEnabled?: boolean;
+  freeShippingThreshold?: number;
+  cityRatesEnabled?: boolean;
+  cityRates?: Array<{ city: string; rate: number }>;
+  estimatedDelivery?: string;
+}
 
 interface Props {
   subdomain: string;
+  shippingConfig?: ShippingConfig | null;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-export default function CheckoutClient({ subdomain }: Props) {
+export default function CheckoutClient({ subdomain, shippingConfig }: Props) {
   const { items, totalPrice, totalItems, clearCart } = useCart();
   const router = useRouter();
   const currency = 'ج.م';
@@ -32,6 +44,23 @@ export default function CheckoutClient({ subdomain }: Props) {
     state: '',
     notes: '',
   });
+
+  // Dynamic shipping cost calculation
+  const shippingCost = useMemo(() => {
+    if (!shippingConfig) return 0;
+    // Free shipping threshold takes priority
+    if (shippingConfig.freeShippingEnabled && totalPrice >= (shippingConfig.freeShippingThreshold || 500)) return 0;
+    // City-based rates
+    if (shippingConfig.cityRatesEnabled && form.city && shippingConfig.cityRates?.length) {
+      const cityRate = shippingConfig.cityRates.find(r => r.city.includes(form.city) || form.city.includes(r.city));
+      if (cityRate) return cityRate.rate;
+    }
+    // Flat rate
+    if (shippingConfig.flatRateEnabled) return shippingConfig.flatRateAmount || 0;
+    return 0;
+  }, [shippingConfig, totalPrice, form.city]);
+
+  const orderTotal = totalPrice + shippingCost;
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -76,9 +105,9 @@ export default function CheckoutClient({ subdomain }: Props) {
         })),
         subtotal: totalPrice,
         tax: 0,
-        shippingCost: 0,
+        shippingCost,
         discount: 0,
-        total: totalPrice,
+        total: orderTotal,
         paymentMethod,
         customerNotes: form.notes,
       };
@@ -109,7 +138,9 @@ export default function CheckoutClient({ subdomain }: Props) {
         if (!intentionRes.ok) throw new Error(intentionData.message || 'فشل تهيئة الدفع');
 
         clearCart();
-        window.location.href = intentionData.data.paymentUrl;
+        // Add orderId to redirect URL for payment-result page
+        const redirectUrl = intentionData.data.paymentUrl + `&orderId=${orderId}`;
+        window.location.href = redirectUrl;
         return;
       }
 
@@ -284,7 +315,16 @@ export default function CheckoutClient({ subdomain }: Props) {
                 <div key={item.productId + (item.variant || '')} className="flex items-center gap-4 px-6 py-4">
                   <div className="relative w-16 h-16 rounded-[var(--radius)] overflow-hidden flex-shrink-0 bg-[var(--background)] border border-[var(--border)]">
                     {item.image ? (
-                      <Image src={item.image} alt={item.name} fill className="object-cover" />
+                      <Image 
+                        src={item.image} 
+                        alt={item.name} 
+                        fill 
+                        className="object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = getPlaceholderImage(item.productId);
+                        }}
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-sm">
                         <ShoppingBag className="w-6 h-6 text-[var(--border)]" />
@@ -311,12 +351,22 @@ export default function CheckoutClient({ subdomain }: Props) {
                 <span>{totalPrice.toLocaleString()} {currency}</span>
               </div>
               <div className="flex justify-between text-sm font-medium text-[var(--text-muted)]">
-                <span>رسوم التوصيل</span>
-                <span className="text-green-600 bg-green-50 px-2.5 py-0.5 rounded-full font-bold">مجاناً</span>
+                <span className="flex items-center gap-1"><Truck className="w-4 h-4" /> رسوم الشحن</span>
+                {shippingCost === 0 ? (
+                  <span className="text-green-600 bg-green-50 px-2.5 py-0.5 rounded-full font-bold">مجاناً</span>
+                ) : (
+                  <span className="font-bold">{shippingCost.toLocaleString()} {currency}</span>
+                )}
               </div>
+              {shippingConfig?.estimatedDelivery && (
+                <div className="flex justify-between text-xs text-[var(--text-muted)]">
+                  <span>وقت التسليم</span>
+                  <span>{shippingConfig.estimatedDelivery}</span>
+                </div>
+              )}
               <div className="flex justify-between font-black text-xl pt-5 border-t border-[var(--border)] text-[var(--text)]">
-                <span>الإجمالي الطلب</span>
-                <span className="text-[var(--primary)]">{totalPrice.toLocaleString()} {currency}</span>
+                <span>الإجمالي</span>
+                <span className="text-[var(--primary)]">{orderTotal.toLocaleString()} {currency}</span>
               </div>
             </div>
 

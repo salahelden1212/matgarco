@@ -46,6 +46,8 @@ export const merchantAPI = {
 
   update: (id: string, data: any) => axios.patch(`/merchants/${id}`, data),
 
+  testSmtp: (id: string, data: any) => axios.post(`/merchants/${id}/test-smtp`, data),
+
   getStats: (id: string) => axios.get(`/merchants/${id}/stats`),
 
   checkSubdomain: (subdomain: string) =>
@@ -63,6 +65,9 @@ export const productAPI = {
     search?: string;
     category?: string;
     status?: string;
+    stock?: string;
+    minPrice?: string;
+    maxPrice?: string;
   }) => axios.get('/products', { params }),
 
   getById: (id: string) => axios.get(`/products/${id}`),
@@ -90,10 +95,15 @@ export const orderAPI = {
   getAll: (params?: {
     page?: number;
     limit?: number;
-    sort?: string;
+    search?: string;
     status?: string;
     paymentStatus?: string;
-    search?: string;
+    startDate?: string;
+    endDate?: string;
+    minAmount?: string;
+    maxAmount?: string;
+    sortField?: string;
+    sortOrder?: string;
   }) => axios.get('/orders', { params }),
 
   getById: (id: string) => axios.get(`/orders/${id}`),
@@ -109,6 +119,10 @@ export const orderAPI = {
 
   updateTracking: (id: string, trackingNumber: string, shippingProvider: string) =>
     axios.patch(`/orders/${id}/tracking`, { trackingNumber, shippingProvider }),
+
+  create: (data: any) => axios.post('/orders', data),
+
+  getOne: (id: string) => axios.get(`/orders/${id}`),
 };
 
 // Customer API
@@ -243,4 +257,60 @@ export const aiAPI = {
 
   suggestActions: () =>
     axios.post('/ai/assistant/suggest-actions'),
+};
+
+// Discount API
+export const discountAPI = {
+  getAll: () => axios.get('/discounts'),
+  create: (data: {
+    code: string;
+    type: 'percentage' | 'fixed' | 'free_shipping';
+    value: number;
+    minOrderValue?: number;
+    maxUses?: number;
+    startDate?: string;
+    endDate?: string;
+    isActive?: boolean;
+  }) => axios.post('/discounts', data),
+  update: (id: string, data: Record<string, any>) => axios.patch(`/discounts/${id}`, data),
+  delete: (id: string) => axios.delete(`/discounts/${id}`),
+  validate: (code: string, orderTotal: number) =>
+    axios.post('/discounts/validate', { code, orderTotal }),
+};
+
+// Review API
+export const reviewAPI = {
+  // Storefront
+  getProductReviews: (productId: string, params?: { page?: number; limit?: number; rating?: number }) =>
+    axios.get(`/reviews/product/${productId}`, { params }),
+  checkCanReview: (productId: string) => axios.get(`/reviews/product/${productId}/can-review`),
+  create: (data: {
+    productId: string;
+    customerName: string;
+    customerEmail?: string;
+    rating: number;
+    title?: string;
+    comment: string;
+    images?: string[];
+  }) => axios.post('/reviews', data),
+  markHelpful: (id: string) => axios.post(`/reviews/${id}/helpful`),
+
+  // Dashboard
+  getAll: (params?: { status?: string; page?: number; limit?: number; productId?: string }) =>
+    axios.get('/reviews', { params }),
+  getAnalytics: () => axios.get('/reviews/analytics'),
+  updateStatus: (id: string, status: 'approved' | 'rejected') =>
+    axios.patch(`/reviews/${id}/status`, { status }),
+  respond: (id: string, comment: string) => axios.patch(`/reviews/${id}/respond`, { comment }),
+  delete: (id: string) => axios.delete(`/reviews/${id}`),
+};
+
+// Wishlist API
+export const wishlistAPI = {
+  getAll: () => axios.get('/wishlist'),
+  add: (productId: string) => axios.post('/wishlist/add', { productId }),
+  remove: (productId: string) => axios.delete(`/wishlist/remove/${productId}`),
+  clear: () => axios.delete('/wishlist/clear'),
+  sync: (productIds: string[]) => axios.post('/wishlist/sync', { productIds }),
+  check: (productId: string) => axios.get(`/wishlist/check/${productId}`),
 };

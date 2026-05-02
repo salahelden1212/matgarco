@@ -27,6 +27,7 @@ import StoreDesignPage from './pages/store-design/StoreDesignPage';
 import SubscriptionPage from './pages/SubscriptionPage';
 import FinancePage from './pages/finance/FinancePage';
 import MarketingPage from './pages/marketing/MarketingPage';
+import { ReviewsPage } from './pages/reviews/ReviewsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,7 +41,7 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
@@ -74,11 +75,8 @@ function App() {
             <Route path="subscription" element={<SubscriptionPage />} />
             <Route path="finance" element={<FinancePage />} />
             <Route path="marketing" element={<MarketingPage />} />
+            <Route path="reviews" element={<ReviewsPage />} />
           </Route>
-
-          {/* Redirect root to dashboard */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<NotFound />} />
 
           {/* Onboarding (outside dashboard layout, full screen wizard) */}
           <Route
@@ -89,6 +87,10 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Redirect root to dashboard */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster position="top-center" richColors closeButton duration={3000} />
       </BrowserRouter>

@@ -5,6 +5,7 @@ import Customer from '../models/Customer';
 import Merchant from '../models/Merchant';
 import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { AuthRequest } from '../types';
+import { checkAndDeductAICredit } from '../utils/aiCredit';
 
 async function callAIService(endpoint: string, data: any): Promise<any> {
   const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
@@ -34,6 +35,13 @@ export const generateSEO = asyncHandler(
     }
 
     try {
+      const merchantId = req.user?.merchantId;
+      if (!merchantId) {
+        throw new AppError('No merchant associated', 400);
+      }
+      
+      await checkAndDeductAICredit(merchantId);
+
       const result = await callAIService('/api/generate-seo', {
         productName,
         description: description || '',
@@ -62,6 +70,8 @@ export const generateAnalyticsInsights = asyncHandler(
     const { question, language } = req.body;
 
     try {
+      await checkAndDeductAICredit(merchantId);
+
       const [products, orders, customers, merchant] = await Promise.all([
         Product.find({ merchantId }).select('name price quantity category status views sales').limit(50),
         Order.find({ merchantId }).select('orderNumber total orderStatus paymentStatus createdAt items').sort({ createdAt: -1 }).limit(50),
@@ -137,6 +147,8 @@ export const generateProductRecommendations = asyncHandler(
     }
 
     try {
+      await checkAndDeductAICredit(merchantId);
+
       const [products, orders] = await Promise.all([
         Product.find({ merchantId }).select('name price quantity category status sales').limit(30),
         Order.find({ merchantId }).select('items total orderStatus createdAt').sort({ createdAt: -1 }).limit(30),
@@ -178,6 +190,8 @@ export const generateCustomerInsights = asyncHandler(
     }
 
     try {
+      await checkAndDeductAICredit(merchantId);
+
       const [customers, orders] = await Promise.all([
         Customer.find({ merchantId }).select('firstName lastName email stats').limit(50),
         Order.find({ merchantId }).select('customerId customerInfo total orderStatus createdAt').sort({ createdAt: -1 }).limit(50),
@@ -222,6 +236,8 @@ export const assistantChat = asyncHandler(
     }
 
     try {
+      await checkAndDeductAICredit(merchantId);
+
       const merchant = await Merchant.findById(merchantId).select('storeName subscriptionPlan stats');
 
       const storeContext = {
@@ -257,6 +273,8 @@ export const suggestActions = asyncHandler(
     }
 
     try {
+      await checkAndDeductAICredit(merchantId);
+
       const merchant = await Merchant.findById(merchantId).select('storeName subscriptionPlan stats');
 
       const storeContext = {

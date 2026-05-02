@@ -12,6 +12,13 @@ import {
   Clock,
   Search,
   Sparkles,
+  Copy,
+  AlertCircle,
+  Mail,
+  Send,
+  Users,
+  Eye,
+  MousePointerClick,
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -42,11 +49,18 @@ const emptyDiscount: Omit<Discount, '_id' | 'usedCount' | 'createdAt'> = {
 };
 
 export default function MarketingPage() {
-  const [activeTab, setActiveTab] = useState<'discounts' | 'create'>('discounts');
+  const [activeTab, setActiveTab] = useState<'discounts' | 'create' | 'email'>('discounts');
   const [form, setForm] = useState(emptyDiscount);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'percentage' | 'fixed' | 'free_shipping'>('all');
   const queryClient = useQueryClient();
+
+  // Email marketing state
+  const [emailSegment, setEmailSegment] = useState<'all' | 'active' | 'inactive' | 'vip'>('all');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
 
   const { data: discountsData } = useQuery({
     queryKey: ['discounts'],
@@ -123,13 +137,16 @@ export default function MarketingPage() {
     }
   };
 
-  const filteredDiscounts = discounts.filter((d) =>
-    d.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredDiscounts = discounts.filter((d) => {
+    const matchSearch = d.code.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchType = typeFilter === 'all' || d.type === typeFilter;
+    return matchSearch && matchType;
+  });
 
   const stats = {
     total: discounts.length,
-    active: discounts.filter((d) => d.isActive).length,
+    active: discounts.filter((d) => d.isActive && !(d.endDate && new Date(d.endDate) < new Date())).length,
+    expired: discounts.filter((d) => d.endDate && new Date(d.endDate) < new Date()).length,
     totalUsed: discounts.reduce((s, d) => s + (d.usedCount || 0), 0),
   };
 
@@ -155,7 +172,7 @@ export default function MarketingPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl p-5 border border-gray-100">
           <div className="flex items-center gap-3">
             <div className="bg-blue-50 p-2.5 rounded-xl">
@@ -175,6 +192,17 @@ export default function MarketingPage() {
             <div>
               <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
               <p className="text-sm text-gray-500">خصومات نشطة</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-5 border border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="bg-red-50 p-2.5 rounded-xl">
+              <AlertCircle className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{stats.expired}</p>
+              <p className="text-sm text-gray-500">خصومات منتهية</p>
             </div>
           </div>
         </div>
@@ -333,9 +361,9 @@ export default function MarketingPage() {
       {/* Discounts List */}
       {activeTab === 'discounts' && (
         <div className="bg-white rounded-xl border border-gray-100">
-          {/* Search */}
-          <div className="px-6 py-4 border-b border-gray-50">
-            <div className="relative max-w-sm">
+          {/* Search & Filter */}
+          <div className="px-6 py-4 border-b border-gray-50 flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 max-w-sm">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
@@ -346,6 +374,16 @@ export default function MarketingPage() {
                 dir="rtl"
               />
             </div>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value as any)}
+              className="px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="all">كل الأنواع</option>
+              <option value="percentage">نسبة مئوية</option>
+              <option value="fixed">مبلغ ثابت</option>
+              <option value="free_shipping">شحن مجاني</option>
+            </select>
           </div>
 
           <div className="divide-y divide-gray-50">
@@ -367,9 +405,21 @@ export default function MarketingPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-mono font-bold text-gray-900">{discount.code}</p>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(discount.code);
+                              toast.success('تم نسخ الكود');
+                            }}
+                            className="p-0.5 text-gray-400 hover:text-gray-600"
+                            title="نسخ الكود"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
                           <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
                             discount.isActive && !isExpired && !isExhausted
                               ? 'bg-green-100 text-green-700'
+                              : isExpired ? 'bg-red-100 text-red-700'
+                              : isExhausted ? 'bg-orange-100 text-orange-700'
                               : 'bg-gray-100 text-gray-500'
                           }`}>
                             {isExpired ? 'منتهي' : isExhausted ? 'مستنفذ' : discount.isActive ? 'نشط' : 'معطل'}
@@ -433,6 +483,182 @@ export default function MarketingPage() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Email Marketing Tab */}
+      {activeTab === 'email' && (
+        <div className="space-y-6">
+          {/* Tabs */}
+          <div className="flex gap-2 bg-white rounded-xl border border-gray-100 p-1.5">
+            <button
+              onClick={() => setActiveTab('discounts')}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+            >
+              <Tag className="w-4 h-4" />
+              أكواد الخصم
+            </button>
+            <button
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-indigo-600 text-white"
+            >
+              <Mail className="w-4 h-4" />
+              حملة بريدية
+            </button>
+          </div>
+
+          {/* Customer Segments */}
+          <div className="bg-white rounded-xl border border-gray-100 p-6">
+            <h2 className="font-bold text-gray-900 text-lg mb-4">اختر شريحة العملاء</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { key: 'all', label: 'جميع العملاء', icon: Users, color: 'bg-blue-50 text-blue-700 border-blue-200' },
+                { key: 'active', label: 'عملاء نشطين', icon: CheckCircle2, color: 'bg-green-50 text-green-700 border-green-200' },
+                { key: 'inactive', label: 'عملاء غير نشطين', icon: Clock, color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+                { key: 'vip', label: 'عملاء VIP', icon: Sparkles, color: 'bg-purple-50 text-purple-700 border-purple-200' },
+              ].map((seg) => {
+                const Icon = seg.icon;
+                return (
+                  <button
+                    key={seg.key}
+                    onClick={() => setEmailSegment(seg.key as any)}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition ${
+                      emailSegment === seg.key
+                        ? seg.color
+                        : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                    }`}
+                  >
+                    <Icon className="w-6 h-6" />
+                    <span className="text-sm font-medium">{seg.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Email Template */}
+          <div className="bg-white rounded-xl border border-gray-100 p-6">
+            <h2 className="font-bold text-gray-900 text-lg mb-4">محتوى الرسالة</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  عنوان الرسالة <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="عنوان الرسالة..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  محتوى الرسالة <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  rows={8}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y"
+                  placeholder="اكتب محتوى الرسالة هنا..."
+                />
+              </div>
+
+              {/* Quick Templates */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  قوالب سريعة
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: 'عرض خاص', subject: 'عرض خاص لك!', body: 'مرحباً {name}،\n\nلدينا عرض خاص لك! استخدم كود الخصم للحصول على خصم على مشترياتك.\n\nمع تحياتنا' },
+                    { label: 'منتج جديد', subject: 'منتج جديد وصل!', body: 'مرحباً {name}،\n\nوصلنا منتج جديد قد يعجبك! تفقد متجرنا الآن.\n\nمع تحياتنا' },
+                    { label: 'تذكير بالسلة', subject: 'نسيت شيئاً في سلتك!', body: 'مرحباً {name}،\n\nيبدو أنك نسيت إكمال طلبك! المنتجات لا تزال في سلتك.\n\nأكمل طلبك الآن' },
+                  ].map((tpl) => (
+                    <button
+                      key={tpl.label}
+                      onClick={() => {
+                        setEmailSubject(tpl.subject);
+                        setEmailBody(tpl.body);
+                      }}
+                      className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+                    >
+                      {tpl.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Send Button */}
+          <div className="flex items-center justify-between bg-white rounded-xl border border-gray-100 p-6">
+            <div className="text-sm text-gray-500">
+              سيتم إرسال الرسالة لشريحة: <span className="font-medium text-gray-900">
+                {emailSegment === 'all' ? 'جميع العملاء' : emailSegment === 'active' ? 'العملاء النشطين' : emailSegment === 'inactive' ? 'العملاء غير النشطين' : 'عملاء VIP'}
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                if (!emailSubject || !emailBody) {
+                  toast.error('يرجى ملء عنوان ومحتوى الرسالة');
+                  return;
+                }
+                setEmailSending(true);
+                // Simulate sending
+                setTimeout(() => {
+                  setEmailSending(false);
+                  toast.success('تم إرسال الحملة البريدية بنجاح');
+                  setEmailSubject('');
+                  setEmailBody('');
+                }, 2000);
+              }}
+              disabled={emailSending || !emailSubject || !emailBody}
+              className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition font-medium text-sm disabled:opacity-50"
+            >
+              {emailSending ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                  جاري الإرسال...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  إرسال الحملة
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Campaign Analytics (Placeholder) */}
+          <div className="bg-white rounded-xl border border-gray-100 p-6">
+            <h2 className="font-bold text-gray-900 text-lg mb-4">إحصائيات الحملات السابقة</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-gray-50 rounded-xl">
+                <Mail className="w-6 h-6 text-blue-500 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-gray-900">0</p>
+                <p className="text-xs text-gray-500">حملات مرسلة</p>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-xl">
+                <Users className="w-6 h-6 text-green-500 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-gray-900">0</p>
+                <p className="text-xs text-gray-500">مستلمين</p>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-xl">
+                <Eye className="w-6 h-6 text-purple-500 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-gray-900">0%</p>
+                <p className="text-xs text-gray-500">معدل الفتح</p>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-xl">
+                <MousePointerClick className="w-6 h-6 text-orange-500 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-gray-900">0%</p>
+                <p className="text-xs text-gray-500">معدل النقر</p>
+              </div>
+            </div>
+            <p className="text-center text-sm text-gray-400 mt-4">
+              ستظهر الإحصائيات هنا بعد إرسال أول حملة بريدية
+            </p>
           </div>
         </div>
       )}

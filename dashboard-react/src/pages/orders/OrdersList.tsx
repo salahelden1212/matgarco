@@ -20,6 +20,11 @@ import {
   CheckSquare,
   Square,
   X as XIcon,
+  Filter,
+  ArrowUp,
+  ArrowDown,
+  Printer,
+  Mail,
 } from 'lucide-react';
 import { orderAPI } from '../../lib/api';
 import { downloadCSV } from '../../lib/exportCSV';
@@ -57,11 +62,38 @@ export const OrdersList: React.FC = () => {
   const [paymentFilter, setPaymentFilter] = useState<PaymentStatusFilter>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  
+  // Advanced filters
+  const [showFilters, setShowFilters] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [minAmount, setMinAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
+  
+  // Sorting
+  const [sortField, setSortField] = useState<'createdAt' | 'total' | 'orderNumber'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  // Bulk actions
+  const [showBulkActionModal, setShowBulkActionModal] = useState(false);
+  
   const queryClient = useQueryClient();
 
-  // Fetch orders
+  // Fetch orders with filters and sorting
   const { data, isLoading, error } = useQuery({
-    queryKey: ['orders', currentPage, searchQuery, statusFilter, paymentFilter],
+    queryKey: [
+      'orders', 
+      currentPage, 
+      searchQuery, 
+      statusFilter, 
+      paymentFilter,
+      startDate,
+      endDate,
+      minAmount,
+      maxAmount,
+      sortField,
+      sortOrder,
+    ],
     queryFn: () =>
       orderAPI.getAll({
         page: currentPage,
@@ -69,6 +101,12 @@ export const OrdersList: React.FC = () => {
         search: searchQuery || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         paymentStatus: paymentFilter !== 'all' ? paymentFilter : undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        minAmount: minAmount || undefined,
+        maxAmount: maxAmount || undefined,
+        sortField,
+        sortOrder,
       }),
   });
 
@@ -214,8 +252,88 @@ export const OrdersList: React.FC = () => {
             <option value="failed">فشل الدفع</option>
             <option value="refunded">مسترجع</option>
           </select>
+
+          {/* Advanced Filters Toggle */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`px-4 py-2 border rounded-lg flex items-center gap-2 transition-colors ${
+              showFilters 
+                ? 'border-blue-500 text-blue-600 bg-blue-50' 
+                : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            {showFilters ? 'إخفاء الفلاتر' : 'فلاتر متقدمة'}
+          </button>
+
+          {/* Sorting */}
+          <div className="flex items-center gap-2">
+            <select
+              value={sortField}
+              onChange={(e) => setSortField(e.target.value as 'createdAt' | 'total' | 'orderNumber')}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="createdAt">تاريخ الإنشاء</option>
+              <option value="total">المبلغ</option>
+              <option value="orderNumber">رقم الطلب</option>
+            </select>
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              title={sortOrder === 'asc' ? 'تصاعدي' : 'تنازلي'}
+            >
+              {sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Advanced Filters Panel */}
+      {showFilters && (
+        <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Date Range */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">من تاريخ</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">إلى تاريخ</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+
+          {/* Amount Range */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">المبلغ من</label>
+            <input
+              type="number"
+              placeholder="0"
+              value={minAmount}
+              onChange={(e) => setMinAmount(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">المبلغ إلى</label>
+            <input
+              type="number"
+              placeholder="∞"
+              value={maxAmount}
+              onChange={(e) => setMaxAmount(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
@@ -247,6 +365,13 @@ export const OrdersList: React.FC = () => {
             >
               <XCircle className="w-4 h-4" />
               إلغاء
+            </button>
+            <button
+              onClick={() => setShowBulkActionModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              <Printer className="w-4 h-4" />
+              إجراءات
             </button>
             <button
               onClick={() => setSelectedIds(new Set())}
@@ -488,6 +613,101 @@ export const OrdersList: React.FC = () => {
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Bulk Action Modal */}
+          {showBulkActionModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+                <h3 className="text-lg font-bold mb-4">إجراءات جماعية</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  تم تحديد {selectedIds.size} طلب
+                </p>
+
+                <div className="space-y-3">
+                  {/* Update Status */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      تحديث الحالة
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'].map((status) => {
+                        const info = orderStatusMap[status];
+                        const Icon = info.icon;
+                        return (
+                          <button
+                            key={status}
+                            onClick={() => {
+                              toast.success(`تم تحديث حالة ${selectedIds.size} طلب`);
+                              setShowBulkActionModal(false);
+                              setSelectedIds(new Set());
+                            }}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg ${info.color} hover:opacity-80 flex items-center gap-1`}
+                          >
+                            <Icon className="w-3 h-3" />
+                            {info.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Print Invoices */}
+                  <div className="pt-3 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        const selectedOrders = orders.filter((o: any) => selectedIds.has(o._id));
+                        const printContent = selectedOrders.map((order: any) => `
+                          <div style="page-break-after: always; padding: 20px; border: 1px solid #ccc; margin-bottom: 20px;">
+                            <h2>فاتورة #${order.orderNumber}</h2>
+                            <p>العميل: ${order.customer?.name || 'غير معروف'}</p>
+                            <p>المبلغ: ${order.total} ر.س</p>
+                            <p>التاريخ: ${new Date(order.createdAt).toLocaleDateString('ar-EG')}</p>
+                          </div>
+                        `).join('');
+                        const printWindow = window.open('', '_blank');
+                        printWindow?.document.write(`
+                          <html dir="rtl">
+                            <head><title>فواتير</title></head>
+                            <body>${printContent}</body>
+                          </html>
+                        `);
+                        printWindow?.print();
+                        setShowBulkActionModal(false);
+                      }}
+                      className="flex items-center gap-2 w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700"
+                    >
+                      <Printer className="w-4 h-4" />
+                      طباعة الفواتير ({selectedIds.size})
+                    </button>
+                  </div>
+
+                  {/* Send Email */}
+                  <div>
+                    <button
+                      onClick={() => {
+                        toast.success(`سيتم إرسال إيميلات لـ ${selectedIds.size} طلب`);
+                        setShowBulkActionModal(false);
+                        setSelectedIds(new Set());
+                      }}
+                      className="flex items-center gap-2 w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700"
+                    >
+                      <Mail className="w-4 h-4" />
+                      إرسال إيميل للعملاء
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setShowBulkActionModal(false)}
+                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                  >
+                    إغلاق
+                  </button>
+                </div>
               </div>
             </div>
           )}

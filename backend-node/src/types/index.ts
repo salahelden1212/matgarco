@@ -37,6 +37,7 @@ export interface AuthRequest extends Request {
     email: string;
     role: UserRole;
     merchantId?: string;
+    customerId?: string;
     permissions?: Record<string, boolean>;
     staffRole?: string;
   };
@@ -48,6 +49,7 @@ export interface JWTPayload {
   email: string;
   role: UserRole;
   merchantId?: string;
+  customerId?: string;
 }
 
 // API Response

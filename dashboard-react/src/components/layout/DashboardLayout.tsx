@@ -22,6 +22,8 @@ import {
   Palette,
   Wallet,
   Megaphone,
+  Star,
+  Heart,
 } from 'lucide-react';
 
 export default function DashboardLayout() {
@@ -60,6 +62,7 @@ export default function DashboardLayout() {
     { name: 'الطلبات', path: '/dashboard/orders', icon: ShoppingCart, badge: pendingCount, permission: 'orders.view', section: 'main' },
     { name: 'العملاء', path: '/dashboard/customers', icon: Users, badge: 0, permission: 'customers.view', section: 'main' },
     { name: 'التسويق', path: '/dashboard/marketing', icon: Megaphone, badge: 0, section: 'main' },
+    { name: 'التقييمات', path: '/dashboard/reviews', icon: Star, badge: 0, section: 'main' },
     { name: 'التقارير', path: '/dashboard/reports', icon: BarChart2, badge: 0, permission: 'reports.view', section: 'main' },
     { name: 'تصميم المتجر', path: '/dashboard/store-design', icon: Palette, badge: 0, section: 'store' },
     { name: 'الماليات', path: '/dashboard/finance', icon: Wallet, badge: 0, section: 'store' },

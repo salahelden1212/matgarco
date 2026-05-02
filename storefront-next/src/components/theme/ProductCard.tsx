@@ -1,15 +1,23 @@
 import React from 'react';
 import Link from 'next/link';
+import { getProductMainImage, optimizeCloudinaryUrl } from '@/lib/images';
 
 export function ProductCard({ product }: { product: any }) {
+  const imageUrl = getProductMainImage(product);
+  const optimizedUrl = optimizeCloudinaryUrl(imageUrl, { width: 600, height: 800, quality: 80 });
+  
   return (
     <Link href={`/products/${product.slug}`} className="group block h-full bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] overflow-hidden hover:shadow-lg transition-shadow">
       <div className="relative aspect-[4/5] overflow-hidden bg-gray-100">
         <img 
-          src={product.images?.[0] || 'https://picsum.photos/400/500?random=' + product._id} 
+          src={optimizedUrl}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           loading="lazy"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = `https://placehold.co/600x800/e2e8f0/64748b?text=${encodeURIComponent(product.name || 'Product')}`;
+          }}
         />
         {product.compareAtPrice > product.price && (
           <span className="absolute top-3 right-3 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">

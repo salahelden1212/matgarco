@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Palette, Plus, Loader2, AlertCircle, Zap, Store, Tag, Eye, Trash2, Clock, X, Save, Package, Settings2, History, Users as UsersIcon, Globe, Shirt, Monitor, UtensilsCrossed, Smartphone, Wrench } from 'lucide-react';
+import { Palette, Plus, Loader2, AlertCircle, Zap, Store, Tag, Eye, Trash2, Clock, X, Save, Package, Settings2, History, Users as UsersIcon, Globe, Shirt, Monitor, UtensilsCrossed, Smartphone, Wrench, Copy, Search } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import api from '../lib/api';
+import { toast } from 'sonner';
 
 const CATEGORY_LABELS: Record<string, string> = {
   general: 'عام',
@@ -43,6 +44,7 @@ export default function ThemesList() {
   const [error, setError] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedTheme, setSelectedTheme] = useState<any>(null);
   const [detailTab, setDetailTab] = useState<'info' | 'merchants' | 'versions'>('info');
   const [themeMerchants, setThemeMerchants] = useState<any[]>([]);
@@ -95,8 +97,22 @@ export default function ThemesList() {
       await api.delete(`/super-admin/themes/${id}`);
       setThemes(themes.filter(t => t._id !== id));
       setSelectedTheme(null);
+      toast.success('تم حذف القالب');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'فشل حذف القالب');
+      toast.error(err.response?.data?.message || 'فشل حذف القالب');
+    }
+  };
+
+  const handleCloneTheme = async (id: string, name: string) => {
+    try {
+      const res = await api.post(`/super-admin/themes/${id}/clone`);
+      toast.success(`تم نسخ القالب: ${name}`);
+      fetchThemes();
+      if (res.data?.data?._id) {
+        navigate(`/themes/${res.data.data._id}/builder`);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'فشل نسخ القالب');
     }
   };
 
@@ -115,6 +131,7 @@ export default function ThemesList() {
   const filteredThemes = themes.filter(t => {
     if (filterCategory !== 'all' && t.category !== filterCategory) return false;
     if (filterStatus !== 'all' && t.status !== filterStatus) return false;
+    if (searchTerm && !t.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
   });
 
@@ -168,6 +185,11 @@ export default function ThemesList() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <input type="text" placeholder="ابحث عن قالب..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+            className="pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-matgarco-500 w-52" />
+        </div>
         <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-matgarco-500">
           <option value="all">كل التصنيفات</option>
           {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -191,6 +213,7 @@ export default function ThemesList() {
             onCategoryChange={c => handleCategoryChange(theme._id, c)}
             onOpenDetail={() => openDetail(theme)}
             onDelete={() => handleDeleteTheme(theme._id)}
+            onClone={() => handleCloneTheme(theme._id, theme.name)}
           />
         ))}
       </div>
@@ -205,6 +228,7 @@ export default function ThemesList() {
           setTab={setDetailTab}
           onClose={() => setSelectedTheme(null)}
           onRefresh={fetchThemes}
+          onClone={() => handleCloneTheme(selectedTheme._id, selectedTheme.name)}
         />
       )}
 
@@ -221,9 +245,9 @@ export default function ThemesList() {
 }
 
 /* ─── Theme Card ─────────────────────────────────────────────────────────────── */
-function ThemeCard({ theme, onStatusChange, onPlansChange, onCategoryChange, onOpenDetail, onDelete }: {
+function ThemeCard({ theme, onStatusChange, onPlansChange, onCategoryChange, onOpenDetail, onDelete, onClone }: {
   theme: any; onStatusChange: (s: string) => void; onPlansChange: (p: string, c: boolean) => void;
-  onCategoryChange: (c: string) => void; onOpenDetail: () => void; onDelete: () => void;
+  onCategoryChange: (c: string) => void; onOpenDetail: () => void; onDelete: () => void; onClone: () => void;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const shouldShowThumbnail = isThemeThumbnailUsable(theme.thumbnail) && !imageFailed;
@@ -342,13 +366,15 @@ function ThemeCard({ theme, onStatusChange, onPlansChange, onCategoryChange, onO
         </div>
 
         {/* Buttons */}
-        <div className="grid grid-cols-2 gap-2 mt-2">
-          <button onClick={onOpenDetail} className="w-full py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
-            <Settings2 size={14} /> الخصائص
+        <div className="grid grid-cols-3 gap-2 mt-2">
+          <button onClick={onOpenDetail} className="py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1">
+            <Settings2 size={13} /> الخصائص
           </button>
-          
-          <Link to={`/themes/${theme._id}/builder`} className="w-full py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">
-            <Palette size={14} /> مصمم القالب
+          <button onClick={onClone} className="py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1">
+            <Copy size={13} /> نسخ
+          </button>
+          <Link to={`/themes/${theme._id}/builder`} className="py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold flex items-center justify-center gap-1 hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">
+            <Palette size={13} /> مصمم
           </Link>
         </div>
       </div>
@@ -357,10 +383,10 @@ function ThemeCard({ theme, onStatusChange, onPlansChange, onCategoryChange, onO
 }
 
 /* ─── Theme Detail Modal ─────────────────────────────────────────────────────── */
-function ThemeDetailModal({ theme, merchants, loadingMerchants, tab, setTab, onClose, onRefresh }: {
+function ThemeDetailModal({ theme, merchants, loadingMerchants, tab, setTab, onClose, onRefresh, onClone }: {
   theme: any; merchants: any[]; loadingMerchants: boolean;
   tab: 'info' | 'merchants' | 'versions'; setTab: (t: any) => void;
-  onClose: () => void; onRefresh: () => void;
+  onClose: () => void; onRefresh: () => void; onClone: () => void;
 }) {
   const [editName, setEditName] = useState(theme.name);
   const [editDesc, setEditDesc] = useState(theme.description);
@@ -438,11 +464,16 @@ function ThemeDetailModal({ theme, merchants, loadingMerchants, tab, setTab, onC
               </div>
               <label className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl cursor-pointer">
                 <input type="checkbox" checked={editPremium} onChange={e => setEditPremium(e.target.checked)} className="w-5 h-5 accent-amber-600" />
-                <span className="font-bold text-amber-900">👑 قالب Premium (يظهر بعلامة مميزة)</span>
+                <span className="font-bold text-amber-900">👑 قالب Premium</span>
               </label>
-              <button onClick={handleSaveInfo} disabled={saving} className="flex items-center gap-2 bg-matgarco-600 hover:bg-matgarco-700 text-white px-6 py-2.5 rounded-xl font-bold transition-colors disabled:bg-slate-400">
-                {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} حفظ التعديلات
-              </button>
+              <div className="flex gap-3">
+                <button onClick={handleSaveInfo} disabled={saving} className="flex items-center gap-2 bg-matgarco-600 hover:bg-matgarco-700 text-white px-6 py-2.5 rounded-xl font-bold transition-colors disabled:bg-slate-400">
+                  {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} حفظ
+                </button>
+                <button onClick={onClone} className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl font-bold transition-colors">
+                  <Copy size={18} /> نسخ القالب
+                </button>
+              </div>
             </div>
           )}
 

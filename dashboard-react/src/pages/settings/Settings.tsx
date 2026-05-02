@@ -19,6 +19,14 @@ import {
   Lock,
   Eye,
   EyeOff,
+  CreditCard,
+  Truck,
+  Wifi,
+  WifiOff,
+  Plus,
+  Trash2,
+  ShieldCheck,
+  PackageCheck,
 } from 'lucide-react';
 import { merchantAPI, authAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
@@ -45,12 +53,15 @@ const planLabels: Record<string, { label: string; color: string }> = {
   business: { label: 'Business', color: 'bg-green-100 text-green-800' },
 };
 
-type TabId = 'store' | 'contact' | 'address' | 'subscription' | 'account';
+type TabId = 'store' | 'contact' | 'address' | 'payment' | 'shipping' | 'email' | 'subscription' | 'account';
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'store', label: 'المتجر', icon: Store },
   { id: 'contact', label: 'التواصل', icon: Phone },
   { id: 'address', label: 'العنوان', icon: MapPin },
+  { id: 'payment', label: 'الدفع', icon: CreditCard },
+  { id: 'shipping', label: 'الشحن', icon: Truck },
+  { id: 'email', label: 'البريد', icon: Mail },
   { id: 'subscription', label: 'الاشتراك', icon: Crown },
   { id: 'account', label: 'حسابي', icon: User },
 ];
@@ -97,6 +108,31 @@ export const Settings: React.FC = () => {
     confirmPassword: '',
   });
 
+  // Payment settings state
+  const [paymentForm, setPaymentForm] = useState({
+    codEnabled: true,
+    codFee: 0,
+    onlineCardEnabled: false,
+    paymobSecretKey: '',
+    paymobPublicKey: '',
+  });
+  const [showSecretKey, setShowSecretKey] = useState(false);
+  const [testingKeys, setTestingKeys] = useState(false);
+  const [keysTestResult, setKeysTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Shipping settings state
+  const [shippingForm, setShippingForm] = useState({
+    flatRateEnabled: true,
+    flatRateAmount: 50,
+    freeShippingEnabled: false,
+    freeShippingThreshold: 500,
+    cityRatesEnabled: false,
+    cityRates: [] as { city: string; rate: number }[],
+    estimatedDelivery: '3-5 أيام عمل',
+  });
+  const [newCityName, setNewCityName] = useState('');
+  const [newCityRate, setNewCityRate] = useState<number>(50);
+
   // Fetch merchant
   const { data: merchantData, isLoading } = useQuery({
     queryKey: ['merchant', user?.merchantId],
@@ -127,6 +163,28 @@ export const Settings: React.FC = () => {
         country: merchant.address?.country || 'Egypt',
         postalCode: merchant.address?.postalCode || '',
       });
+      // Payment settings
+      if (merchant.paymentSettings) {
+        setPaymentForm(prev => ({
+          ...prev,
+          codEnabled: merchant.paymentSettings?.codEnabled ?? true,
+          codFee: merchant.paymentSettings?.codFee ?? 0,
+          onlineCardEnabled: merchant.paymentSettings?.onlineCardEnabled ?? false,
+          paymobPublicKey: (merchant.paymobConfig as any)?.publicKey || '',
+        }));
+      }
+      // Shipping config
+      if (merchant.shippingConfig) {
+        setShippingForm({
+          flatRateEnabled: merchant.shippingConfig?.flatRateEnabled ?? true,
+          flatRateAmount: merchant.shippingConfig?.flatRateAmount ?? 50,
+          freeShippingEnabled: merchant.shippingConfig?.freeShippingEnabled ?? false,
+          freeShippingThreshold: merchant.shippingConfig?.freeShippingThreshold ?? 500,
+          cityRatesEnabled: merchant.shippingConfig?.cityRatesEnabled ?? false,
+          cityRates: merchant.shippingConfig?.cityRates || [],
+          estimatedDelivery: merchant.shippingConfig?.estimatedDelivery || '3-5 أيام عمل',
+        });
+      }
     }
     if (user) {
       setAccountForm((prev) => ({
@@ -254,6 +312,70 @@ export const Settings: React.FC = () => {
       currentPassword: passwordForm.currentPassword,
       newPassword: passwordForm.newPassword,
     });
+  };
+
+  const handleSavePayment = async () => {
+    try {
+      await axios.patch('/payments/settings', {
+        paymentSettings: {
+          codEnabled: paymentForm.codEnabled,
+          codFee: paymentForm.codFee,
+          onlineCardEnabled: paymentForm.onlineCardEnabled,
+        },
+      });
+      queryClient.invalidateQueries({ queryKey: ['merchant'] });
+      toast.success('تم حفظ إعدادات الدفع ✅');
+    } catch {
+      toast.error('فشل حفظ إعدادات الدفع');
+    }
+  };
+
+  const handleTestPaymobKeys = async () => {
+    if (!paymentForm.paymobSecretKey || !paymentForm.paymobPublicKey) {
+      toast.error('يرجى إدخال Secret Key و Public Key');
+      return;
+    }
+    setTestingKeys(true);
+    setKeysTestResult(null);
+    try {
+      const res = await axios.post('/payments/test-keys', {
+        secretKey: paymentForm.paymobSecretKey,
+        publicKey: paymentForm.paymobPublicKey,
+      });
+      setKeysTestResult(res.data);
+      if (res.data.success) {
+        queryClient.invalidateQueries({ queryKey: ['merchant'] });
+        setPaymentForm(prev => ({ ...prev, onlineCardEnabled: true }));
+      }
+    } catch {
+      setKeysTestResult({ success: false, message: 'فشل الاتصال بالخادم' });
+    } finally {
+      setTestingKeys(false);
+    }
+  };
+
+  const handleSaveShipping = async () => {
+    try {
+      await axios.patch('/payments/shipping', { shippingConfig: shippingForm });
+      queryClient.invalidateQueries({ queryKey: ['merchant'] });
+      toast.success('تم حفظ إعدادات الشحن ✅');
+    } catch {
+      toast.error('فشل حفظ إعدادات الشحن');
+    }
+  };
+
+  const addCityRate = () => {
+    if (!newCityName.trim()) return;
+    setShippingForm(prev => ({
+      ...prev,
+      cityRates: [...prev.cityRates, { city: newCityName.trim(), rate: newCityRate }],
+    }));
+    setNewCityName('');
+    setNewCityRate(50);
+  };
+
+  const removeCityRate = (idx: number) => {
+    setShippingForm(prev => ({ ...prev, cityRates: prev.cityRates.filter((_, i) => i !== idx) }));
   };
 
   if (isLoading) {
@@ -584,6 +706,346 @@ export const Settings: React.FC = () => {
               </div>
               <div className="flex justify-end">
                 <SaveButton onClick={handleSaveAddress} tab="address" />
+              </div>
+            </div>
+          )}
+
+          {/* ─── Payment Tab ─────────────────────────────────── */}
+          {activeTab === 'payment' && (
+            <div className="space-y-6">
+              {/* Payment Methods */}
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-blue-500" /> طرق الدفع
+                </h3>
+                <div className="space-y-3">
+                  {/* COD */}
+                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                        <PackageCheck className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">الدفع عند الاستلام (COD)</p>
+                        <p className="text-xs text-gray-500">متاح دائماً لجميع الخطط</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked={paymentForm.codEnabled} onChange={e => setPaymentForm(p => ({ ...p, codEnabled: e.target.checked }))} className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-green-500 after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    </label>
+                  </div>
+                  {/* COD Fee */}
+                  {paymentForm.codEnabled && (
+                    <div className="mr-14 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">رسوم COD الإضافية (بالجنيه)</label>
+                      <input type="number" min={0} value={paymentForm.codFee} onChange={e => setPaymentForm(p => ({ ...p, codFee: +e.target.value }))}
+                        className="w-32 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                      <p className="text-xs text-gray-400 mt-1">0 = مجاني</p>
+                    </div>
+                  )}
+                  {/* Online Card */}
+                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <CreditCard className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">الدفع بالبطاقة (Paymob)</p>
+                        <p className="text-xs text-gray-500">يتطلب إدخال مفاتيح Paymob أدناه</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked={paymentForm.onlineCardEnabled} onChange={e => setPaymentForm(p => ({ ...p, onlineCardEnabled: e.target.checked }))} className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-500 after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    </label>
+                  </div>
+                  {/* Fawry - coming soon */}
+                  <div className="flex items-center justify-between p-4 border border-dashed border-gray-200 rounded-xl opacity-50 cursor-not-allowed">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                        <span className="text-orange-600 font-black text-xs">FW</span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-700">Fawry</p>
+                        <p className="text-xs text-gray-400">قريباً — قيد التطوير</p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-400 px-3 py-1 bg-gray-100 rounded-full">قريباً</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Paymob Configuration */}
+              {paymentForm.onlineCardEnabled && (
+                <div className="border border-blue-200 rounded-xl p-5 bg-blue-50/40">
+                  <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-blue-500" /> إعداد Paymob API
+                  </h3>
+                  <p className="text-xs text-gray-500 mb-4">
+                    {merchant?.subscriptionPlan === 'business'
+                      ? 'خطة Business — يمكنك استخدام مفاتيحك الخاصة.'
+                      : 'المنصة ستستخدم مفاتيح Paymob الخاصة بها. لاستخدام مفاتيحك الخاصة، قم بالترقية إلى Business.'}
+                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Secret Key</label>
+                      <div className="relative">
+                        <input
+                          type={showSecretKey ? 'text' : 'password'}
+                          value={paymentForm.paymobSecretKey}
+                          onChange={e => setPaymentForm(p => ({ ...p, paymobSecretKey: e.target.value }))}
+                          placeholder="sk_..."
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pl-10"
+                        />
+                        <button type="button" onClick={() => setShowSecretKey(s => !s)} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                          {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Public Key</label>
+                      <input type="text" value={paymentForm.paymobPublicKey} onChange={e => setPaymentForm(p => ({ ...p, paymobPublicKey: e.target.value }))}
+                        placeholder="pk_..." className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                    </div>
+                    <button onClick={handleTestPaymobKeys} disabled={testingKeys} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-sm">
+                      {testingKeys ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wifi className="w-4 h-4" />}
+                      اختبار الاتصال وحفظ المفاتيح
+                    </button>
+                    {keysTestResult && (
+                      <div className={`flex items-center gap-2 p-3 rounded-lg text-sm font-medium ${keysTestResult.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                        {keysTestResult.success ? <CheckCircle className="w-4 h-4 shrink-0" /> : <WifiOff className="w-4 h-4 shrink-0" />}
+                        {keysTestResult.message}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <button onClick={handleSavePayment} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                  <Save className="w-4 h-4" /> حفظ إعدادات الدفع
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ─── Shipping Tab ─────────────────────────────────── */}
+          {activeTab === 'shipping' && (
+            <div className="space-y-6">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <Truck className="w-4 h-4 text-indigo-500" /> إعدادات الشحن والتوصيل
+              </h3>
+
+              {/* Flat Rate */}
+              <div className="border border-gray-200 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="font-semibold text-gray-900">شحن بسعر ثابت</p>
+                    <p className="text-xs text-gray-500">سعر موحد على جميع الطلبات</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={shippingForm.flatRateEnabled} onChange={e => setShippingForm(p => ({ ...p, flatRateEnabled: e.target.checked }))} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-indigo-500 after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                  </label>
+                </div>
+                {shippingForm.flatRateEnabled && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">سعر الشحن (جنيه)</label>
+                    <input type="number" min={0} value={shippingForm.flatRateAmount} onChange={e => setShippingForm(p => ({ ...p, flatRateAmount: +e.target.value }))}
+                      className="w-32 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" />
+                  </div>
+                )}
+              </div>
+
+              {/* Free Shipping Threshold */}
+              <div className="border border-gray-200 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="font-semibold text-gray-900">شحن مجاني فوق مبلغ معين</p>
+                    <p className="text-xs text-gray-500">يشجع العملاء على زيادة قيمة الطلب</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={shippingForm.freeShippingEnabled} onChange={e => setShippingForm(p => ({ ...p, freeShippingEnabled: e.target.checked }))} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-green-500 after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                  </label>
+                </div>
+                {shippingForm.freeShippingEnabled && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">الحد الأدنى للشحن المجاني (جنيه)</label>
+                    <input type="number" min={0} value={shippingForm.freeShippingThreshold} onChange={e => setShippingForm(p => ({ ...p, freeShippingThreshold: +e.target.value }))}
+                      className="w-40 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500" />
+                  </div>
+                )}
+              </div>
+
+              {/* City Rates */}
+              <div className="border border-gray-200 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="font-semibold text-gray-900">أسعار حسب المدينة</p>
+                    <p className="text-xs text-gray-500">سعر مختلف لكل مدينة</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={shippingForm.cityRatesEnabled} onChange={e => setShippingForm(p => ({ ...p, cityRatesEnabled: e.target.checked }))} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-indigo-500 after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                  </label>
+                </div>
+                {shippingForm.cityRatesEnabled && (
+                  <div className="space-y-3">
+                    {/* Add city */}
+                    <div className="flex gap-2">
+                      <input type="text" placeholder="اسم المدينة" value={newCityName} onChange={e => setNewCityName(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" />
+                      <input type="number" min={0} placeholder="السعر" value={newCityRate} onChange={e => setNewCityRate(+e.target.value)}
+                        className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" />
+                      <button onClick={addCityRate} className="flex items-center gap-1 px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
+                        <Plus className="w-4 h-4" /> إضافة
+                      </button>
+                    </div>
+                    {/* Cities list */}
+                    {shippingForm.cityRates.length > 0 && (
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-2 text-right font-medium text-gray-600">المدينة</th>
+                              <th className="px-4 py-2 text-right font-medium text-gray-600">السعر (جنيه)</th>
+                              <th className="px-4 py-2"></th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {shippingForm.cityRates.map((r, i) => (
+                              <tr key={i} className="hover:bg-gray-50">
+                                <td className="px-4 py-2.5 font-medium">{r.city}</td>
+                                <td className="px-4 py-2.5 text-indigo-600 font-mono">{r.rate} ج.م</td>
+                                <td className="px-4 py-2.5 text-center">
+                                  <button onClick={() => removeCityRate(i)} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Delivery Time */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">وقت التسليم المتوقع</label>
+                <input type="text" value={shippingForm.estimatedDelivery} onChange={e => setShippingForm(p => ({ ...p, estimatedDelivery: e.target.value }))}
+                  placeholder="مثال: 3-5 أيام عمل" className="w-full max-w-xs px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+                <p className="text-xs text-gray-400 mt-1">يظهر للعميل في صفحة الدفع</p>
+              </div>
+
+              <div className="flex justify-end">
+                <button onClick={handleSaveShipping} className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
+                  <Save className="w-4 h-4" /> حفظ إعدادات الشحن
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 📧 Email Tab 📧 */}
+          {activeTab === 'email' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <Mail className="w-5 h-5 text-indigo-600" />
+                    إعدادات البريد الإلكتروني (SMTP)
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">قم بربط خادم الـ SMTP الخاص بك لإرسال رسائل المتجر للعملاء</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked={emailForm.enabled} onChange={e => setEmailForm(p => ({ ...p, enabled: e.target.checked }))} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-indigo-600 after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                </label>
+              </div>
+
+              {emailForm.enabled && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-gray-200 p-5 rounded-xl bg-gray-50/50">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">مزود الخدمة</label>
+                      <select value={emailForm.provider} onChange={e => setEmailForm(p => ({ ...p, provider: e.target.value as any }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                        <option value="default">الخادم الافتراضي (متجركو)</option>
+                        <option value="smtp">خادم SMTP خاص (متقدم)</option>
+                      </select>
+                    </div>
+
+                    {emailForm.provider === 'smtp' && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Host (المستضيف)</label>
+                          <input type="text" value={emailForm.smtpHost} onChange={e => setEmailForm(p => ({ ...p, smtpHost: e.target.value }))} placeholder="smtp.gmail.com" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" dir="ltr" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Port (المنفذ)</label>
+                          <input type="number" value={emailForm.smtpPort} onChange={e => setEmailForm(p => ({ ...p, smtpPort: parseInt(e.target.value) || 587 }))} placeholder="587" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" dir="ltr" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">اسم المستخدم (User)</label>
+                          <input type="text" value={emailForm.smtpUser} onChange={e => setEmailForm(p => ({ ...p, smtpUser: e.target.value }))} placeholder="email@example.com" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" dir="ltr" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">كلمة المرور (Password)</label>
+                          <input type="password" value={emailForm.smtpPass} onChange={e => setEmailForm(p => ({ ...p, smtpPass: e.target.value }))} placeholder="••••••••" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" dir="ltr" />
+                        </div>
+                      </>
+                    )}
+
+                    <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">الاسم المرسل (From Name)</label>
+                        <input type="text" value={emailForm.fromName} onChange={e => setEmailForm(p => ({ ...p, fromName: e.target.value }))} placeholder="اسم متجرك" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">البريد المرسل (From Email)</label>
+                        <input type="email" value={emailForm.fromEmail} onChange={e => setEmailForm(p => ({ ...p, fromEmail: e.target.value }))} placeholder="noreply@yourstore.com" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" dir="ltr" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {emailForm.provider === 'smtp' && (
+                    <div className="flex items-end gap-3 bg-white p-4 border border-gray-200 rounded-xl">
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">بريد لاختبار الاتصال</label>
+                        <input type="email" value={emailForm.testEmail} onChange={e => setEmailForm(p => ({ ...p, testEmail: e.target.value }))} placeholder="test@example.com" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" dir="ltr" />
+                      </div>
+                      <button onClick={handleTestSmtp} disabled={testSmtpMutation.isPending} className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap">
+                        {testSmtpMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'اختبار الاتصال'}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="border border-gray-200 rounded-xl p-5 space-y-4">
+                    <h4 className="font-medium text-gray-900">نصوص القوالب (Templates)</h4>
+                    <p className="text-xs text-gray-500">يمكنك استخدام المتغيرات مثل: {"{{customerName}}, {{orderNumber}}, {{total}}, {{storeName}}"}</p>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">رسالة تأكيد الطلب</label>
+                      <textarea rows={4} value={emailForm.templates.orderConfirmation} onChange={e => setEmailForm(p => ({ ...p, templates: { ...p.templates, orderConfirmation: e.target.value } }))} placeholder="اتركه فارغاً لاستخدام القالب الافتراضي..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 font-mono text-right" dir="auto" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">رسالة تحديث الحالة</label>
+                      <textarea rows={4} value={emailForm.templates.orderStatusChanged} onChange={e => setEmailForm(p => ({ ...p, templates: { ...p.templates, orderStatusChanged: e.target.value } }))} placeholder="اتركه فارغاً لاستخدام القالب الافتراضي..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 font-mono text-right" dir="auto" />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="flex justify-end pt-4 border-t border-gray-100">
+                <button
+                  onClick={handleSave}
+                  disabled={updateMutation.isPending}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium shadow-sm hover:shadow"
+                >
+                  {updateMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                  حفظ التعديلات
+                </button>
               </div>
             </div>
           )}

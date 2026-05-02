@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../types';
 import Subscription, { PLANS, PlanId } from '../models/Subscription';
 import Merchant from '../models/Merchant';
+import { AppError } from '../middleware/error.middleware';
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -52,11 +53,12 @@ export const listPlans = async (_req: AuthRequest, res: Response) => {
 // ─────────────────────────────────────────────
 export const getMySubscription = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
-  if (!merchantId) throw new Error('Merchant not found');
+  if (!merchantId) throw new AppError('Merchant not found', 403);
 
   const subscription = await Subscription.findOne({ merchantId });
   if (!subscription) {
-    return res.status(404).json({ success: false, message: 'No subscription found. Please subscribe to a plan.' });
+    // Return 200 with null data to prevent console 404 errors for legitimate empty states
+    return res.status(200).json({ success: true, data: null, message: 'No subscription found' });
   }
 
   const planDetails = PLANS[subscription.plan];
@@ -68,7 +70,7 @@ export const getMySubscription = async (req: AuthRequest, res: Response) => {
 // ─────────────────────────────────────────────
 export const subscribeToPlan = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
-  if (!merchantId) throw new Error('Merchant not found');
+  if (!merchantId) throw new AppError('Merchant not found', 403);
 
   const { planId, billingCycle = 'monthly' } = req.body as { planId: PlanId; billingCycle?: 'monthly' | 'yearly' };
 
@@ -147,7 +149,7 @@ export const subscribeToPlan = async (req: AuthRequest, res: Response) => {
 // ─────────────────────────────────────────────
 export const upgradePlan = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
-  if (!merchantId) throw new Error('Merchant not found');
+  if (!merchantId) throw new AppError('Merchant not found', 403);
 
   const { planId, billingCycle = 'monthly' } = req.body as { planId: PlanId; billingCycle?: 'monthly' | 'yearly' };
 
@@ -211,7 +213,7 @@ export const upgradePlan = async (req: AuthRequest, res: Response) => {
 // ─────────────────────────────────────────────
 export const downgradePlan = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
-  if (!merchantId) throw new Error('Merchant not found');
+  if (!merchantId) throw new AppError('Merchant not found', 403);
 
   const { planId } = req.body as { planId: PlanId };
 
@@ -253,7 +255,7 @@ export const downgradePlan = async (req: AuthRequest, res: Response) => {
 // ─────────────────────────────────────────────
 export const cancelSubscription = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
-  if (!merchantId) throw new Error('Merchant not found');
+  if (!merchantId) throw new AppError('Merchant not found', 403);
 
   const { reason } = req.body as { reason?: string };
 
@@ -285,7 +287,7 @@ export const cancelSubscription = async (req: AuthRequest, res: Response) => {
 // ─────────────────────────────────────────────
 export const listInvoices = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
-  if (!merchantId) throw new Error('Merchant not found');
+  if (!merchantId) throw new AppError('Merchant not found', 403);
 
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;

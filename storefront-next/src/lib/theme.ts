@@ -36,6 +36,7 @@ const FONT_SCALE: Record<string, string> = {
  * Build a <style> string of CSS variables from ThemeData.
  */
 export function buildCSSVariables(theme: ThemeData): string {
+  if (!theme) theme = {} as ThemeData;
   // New system: globalSettings.colors — Legacy: theme.colors
   const rawColors: any = theme.globalSettings?.colors || theme.colors || {};
   const colors = { ...DEFAULT_COLORS, ...rawColors };
@@ -94,6 +95,7 @@ export function buildCSSVariables(theme: ThemeData): string {
  * Returns the Google Fonts URL for the heading + body fonts.
  */
 export function buildGoogleFontsURL(theme: ThemeData): string {
+  if (!theme) theme = {} as ThemeData;
   const rawTypo: any = theme.globalSettings?.typography || theme.fonts || {};
   const heading = rawTypo.headingFont || rawTypo.heading || DEFAULT_FONTS.headingFont;
   const body    = rawTypo.fontFamily  || rawTypo.body    || DEFAULT_FONTS.fontFamily;

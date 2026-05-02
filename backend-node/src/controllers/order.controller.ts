@@ -1,4 +1,4 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import Order from '../models/Order';
 import Product from '../models/Product';
 import Customer from '../models/Customer';
@@ -14,6 +14,7 @@ import {
   notifyOrderCancelled,
   notifyLowStock,
 } from '../services/notification.service';
+import { sendOrderConfirmationEmail, sendOrderStatusEmail } from '../services/email.service';
 
 /**
  * Get all orders (merchant)
@@ -115,10 +116,39 @@ export const createOrder = asyncHandler(
       discount = 0,
     } = req.body;
 
+    // Validate required fields
+    const validationErrors: string[] = [];
+    
+    if (!merchantId) validationErrors.push('Merchant ID is required');
+    if (!items || !Array.isArray(items) || items.length === 0) validationErrors.push('Order items are required');
+    if (!customerInfo?.name) validationErrors.push('Customer name is required');
+    if (!customerInfo?.phone) validationErrors.push('Customer phone is required');
+    if (!paymentMethod) validationErrors.push('Payment method is required');
+    
+    // Validate shipping address
+    if (!shippingAddress) {
+      validationErrors.push('Shipping address is required');
+    } else {
+      const requiredAddressFields = ['street', 'city', 'country'];
+      for (const field of requiredAddressFields) {
+        if (!shippingAddress[field] || shippingAddress[field].trim() === '') {
+          validationErrors.push(`Shipping ${field} is required`);
+        }
+      }
+    }
+    
+    if (validationErrors.length > 0) {
+      throw new AppError(
+        'Validation failed: ' + validationErrors.join(', '),
+        400,
+        { errors: validationErrors }
+      );
+    }
+
     // Validate merchant exists and is active
     const merchant = await Merchant.findOne({ _id: merchantId, isActive: true });
     if (!merchant) {
-      throw new AppError('Store not found or inactive', 404);
+      throw new AppError('Store not found or inactive', 404, { code: 'MERCHANT_NOT_FOUND' });
     }
 
     // Validate and calculate order items
@@ -231,6 +261,7 @@ export const createOrder = asyncHandler(
       billingAddress: billingAddress || shippingAddress,
       paymentMethod,
       customerNotes,
+      status: 'pending',
       platformCommission: {
         percentage: commissionRate,
         amount: commissionAmount,
@@ -241,6 +272,14 @@ export const createOrder = asyncHandler(
       merchantNet,
       usesMerchantPaymob,
       payoutStatus: 'pending',
+      // Initial timeline event
+      timeline: [{
+        status: 'pending',
+        timestamp: new Date(),
+        note: 'Order created successfully',
+        updatedBy: customer._id,
+        updatedByType: 'customer'
+      }]
     });
 
     // Update customer stats
@@ -260,6 +299,20 @@ export const createOrder = asyncHandler(
 
     // Notify merchant of new order
     notifyNewOrder(merchantId, orderNumber, order._id.toString(), total);
+
+    // Send confirmation email to customer
+    const merchantInfo = await Merchant.findById(merchantId).select('storeName emailSettings');
+    if (merchantInfo) {
+      sendOrderConfirmationEmail(
+        merchantId,
+        merchantInfo.storeName,
+        customerInfo.email,
+        `${customerInfo.firstName} ${customerInfo.lastName}`,
+        orderNumber,
+        total,
+        merchantInfo.emailSettings?.templates?.orderConfirmation
+      );
+    }
 
     res.status(201).json({
       success: true,
@@ -308,6 +361,28 @@ export const updateOrderStatus = asyncHandler(
       order._id.toString(),
       orderStatus
     );
+
+    // Send email to customer
+    if (['confirmed', 'shipped', 'delivered'].includes(orderStatus)) {
+      const merchantInfo = await Merchant.findById(merchantId).select('storeName emailSettings');
+      if (merchantInfo) {
+        const statusLabels: Record<string, string> = {
+          confirmed: 'تم التأكيد',
+          processing: 'قيد التجهيز',
+          shipped: 'تم الشحن',
+          delivered: 'تم التسليم',
+        };
+        sendOrderStatusEmail(
+          merchantId as string,
+          merchantInfo.storeName,
+          order.customerInfo.email,
+          `${order.customerInfo.firstName} ${order.customerInfo.lastName}`,
+          order.orderNumber,
+          statusLabels[orderStatus] || orderStatus,
+          merchantInfo.emailSettings?.templates?.orderStatusChanged
+        );
+      }
+    }
 
     res.status(200).json({
       success: true,
@@ -454,3 +529,82 @@ export const updateTracking = asyncHandler(
     });
   }
 );
+
+// ─── Track Order (public storefront) ───────────────────────────────────────
+export const trackOrder = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { orderNumber, phone } = req.query;
+
+  if (!orderNumber) {
+    return next(new AppError('رقم الطلب مطلوب', 400));
+  }
+
+  const query: any = { orderNumber: orderNumber.toString() };
+  
+  // Optional phone verification
+  if (phone) {
+    query['shippingAddress.phone'] = phone.toString();
+  }
+
+  const order = await Order.findOne(query)
+    .populate('items.productId', 'name images')
+    .lean();
+
+  if (!order) {
+    return next(new AppError('لم يتم العثور على الطلب', 404));
+  }
+
+  // Build timeline
+  const statuses = [
+    { status: 'pending', label: 'تم الطلب', description: 'تم استلام طلبك بنجاح' },
+    { status: 'processing', label: 'قيد التجهيز', description: 'طلبك قيد التجهيز والتغليف' },
+    { status: 'shipped', label: 'تم الشحن', description: 'تم شحن طلبك وهو في الطريق' },
+    { status: 'delivered', label: 'تم التسليم', description: 'تم تسليم الطلب بنجاح' },
+  ];
+
+  // FIX: model uses `orderStatus` field, not `status`
+  const currentStatus = (order as any).orderStatus as string;
+  const statusOrder = ['pending', 'processing', 'shipped', 'delivered'];
+  const currentIndex = statusOrder.indexOf(currentStatus);
+
+  const timeline = statuses.map((s, index) => ({
+    status: s.status,
+    label: s.label,
+    description: s.description,
+    completed: index <= currentIndex,
+    current: s.status === currentStatus,
+    timestamp: index === 0 ? order.createdAt : undefined,
+  }));
+
+  // FIX: shippingAddress shape adapted for frontend (fullName, address)
+  const addr = order.shippingAddress as any;
+  const trackingInfo = {
+    orderNumber: order.orderNumber,
+    status: currentStatus,
+    statusLabel: statuses.find(s => s.status === currentStatus)?.label || currentStatus,
+    createdAt: order.createdAt,
+    items: order.items.map((item: any) => ({
+      // FIX: productName is stored directly on item; productId may not be populated
+      name: item.productName || item.productId?.name || 'منتج',
+      quantity: item.quantity,
+      price: item.price,
+      image: item.productImage || item.productId?.images?.[0]?.url || item.productId?.images?.[0] || null,
+    })),
+    total: order.total,
+    shippingAddress: {
+      fullName: `${addr.firstName || ''} ${addr.lastName || ''}`.trim(),
+      phone: addr.phone || '',
+      address: addr.street || '',
+      city: addr.city || '',
+    },
+    shippingMethod: (order as any).shippingMethod,
+    trackingNumber: (order as any).trackingNumber,
+    shippingProvider: (order as any).shippingProvider,
+    estimatedDelivery: (order as any).estimatedDelivery,
+    timeline,
+  };
+
+  res.status(200).json({
+    success: true,
+    data: trackingInfo,
+  });
+});

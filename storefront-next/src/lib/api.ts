@@ -30,7 +30,7 @@ export async function fetchPreviewTheme(subdomain: string): Promise<StorefrontTh
   }
 }
 
-// ─── Fetch Master Theme (used by Super Admin Template Maker) ─────────────────
+// ─── Fetch Master Theme (used by Super Admin Template Maker) ─────────────────────
 export async function fetchMasterThemePreview(themeId: string): Promise<StorefrontThemeResponse | null> {
   try {
     const res = await fetch(`${API_URL}/storefront/theme-preview/${themeId}`, {
@@ -38,7 +38,29 @@ export async function fetchMasterThemePreview(themeId: string): Promise<Storefro
     });
     if (!res.ok) return null;
     const json = await res.json();
-    return json.success ? (json.data as StorefrontThemeResponse) : null;
+    if (!json.success) return null;
+    
+    // Backend returns: { theme: { _id, themeId: baseThemeObj, published: {globalSettings, pages}, draft: {globalSettings, pages} }, merchant }
+    // We flatten it to the same shape every component expects: { theme: { globalSettings, pages, ... }, merchant }
+    const rawTheme = json.data?.theme;
+    const baseThemeObj = rawTheme?.themeId ?? rawTheme; // themeId is populated BaseTheme doc
+    const globalSettings = rawTheme?.published?.globalSettings ?? baseThemeObj?.globalSettings ?? {};
+    const pages = rawTheme?.published?.pages ?? baseThemeObj?.pages ?? {};
+
+    const normalizedTheme = {
+      ...baseThemeObj,
+      globalSettings,
+      pages,
+      // Keep draft/published for completeness
+      draft: rawTheme?.draft,
+      published: rawTheme?.published,
+    };
+
+    return {
+      theme: normalizedTheme,
+      merchant: json.data?.merchant ?? { storeName: 'معاينة القالب', subdomain: 'demo-preview', currency: 'EGP' },
+      isPreview: true,
+    } as StorefrontThemeResponse;
   } catch {
     return null;
   }
@@ -114,3 +136,19 @@ export async function fetchCategories(subdomain: string) {
     return null;
   }
 }
+
+// ─── Track Order (public) ──────────────────────────────────────────────────────
+export const storefrontApi = {
+  trackOrder: async (orderNumber: string, phone?: string) => {
+    const query = new URLSearchParams();
+    query.set('orderNumber', orderNumber);
+    if (phone) query.set('phone', phone);
+    
+    const res = await fetch(
+      `${API_URL}/orders/track?${query}`,
+      { cache: 'no-store' }
+    );
+    const json = await res.json();
+    return { data: json, status: res.status };
+  },
+};

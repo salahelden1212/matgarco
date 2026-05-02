@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import app from './app';
 import { connectDatabase } from './config/database';
+import { seedDefaultAccounts } from './utils/seedDefaultAccounts';
 
 // Load environment variables
 dotenv.config();
@@ -12,6 +13,9 @@ const startServer = async () => {
   try {
     // Connect to MongoDB
     await connectDatabase();
+    
+    // Seed default accounts
+    await seedDefaultAccounts();
     
     // Start Express server
     app.listen(PORT, () => {

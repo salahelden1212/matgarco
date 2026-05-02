@@ -32,11 +32,19 @@ const config: Config = {
         'fade-in':     'fadeIn 0.3s ease-in-out',
         'slide-up':    'slideUp 0.4s ease-out',
         'slide-right': 'slideRight 0.3s ease-out',
+        'zoom-in':     'zoomIn 0.2s ease-out',
+        'bounce-in':   'bounceIn 0.3s ease-out',
       },
       keyframes: {
         fadeIn:     { from: { opacity: '0' },               to: { opacity: '1' } },
         slideUp:    { from: { transform: 'translateY(20px)', opacity: '0' }, to: { transform: 'translateY(0)', opacity: '1' } },
         slideRight: { from: { transform: 'translateX(-20px)', opacity: '0' }, to: { transform: 'translateX(0)', opacity: '1' } },
+        zoomIn:     { from: { transform: 'scale(0)', opacity: '0' }, to: { transform: 'scale(1)', opacity: '1' } },
+        bounceIn:   { 
+          '0%': { transform: 'scale(0)', opacity: '0' },
+          '50%': { transform: 'scale(1.1)' },
+          '100%': { transform: 'scale(1)', opacity: '1' }
+        },
       },
     },
   },

@@ -8,6 +8,7 @@ import {
   updatePaymentStatus,
   cancelOrder,
   updateTracking,
+  trackOrder,
 } from '../controllers/order.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { tenantIsolation } from '../middleware/tenantIsolation.middleware';
@@ -90,6 +91,9 @@ router.post(
   validate(createOrderSchema),
   createOrder
 );
+
+// Public track order endpoint (storefront) — MUST be before /:id routes
+router.get('/track', trackOrder);
 
 // Protected routes (merchant)
 router.get(
