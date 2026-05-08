@@ -1,60 +1,143 @@
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Store, 
-  CreditCard, 
-  Palette, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Store,
+  CreditCard,
+  Palette,
+  Settings,
   Users,
   LifeBuoy,
   Wallet,
-  Package
+  Package,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
 } from 'lucide-react';
-import { cn } from '../../lib/utils'; // We need to create this
+import { cn } from '../../lib/utils';
+import { useState } from 'react';
+import { useAuthStore } from '../../store/authStore';
 
-export function Sidebar() {
-  const menuItems = [
-    { name: 'الرئيسية', icon: LayoutDashboard, path: '/' },
-    { name: 'التجار والمتاجر', icon: Store, path: '/merchants' },
-    { name: 'الماليات والاشتراكات', icon: CreditCard, path: '/finance' },
-    { name: 'التسويات الأسبوعية', icon: Wallet, path: '/payouts' },
-    { name: 'باقات الاشتراك', icon: Package, path: '/plans' },
-    { name: 'القوالب والثيمات', icon: Palette, path: '/themes' },
-    { name: 'الدعم الفني', icon: LifeBuoy, path: '/support' },
-    { name: 'الإعدادات العامة', icon: Settings, path: '/settings' },
-    { name: 'فريق الإدارة', icon: Users, path: '/staff' },
-  ];
+const menuItems = [
+  { name: 'الرئيسية', icon: LayoutDashboard, path: '/' },
+  { name: 'التجار والمتاجر', icon: Store, path: '/merchants' },
+  { name: 'الماليات والاشتراكات', icon: CreditCard, path: '/finance' },
+  { name: 'التسويات الأسبوعية', icon: Wallet, path: '/payouts' },
+  { name: 'باقات الاشتراك', icon: Package, path: '/plans' },
+  { name: 'القوالب والثيمات', icon: Palette, path: '/themes' },
+  { name: 'الدعم الفني', icon: LifeBuoy, path: '/support' },
+  { name: 'الإعدادات العامة', icon: Settings, path: '/settings' },
+  { name: 'فريق الإدارة', icon: Users, path: '/staff' },
+];
+
+interface SidebarProps {
+  onCloseMobile?: () => void;
+}
+
+export function Sidebar({ onCloseMobile }: SidebarProps) {
+  const [collapsed, setCollapsed] = useState(false);
+  const { logout } = useAuthStore();
 
   return (
-    <aside className="fixed right-0 top-0 bottom-0 w-64 bg-slate-950 text-slate-300 flex flex-col z-40 transition-transform duration-300">
-      <div className="h-16 flex items-center justify-center border-b border-slate-800">
-        <div className="flex items-center gap-2 text-white font-extrabold text-xl py-4">
-          <div className="w-8 h-8 rounded-lg bg-matgarco-500 flex items-center justify-center">
-            <span className="text-white text-lg">M</span>
+    <aside
+      className={cn(
+        'fixed top-0 bottom-0 right-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800',
+        'text-slate-300 flex flex-col z-40',
+        'transition-all duration-300 ease-out',
+        'border-r border-slate-700/50',
+        'shadow-2xl shadow-black/20',
+        collapsed ? 'w-[72px]' : 'w-[260px]'
+      )}
+    >
+      <div className="h-[68px] flex items-center justify-center border-b border-slate-700/50 shrink-0 px-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-600/30 shrink-0">
+            <span className="text-white text-xl font-black">M</span>
           </div>
-          <span>Matgarco Admin</span>
+          {!collapsed && (
+            <div className="flex flex-col">
+              <span className="text-white font-extrabold text-lg leading-tight">Matgarco</span>
+              <span className="text-slate-500 text-[10px] font-medium">Super Admin</span>
+            </div>
+          )}
         </div>
       </div>
-      
-      <div className="flex-1 overflow-y-auto py-6 px-4">
-        <ul className="space-y-2">
+
+      <div className="flex-1 overflow-y-auto py-4 px-2 scrollbar-thin">
+        {!collapsed && (
+          <div className="mb-2 px-3">
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">القائمة الرئيسية</span>
+          </div>
+        )}
+        <ul className="space-y-1">
           {menuItems.map((item) => (
             <li key={item.path}>
               <NavLink
                 to={item.path}
-                className={({ isActive }) => cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all",
-                  isActive 
-                    ? "bg-matgarco-500/10 text-matgarco-400" 
-                    : "hover:bg-slate-800/50 hover:text-white"
-                )}
+                onClick={onCloseMobile}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all group relative',
+                    'before:absolute before:right-0 before:top-1/2 before:-translate-y-1/2 before:h-0 before:w-1 before:rounded-l-full before:transition-all',
+                    isActive
+                      ? 'bg-gradient-to-r from-indigo-600/20 to-transparent text-indigo-400 before:h-8 before:bg-indigo-500'
+                      : 'hover:bg-slate-800/60 text-slate-400 hover:text-white'
+                  )
+                }
               >
-                <item.icon size={20} />
-                <span>{item.name}</span>
+                <item.icon size={20} className="shrink-0" />
+                {!collapsed && (
+                  <span className="truncate flex-1 text-sm">{item.name}</span>
+                )}
+                {collapsed && (
+                  <div className="absolute right-full mr-3 px-3 py-2 bg-slate-800 text-white text-sm font-bold rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-slate-700/50">
+                    {item.name}
+                  </div>
+                )}
               </NavLink>
             </li>
           ))}
         </ul>
+
+        <div className="mt-6 pt-4 border-t border-slate-700/50">
+          {!collapsed && (
+            <div className="mb-2 px-3">
+              <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">الإحصائيات</span>
+            </div>
+          )}
+          <div className={cn('px-3 space-y-2', collapsed && 'px-2')}>
+            <div className={cn('rounded-xl p-3 bg-slate-800/40 border border-slate-700/30', collapsed && 'p-2')}>
+              <div className={cn('font-bold text-white text-lg', collapsed && 'text-center text-sm')}>12</div>
+              <div className={cn('text-slate-500 text-xs', collapsed && 'text-[9px]')}>متاجر نشطة</div>
+            </div>
+            <div className={cn('rounded-xl p-3 bg-slate-800/40 border border-slate-700/30', collapsed && 'p-2')}>
+              <div className={cn('font-bold text-emerald-400 text-lg', collapsed && 'text-center text-sm')}>3,450</div>
+              <div className={cn('text-slate-500 text-xs', collapsed && 'text-[9px]')}>إجمالي الطلبات</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-2 border-t border-slate-700/50 shrink-0 space-y-1">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-slate-500 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all"
+        >
+          {collapsed ? (
+            <ChevronLeft size={18} />
+          ) : (
+            <>
+              <ChevronRight size={18} />
+              <span className="text-xs font-medium">طي الشريط</span>
+            </>
+          )}
+        </button>
+        <button
+          onClick={() => { logout(); onCloseMobile?.(); }}
+          className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+        >
+          <LogOut size={18} className="shrink-0" />
+          {!collapsed && <span className="text-xs font-medium">تسجيل الخروج</span>}
+        </button>
       </div>
     </aside>
   );

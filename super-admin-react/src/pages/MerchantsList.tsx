@@ -1,41 +1,58 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, MoreVertical, ShieldAlert, CheckCircle2, XCircle, Store, Eye, Loader2, AlertCircle, Ban, Power } from 'lucide-react';
+import { Search, Store, Eye, MoreVertical, AlertCircle } from 'lucide-react';
 import api from '../lib/api';
-import { toast } from 'sonner';
+import { Button, Badge, Input, Card, EmptyState, Pagination, SkeletonTable } from '../components/ui';
+import { PageHeader } from '../components/layout/PageHeader';
 
 interface Merchant {
   _id: string;
   storeName: string;
   subdomain: string;
-  ownerId: {
-    firstName: string;
-    lastName: string;
-  };
+  ownerId: { firstName: string; lastName: string; email: string };
   subscriptionPlan: 'free_trial' | 'starter' | 'professional' | 'business';
   subscriptionStatus: 'active' | 'suspended' | 'cancelled';
-  stats: {
-    totalRevenue: number;
-  };
+  stats: { totalRevenue: number };
   createdAt: string;
 }
+
+const PLAN_LABELS: Record<string, string> = {
+  free_trial: 'تجربة مجانية',
+  starter: 'Starter',
+  professional: 'Professional',
+  business: 'Business',
+};
+
+const STATUS_LABELS: Record<string, { label: string; variant: 'success' | 'danger' | 'default' }> = {
+  active: { label: 'نشط', variant: 'success' },
+  suspended: { label: 'موقوف', variant: 'danger' },
+  cancelled: { label: 'ملغى', variant: 'default' },
+};
 
 export default function MerchantsList() {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPlan, setFilterPlan] = useState('all');
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [activeMerchants, setActiveMerchants] = useState(0);
 
   useEffect(() => {
     const fetchMerchants = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/super-admin/merchants');
-        setMerchants(res.data.data);
+        const res = await api.get('/super-admin/merchants', {
+          params: { page, limit: pageSize }
+        });
+        const data = res.data.data || [];
+        setMerchants(data);
+        setTotal(res.data.total || data.length);
+        setTotalRevenue(res.data.stats?.totalRevenue || 0);
+        setActiveMerchants(res.data.stats?.activeCount || 0);
       } catch (err: any) {
         setError(err.response?.data?.message || 'Failed to fetch merchants');
       } finally {
@@ -43,204 +60,157 @@ export default function MerchantsList() {
       }
     };
     fetchMerchants();
-  }, []);
+  }, [page, pageSize]);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpenMenuId(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSuspend = async (id: string) => {
-    try {
-      await api.patch(`/super-admin/merchants/${id}/status`, { status: 'suspended' });
-      setMerchants((prev) => prev.map((m) => m._id === id ? { ...m, subscriptionStatus: 'suspended' } : m));
-      toast.success('تم إيقاف المتجر بنجاح');
-    } catch {
-      toast.error('فشل في إيقاف المتجر');
-    }
-    setOpenMenuId(null);
-  };
-
-  const handleActivate = async (id: string) => {
-    try {
-      await api.patch(`/super-admin/merchants/${id}/status`, { status: 'active' });
-      setMerchants((prev) => prev.map((m) => m._id === id ? { ...m, subscriptionStatus: 'active' } : m));
-      toast.success('تم تفعيل المتجر بنجاح');
-    } catch {
-      toast.error('فشل في تفعيل المتجر');
-    }
-    setOpenMenuId(null);
-  };
-
-  const filteredMerchants = merchants.filter(m => {
-    const matchesSearch = m.storeName.includes(searchTerm) || m.subdomain.includes(searchTerm) || `${m.ownerId?.firstName} ${m.ownerId?.lastName}`.includes(searchTerm);
+  const filteredMerchants = merchants.filter((m) => {
+    const matchesSearch =
+      m.storeName.includes(searchTerm) ||
+      m.subdomain.includes(searchTerm) ||
+      `${m.ownerId?.firstName} ${m.ownerId?.lastName}`.includes(searchTerm);
     const matchesPlan = filterPlan === 'all' || m.subscriptionPlan === filterPlan;
     return matchesSearch && matchesPlan;
   });
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active': return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-100"><CheckCircle2 size={12}/> نشط</span>;
-      case 'suspended': return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-600 border border-rose-100"><ShieldAlert size={12}/> موقوف</span>;
-      case 'cancelled': return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200"><XCircle size={12}/> ملغى</span>;
-      default: return null;
-    }
-  };
-
-  const getPlanBadge = (plan: string) => {
-    switch (plan) {
-      case 'free_trial': return <span className="px-2.5 py-1 rounded w-fit text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">التجربة المجانية</span>;
-      case 'starter': return <span className="px-2.5 py-1 rounded w-fit text-xs font-bold bg-blue-50 text-blue-600 border border-blue-200">Starter</span>;
-      case 'professional': return <span className="px-2.5 py-1 rounded w-fit text-xs font-bold bg-purple-50 text-purple-600 border border-purple-200">Professional</span>;
-      case 'business': return <span className="px-2.5 py-1 rounded w-fit text-xs font-bold bg-matgarco-50 text-matgarco-600 border border-matgarco-200">Business</span>;
-      default: return null;
-    }
-  };
-
-  if (loading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-matgarco-500" size={40} /></div>;
-  if (error) return <div className="p-4 bg-red-50 text-red-600 rounded-xl"><AlertCircle /> {error}</div>;
+  if (loading) return <SkeletonTable rows={8} cols={6} />;
+  if (error) return <Card className="p-6"><div className="flex items-center gap-2 text-red-600"><AlertCircle size={20}/> {error}</div></Card>;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Store size={20} />
-            </div>
-            التجار المتاجر (Merchants)
-          </h1>
-          <p className="text-slate-500 mt-2 text-sm">أدر كافة المتاجر، راقب حالة الاشتراك، وتحكم في الصلاحيات المركزية.</p>
-        </div>
+      <PageHeader
+        icon={<Store size={24} />}
+        title="التجار والمتاجر"
+        description="أدر كافة المتاجر، راقب حالة الاشتراك، وتحكم في الصلاحيات المركزية."
+        iconBg="bg-blue-50"
+        iconColor="text-blue-600"
+        actions={
+          <Button size="sm">+ إضافة متجر</Button>
+        }
+      />
 
-        <div className="flex gap-3">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input 
-              type="text" 
-              placeholder="ابحث برابط المتجر، المالك..." 
-              className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-matgarco-500 focus:ring-2 focus:ring-matgarco-200 outline-none w-64"
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card padding="md">
+          <p className="text-sm font-medium text-slate-500 mb-1">إجمالي المتاجر</p>
+          <p className="text-2xl font-black text-slate-900">{total}</p>
+        </Card>
+        <Card padding="md">
+          <p className="text-sm font-medium text-slate-500 mb-1">متاجر نشطة</p>
+          <p className="text-2xl font-black text-emerald-600">{activeMerchants}</p>
+        </Card>
+        <Card padding="md">
+          <p className="text-sm font-medium text-slate-500 mb-1">إجمالي المبيعات</p>
+          <p className="text-2xl font-black text-slate-900 font-mono">{totalRevenue.toLocaleString()} ج.م</p>
+        </Card>
+      </div>
+
+      <Card padding="none">
+        <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-3">
+          <div className="flex-1">
+            <Input
+              placeholder="ابحث برابط المتجر، المالك..."
+              leftIcon={<Search size={16} />}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
             />
           </div>
-          <select 
-            className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:border-matgarco-500 focus:ring-2 focus:ring-matgarco-200"
-            value={filterPlan}
-            onChange={(e) => setFilterPlan(e.target.value)}
-          >
-            <option value="all">كل الباقات</option>
-            <option value="free_trial">التجربة المجانية</option>
-            <option value="starter">باقة Starter</option>
-            <option value="professional">باقة Professional</option>
-            <option value="business">باقة Business</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-right text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
-              <tr>
-                <th className="px-6 py-4 font-bold">المتجر / المالك</th>
-                <th className="px-6 py-4 font-bold">الرابط (Subdomain)</th>
-                <th className="px-6 py-4 font-bold">الباقة الحالية</th>
-                <th className="px-6 py-4 font-bold">الحالة</th>
-                <th className="px-6 py-4 font-bold">إجمالي المبيعات</th>
-                <th className="px-6 py-4 font-bold">تاريخ الانضمام</th>
-                <th className="px-6 py-4 font-bold text-center">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredMerchants.map((merchant) => (
-                <tr key={merchant._id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="font-bold text-slate-900">{merchant.storeName}</div>
-                    <div className="text-slate-500 text-xs mt-1">{merchant.ownerId?.firstName} {merchant.ownerId?.lastName}</div>
-                  </td>
-                  <td className="px-6 py-4 font-mono text-slate-600 bg-slate-50/30">
-                    <a href={`https://${merchant.subdomain}.matgarco.com`} target="_blank" rel="noreferrer" className="hover:text-matgarco-600 hover:underline">
-                      {merchant.subdomain}.matgarco.com
-                    </a>
-                  </td>
-                  <td className="px-6 py-4">
-                    {getPlanBadge(merchant.subscriptionPlan)}
-                  </td>
-                  <td className="px-6 py-4">
-                    {getStatusBadge(merchant.subscriptionStatus)}
-                  </td>
-                  <td className="px-6 py-4 font-bold text-slate-700 font-mono">
-                    {merchant.stats?.totalRevenue?.toLocaleString() || 0} ج.م
-                  </td>
-                  <td className="px-6 py-4 text-slate-500 font-mono text-xs">
-                    {new Date(merchant.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 flex justify-center items-center gap-2 relative">
-                    <Link to={`/merchants/${merchant._id}`} className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors" title="عرض التفاصيل">
-                      <Eye size={16} />
-                    </Link>
-                    <div ref={openMenuId === merchant._id ? menuRef : undefined}>
-                      <button
-                        onClick={() => setOpenMenuId(openMenuId === merchant._id ? null : merchant._id)}
-                        className="w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-100 flex items-center justify-center transition-colors"
-                      >
-                        <MoreVertical size={16} />
-                      </button>
-                      {openMenuId === merchant._id && (
-                        <div className="absolute left-0 top-full mt-1 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-10">
-                          <Link
-                            to={`/merchants/${merchant._id}`}
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                            onClick={() => setOpenMenuId(null)}
-                          >
-                            <Eye size={14} /> عرض التفاصيل
-                          </Link>
-                          {merchant.subscriptionStatus !== 'suspended' ? (
-                            <button
-                              onClick={() => handleSuspend(merchant._id)}
-                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-rose-600 hover:bg-rose-50"
-                            >
-                              <Ban size={14} /> إيقاف المتجر
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleActivate(merchant._id)}
-                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50"
-                            >
-                              <Power size={14} /> تفعيل المتجر
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              
-              {filteredMerchants.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
-                    لا يوجد متاجر مطابقة للبحث
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between text-sm text-slate-500 bg-slate-50/50">
-          <div>إظهار {filteredMerchants.length} من {merchants.length} متاجر</div>
           <div className="flex gap-2">
-            <button className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-100" disabled>السابق</button>
-            <button className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-100" disabled>التالي</button>
+            <select
+              className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:border-indigo-500"
+              value={filterPlan}
+              onChange={(e) => { setFilterPlan(e.target.value); setPage(1); }}
+            >
+              <option value="all">كل الباقات</option>
+              <option value="free_trial">التجربة المجانية</option>
+              <option value="starter">Starter</option>
+              <option value="professional">Professional</option>
+              <option value="business">Business</option>
+            </select>
           </div>
         </div>
-      </div>
+
+        <div className="overflow-x-auto">
+          {filteredMerchants.length === 0 ? (
+            <EmptyState
+              icon={<Store size={32} />}
+              title="لا يوجد متاجر مطابقة للبحث"
+              description="جرب تعديل عوامل البحث أو أضف متجر جديد."
+              action={{ label: '+ إضافة متجر', onClick: () => {} }}
+            />
+          ) : (
+            <table className="w-full text-right text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-4 font-bold text-slate-500">المتجر / المالك</th>
+                  <th className="px-6 py-4 font-bold text-slate-500">الرابط</th>
+                  <th className="px-6 py-4 font-bold text-slate-500">الباقة</th>
+                  <th className="px-6 py-4 font-bold text-slate-500">الحالة</th>
+                  <th className="px-6 py-4 font-bold text-slate-500">إجمالي المبيعات</th>
+                  <th className="px-6 py-4 font-bold text-slate-500">تاريخ الانضمام</th>
+                  <th className="px-6 py-4 font-bold text-slate-500 text-center">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredMerchants.map((merchant) => (
+                  <tr key={merchant._id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-slate-900">{merchant.storeName}</div>
+                      <div className="text-slate-500 text-xs mt-1">
+                        {merchant.ownerId?.firstName} {merchant.ownerId?.lastName}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs text-slate-600 bg-slate-50/30">
+                      <a href={`https://${merchant.subdomain}.matgarco.com`} target="_blank" rel="noreferrer" className="hover:text-indigo-600 hover:underline">
+                        {merchant.subdomain}.matgarco.com
+                      </a>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant={
+                        merchant.subscriptionPlan === 'business' ? 'amber' :
+                        merchant.subscriptionPlan === 'professional' ? 'purple' :
+                        merchant.subscriptionPlan === 'starter' ? 'info' : 'default'
+                      }>
+                        {PLAN_LABELS[merchant.subscriptionPlan]}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant={STATUS_LABELS[merchant.subscriptionStatus]?.variant} dot>
+                        {STATUS_LABELS[merchant.subscriptionStatus]?.label}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 font-bold text-slate-700 font-mono">
+                      {merchant.stats?.totalRevenue?.toLocaleString() || 0} ج.م
+                    </td>
+                    <td className="px-6 py-4 text-slate-500 font-mono text-xs">
+                      {new Date(merchant.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <Link
+                          to={`/merchants/${merchant._id}`}
+                          className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors"
+                          title="عرض التفاصيل"
+                        >
+                          <Eye size={16} />
+                        </Link>
+                        <button className="w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-100 flex items-center justify-center transition-colors">
+                          <MoreVertical size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          showPageSize
+        />
+      </Card>
     </div>
   );
 }

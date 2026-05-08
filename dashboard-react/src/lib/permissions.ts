@@ -10,6 +10,7 @@ export type PermissionKey =
   | 'customers.view'
   | 'customers.edit'
   | 'reports.view'
+  | 'marketing.view'
   | 'settings.view'
   | 'settings.edit'
   | 'settings.editSubscription'
@@ -32,6 +33,7 @@ export const ALL_PERMISSIONS: PermissionKey[] = [
   'customers.view',
   'customers.edit',
   'reports.view',
+  'marketing.view',
   'settings.view',
   'settings.edit',
   'settings.editSubscription',
@@ -53,6 +55,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   'customers.view': 'عرض العملاء',
   'customers.edit': 'تعديل بيانات عميل',
   'reports.view': 'عرض التقارير',
+  'marketing.view': 'التسويق والعروض',
   'settings.view': 'عرض الإعدادات',
   'settings.edit': 'تعديل الإعدادات',
   'settings.editSubscription': 'إدارة الاشتراك',
@@ -79,6 +82,10 @@ export const PERMISSION_GROUPS: { label: string; keys: PermissionKey[] }[] = [
   {
     label: 'التقارير',
     keys: ['reports.view'],
+  },
+  {
+    label: 'التسويق',
+    keys: ['marketing.view'],
   },
   {
     label: 'الإعدادات',
@@ -111,6 +118,7 @@ export const MANAGER_PERMISSIONS: StaffPermissions = makePermissions([
   'customers.view',
   'customers.edit',
   'reports.view',
+  'marketing.view',
   'settings.view',
   'settings.edit',
   'staff.view',
