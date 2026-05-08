@@ -28,12 +28,13 @@ const generateTokens = (userId: string) => {
   return { accessToken, refreshToken };
 };
 
-export const googleCallback = async (req: Request, res: Response) => {
+export const googleCallback = async (req: Request, res: Response): Promise<void> => {
   try {
     const user = req.user as any;
 
     if (!user) {
-      return res.status(401).json({ error: 'Authentication failed' });
+      res.status(401).json({ error: 'Authentication failed' });
+      return;
     }
 
     // Generate tokens
@@ -70,12 +71,13 @@ export const googleCallback = async (req: Request, res: Response) => {
   }
 };
 
-export const appleCallback = async (req: Request, res: Response) => {
+export const appleCallback = async (req: Request, res: Response): Promise<void> => {
   try {
     const user = req.user as any;
 
     if (!user) {
-      return res.status(401).json({ error: 'Authentication failed' });
+      res.status(401).json({ error: 'Authentication failed' });
+      return;
     }
 
     // Generate tokens

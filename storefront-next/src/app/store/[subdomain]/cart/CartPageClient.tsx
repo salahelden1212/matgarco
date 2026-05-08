@@ -4,6 +4,7 @@ import { useCart } from '@/components/CartProvider';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Trash2, Minus, Plus, ShoppingBag } from 'lucide-react';
+import { getPlaceholderImage } from '@/lib/images';
 
 interface Props {
   subdomain: string;
@@ -55,7 +56,16 @@ export default function CartPageClient({ subdomain }: Props) {
               {/* Image */}
               <div className="relative w-24 h-24 rounded-[var(--radius)] overflow-hidden flex-shrink-0 bg-[var(--background)]">
                 {item.image ? (
-                  <Image src={item.image} alt={item.name} fill className="object-cover" />
+                  <Image 
+                    src={item.image} 
+                    alt={item.name} 
+                    fill 
+                    className="object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = getPlaceholderImage(item.productId);
+                    }}
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
                 )}

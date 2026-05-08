@@ -30,6 +30,10 @@ import storeThemeRoutes from './routes/storeTheme.routes';
 import publicThemesRoutes from './routes/publicThemes.routes';
 import aiRoutes from './routes/ai.routes';
 import discountRoutes from './routes/discount.routes';
+import reviewRoutes from './routes/review.routes';
+import wishlistRoutes from './routes/wishlist.routes';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpecs from './utils/swagger';
 
 const app: Application = express();
 
@@ -113,6 +117,9 @@ app.get('/api', (req, res) => {
   });
 });
 
+// Swagger API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+
 // Mount routes
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/auth/oauth', oauthRoutes);
@@ -134,6 +141,8 @@ app.use('/api/store-themes', storeThemeRoutes);
 app.use('/api/themes', publicThemesRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/discounts', discountRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

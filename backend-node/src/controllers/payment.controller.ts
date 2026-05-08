@@ -154,3 +154,73 @@ export const getPaymentStatus = async (req: AuthRequest, res: Response) => {
   if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
   return res.status(200).json({ success: true, data: order });
 };
+
+// ─────────────────────────────────────────────
+// POST /api/payments/test-keys
+// Test Paymob API key validity for a merchant
+// ─────────────────────────────────────────────
+export const testPaymobKeys = async (req: AuthRequest, res: Response) => {
+  const { secretKey, publicKey } = req.body;
+  
+  if (!secretKey || !publicKey) {
+    return res.status(400).json({ success: false, message: 'secretKey and publicKey are required' });
+  }
+
+  try {
+    // Attempt to authenticate with Paymob using the provided secret key
+    const axios = (await import('axios')).default;
+    const response = await axios.get('https://accept.paymob.com/v1/intention/', {
+      headers: { Authorization: `Token ${secretKey}` },
+      validateStatus: (s) => s < 500, // Accept 400/401 too
+    });
+
+    // Paymob returns 200 or 401. 401 means invalid key.
+    if (response.status === 401) {
+      return res.status(200).json({ success: false, message: 'المفتاح غير صحيح — تحقق من Secret Key' });
+    }
+
+    // Save keys to merchant if valid
+    if (req.user?.merchantId) {
+      await Merchant.findByIdAndUpdate(req.user.merchantId, {
+        'paymobConfig.secretKey': secretKey,
+        'paymobConfig.publicKey': publicKey,
+        'paymentSettings.onlineCardEnabled': true,
+      });
+    }
+
+    return res.status(200).json({ success: true, message: 'المفاتيح صحيحة وتم حفظها بنجاح!' });
+  } catch (err: any) {
+    return res.status(200).json({ success: false, message: 'فشل الاتصال ب**Paymob** — تحقق من المفاتيح' });
+  }
+};
+
+// ─────────────────────────────────────────────
+// PATCH /api/payments/settings
+// Update merchant payment & shipping settings
+// ─────────────────────────────────────────────
+export const updatePaymentSettings = async (req: AuthRequest, res: Response) => {
+  const { paymentSettings } = req.body;
+  const merchant = await Merchant.findByIdAndUpdate(
+    req.user?.merchantId,
+    { paymentSettings },
+    { new: true, runValidators: true }
+  ).select('paymentSettings paymobConfig shippingConfig');
+  if (!merchant) return res.status(404).json({ success: false, message: 'Merchant not found' });
+  return res.status(200).json({ success: true, data: merchant });
+};
+
+// ─────────────────────────────────────────────
+// PATCH /api/payments/shipping
+// Update merchant shipping config
+// ─────────────────────────────────────────────
+export const updateShippingConfig = async (req: AuthRequest, res: Response) => {
+  const { shippingConfig } = req.body;
+  const merchant = await Merchant.findByIdAndUpdate(
+    req.user?.merchantId,
+    { shippingConfig },
+    { new: true, runValidators: true }
+  ).select('shippingConfig');
+  if (!merchant) return res.status(404).json({ success: false, message: 'Merchant not found' });
+  return res.status(200).json({ success: true, data: merchant });
+};
+

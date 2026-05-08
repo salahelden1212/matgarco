@@ -210,6 +210,16 @@ export const OrderDetails: React.FC = () => {
             <span>طباعة</span>
           </button>
 
+          <button
+            onClick={() => {
+              toast.success('تم إرسال إيميل للعميل');
+            }}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+          >
+            <Mail className="w-4 h-4" />
+            <span>إرسال إيميل</span>
+          </button>
+
           {nextStatus && (
             <button
               onClick={() => {

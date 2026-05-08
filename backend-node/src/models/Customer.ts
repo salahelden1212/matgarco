@@ -33,6 +33,9 @@ export interface ICustomer extends Document {
   // Marketing
   acceptsMarketing: boolean;
   
+  // Wishlist
+  wishlist: mongoose.Types.ObjectId[];
+  
   createdAt: Date;
   updatedAt: Date;
 }
@@ -117,6 +120,12 @@ const customerSchema = new Schema<ICustomer>(
       type: Boolean,
       default: false,
     },
+    
+    // Wishlist - array of product IDs
+    wishlist: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Product',
+    }],
   },
   {
     timestamps: true,

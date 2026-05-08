@@ -10,6 +10,7 @@ import {
   getAllMerchants,
   suspendMerchant,
   activateMerchant,
+  testSmtp,
 } from '../controllers/merchant.controller';
 import { authenticate, authorize, isMerchantOwner } from '../middleware/auth.middleware';
 import { tenantIsolation } from '../middleware/tenantIsolation.middleware';
@@ -113,6 +114,14 @@ router.post(
   authenticate,
   authorize('super_admin'),
   activateMerchant
+);
+
+router.post(
+  '/:id/test-smtp',
+  authenticate,
+  tenantIsolation,
+  isMerchantOwner,
+  testSmtp
 );
 
 export default router;

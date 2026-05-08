@@ -42,6 +42,8 @@ export const merchantAPI = {
 
   update: (id: string, data: any) => axios.patch(`/merchants/${id}`, data),
 
+  testSmtp: (id: string, data: any) => axios.post(`/merchants/${id}/test-smtp`, data),
+
   getStats: (id: string) => axios.get(`/merchants/${id}/stats`),
 
   checkSubdomain: (subdomain: string) =>
@@ -59,6 +61,9 @@ export const productAPI = {
     search?: string;
     category?: string;
     status?: string;
+    stock?: string;
+    minPrice?: string;
+    maxPrice?: string;
   }) => axios.get('/products', { params }),
 
   getById: (id: string) => axios.get(`/products/${id}`),
@@ -77,10 +82,15 @@ export const orderAPI = {
   getAll: (params?: {
     page?: number;
     limit?: number;
-    sort?: string;
+    search?: string;
     status?: string;
     paymentStatus?: string;
-    search?: string;
+    startDate?: string;
+    endDate?: string;
+    minAmount?: string;
+    maxAmount?: string;
+    sortField?: string;
+    sortOrder?: string;
   }) => axios.get('/orders', { params }),
 
   getById: (id: string) => axios.get(`/orders/${id}`),
@@ -96,6 +106,10 @@ export const orderAPI = {
 
   updateTracking: (id: string, trackingNumber: string, shippingProvider: string) =>
     axios.patch(`/orders/${id}/tracking`, { trackingNumber, shippingProvider }),
+
+  create: (data: any) => axios.post('/orders', data),
+
+  getOne: (id: string) => axios.get(`/orders/${id}`),
 };
 
 // Customer API
@@ -193,4 +207,41 @@ export const subscriptionAPI = {
     axios.post('/subscriptions/downgrade', { planId }),
   cancel: (reason?: string) =>
     axios.post('/subscriptions/cancel', { reason }),
+};
+
+// AI API
+export const aiAPI = {
+  generateDescription: (data: {
+    productName: string;
+    category?: string;
+    price?: number;
+    tags?: string[];
+    language?: string;
+  }) => axios.post('/products/generate-description', data),
+
+  generateSEO: (data: {
+    productName: string;
+    description?: string;
+    category?: string;
+    language?: string;
+  }) => axios.post('/ai/seo', data),
+
+  getAnalyticsInsights: (data: {
+    question?: string;
+    language?: string;
+  }) => axios.post('/ai/analytics/insights', data),
+
+  getProductRecommendations: () =>
+    axios.post('/ai/analytics/product-recommendations'),
+
+  getCustomerInsights: () =>
+    axios.post('/ai/analytics/customer-insights'),
+
+  assistantChat: (data: {
+    message: string;
+    conversationHistory?: Array<{ role: string; content: string }>;
+  }) => axios.post('/ai/assistant/chat', data),
+
+  suggestActions: () =>
+    axios.post('/ai/assistant/suggest-actions'),
 };

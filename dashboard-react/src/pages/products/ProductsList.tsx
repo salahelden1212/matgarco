@@ -22,6 +22,8 @@ import {
   X,
   ToggleLeft,
   ToggleRight,
+  Tag,
+  Filter,
 } from 'lucide-react';
 import { productAPI } from '../../lib/api';
 import { downloadCSV } from '../../lib/exportCSV';
@@ -100,19 +102,42 @@ export const ProductsList: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [stockFilter, setStockFilter] = useState<string>('');
+  const [minPrice, setMinPrice] = useState<string>('');
+  const [maxPrice, setMaxPrice] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [jumpToPage, setJumpToPage] = useState<string>('');
+  const [showJumpToPage, setShowJumpToPage] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkCategoryModal, setShowBulkCategoryModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('csv');
   const queryClient = useQueryClient();
 
-  // Fetch products
+  // Fetch products with advanced filters
   const { data, isLoading, error } = useQuery({
-    queryKey: ['products', currentPage, searchQuery, statusFilter],
+    queryKey: [
+      'products', 
+      currentPage, 
+      searchQuery, 
+      statusFilter,
+      categoryFilter,
+      stockFilter,
+      minPrice,
+      maxPrice,
+    ],
     queryFn: () =>
       productAPI.getAll({
         page: currentPage,
         limit: 12,
         search: searchQuery || undefined,
-        status: statusFilter !== 'all' ? statusFilter : undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        category: categoryFilter || undefined,
+        stock: stockFilter || undefined,
+        minPrice: minPrice || undefined,
+        maxPrice: maxPrice || undefined,
       }),
   });
 
@@ -162,6 +187,18 @@ export const ProductsList: React.FC = () => {
     onError: () => toast.error('فشل تحديث الحالة'),
   });
 
+  const bulkCategoryMutation = useMutation({
+    mutationFn: ({ ids, category }: { ids: string[]; category: string }) =>
+      Promise.all(ids.map((id) => productAPI.update(id, { category }))),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast.success(`تم تغيير الفئة لـ ${vars.ids.length} منتج`);
+      setSelectedIds(new Set());
+      setShowBulkCategoryModal(false);
+    },
+    onError: () => toast.error('فشل تغيير الفئة'),
+  });
+
   const handleBulkDelete = () => {
     if (confirm(`هل أنت متأكد من حذف ${selectedIds.size} منتج؟`)) {
       bulkDeleteMutation.mutate([...selectedIds]);
@@ -184,17 +221,31 @@ export const ProductsList: React.FC = () => {
     });
   };
 
-  const exportProducts = () => {
+  const exportProducts = (format: 'csv' | 'excel' = 'csv') => {
     const rows = products.map((p: any) => ({
       الاسم: p.name,
       SKU: p.sku || '',
       السعر: p.price,
+      التكلفة: p.cost || 0,
       المخزون: p.stock ?? 0,
       الحالة: p.status === 'active' ? 'نشط' : p.status === 'draft' ? 'مسودة' : 'غير نشط',
       الفئة: p.category || '',
+      الوصف: p.description?.substring(0, 100) || '',
       تاريخ_الإضافة: p.createdAt ? new Date(p.createdAt).toLocaleDateString('ar-EG') : '',
     }));
     downloadCSV(`منتجات-${new Date().toISOString().slice(0, 10)}`, rows);
+    setShowExportModal(false);
+  };
+
+  const handleJumpToPage = () => {
+    const page = parseInt(jumpToPage);
+    if (page >= 1 && page <= pagination.totalPages) {
+      setCurrentPage(page);
+      setShowJumpToPage(false);
+      setJumpToPage('');
+    } else {
+      toast.error(`رقم الصفحة يجب أن يكون بين 1 و ${pagination.totalPages}`);
+    }
   };
 
   return (
@@ -210,12 +261,12 @@ export const ProductsList: React.FC = () => {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={exportProducts}
+            onClick={() => setShowExportModal(true)}
             disabled={products.length === 0}
             className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-40"
           >
             <Download className="w-4 h-4" />
-            <span>تصدير CSV</span>
+            <span>تصدير</span>
           </button>
           <Link
             to="/dashboard/products/new"
@@ -254,6 +305,19 @@ export const ProductsList: React.FC = () => {
             <option value="out_of_stock">نفذ من المخزون</option>
           </select>
 
+          {/* Advanced Filters Toggle */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`px-4 py-2 border rounded-lg flex items-center gap-2 transition-colors ${
+              showFilters 
+                ? 'border-blue-500 text-blue-600 bg-blue-50' 
+                : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            {showFilters ? 'إخفاء الفلاتر' : 'فلاتر متقدمة'}
+          </button>
+
           {/* View Mode Toggle */}
           <div className="flex gap-2 border border-gray-300 rounded-lg p-1">
             <button
@@ -278,6 +342,60 @@ export const ProductsList: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Advanced Filters Panel */}
+        {showFilters && (
+          <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Category Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">الفئة</label>
+              <input
+                type="text"
+                placeholder="اسم الفئة"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+            </div>
+
+            {/* Stock Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">حالة المخزون</label>
+              <select
+                value={stockFilter}
+                onChange={(e) => setStockFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="">الكل</option>
+                <option value="in_stock">متوفر</option>
+                <option value="low_stock">منخفض</option>
+                <option value="out_of_stock">نفذ المخزون</option>
+              </select>
+            </div>
+
+            {/* Price Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">السعر من</label>
+              <input
+                type="number"
+                placeholder="0"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">السعر إلى</label>
+              <input
+                type="number"
+                placeholder="∞"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bulk Action Bar */}
@@ -302,6 +420,14 @@ export const ProductsList: React.FC = () => {
             >
               <ToggleLeft className="w-4 h-4" />
               مسودة
+            </button>
+            <button
+              onClick={() => setShowBulkCategoryModal(true)}
+              disabled={bulkCategoryMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              <Tag className="w-4 h-4" />
+              تغيير الفئة
             </button>
             <button
               onClick={handleBulkDelete}
@@ -606,9 +732,17 @@ export const ProductsList: React.FC = () => {
       {/* Pagination */}
       {!isLoading && !error && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between bg-white rounded-xl shadow-sm border border-gray-200 px-6 py-4">
-          <p className="text-sm text-gray-600">
-            صفحة {pagination.currentPage} من {pagination.totalPages}
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-gray-600">
+              صفحة {pagination.currentPage} من {pagination.totalPages}
+            </p>
+            <button
+              onClick={() => setShowJumpToPage(true)}
+              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+            >
+              الانتقال لصفحة
+            </button>
+          </div>
 
           <div className="flex gap-2">
             <button
@@ -625,6 +759,155 @@ export const ProductsList: React.FC = () => {
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Category Change Modal */}
+      {showBulkCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-bold mb-4">تغيير الفئة للمنتجات المحددة</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              سيتم تغيير فئة {selectedIds.size} منتج
+            </p>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                الفئة الجديدة
+              </label>
+              <input
+                type="text"
+                placeholder="أدخل اسم الفئة"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  if (categoryFilter) {
+                    bulkCategoryMutation.mutate({
+                      ids: [...selectedIds],
+                      category: categoryFilter,
+                    });
+                  }
+                }}
+                disabled={!categoryFilter || bulkCategoryMutation.isPending}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {bulkCategoryMutation.isPending ? 'جاري التحديث...' : 'تغيير الفئة'}
+              </button>
+              <button
+                onClick={() => setShowBulkCategoryModal(false)}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-bold mb-4">تصدير المنتجات</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              سيتم تصدير {products.length} منتج
+            </p>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                تنسيق التصدير
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setExportFormat('csv')}
+                  className={`flex-1 px-4 py-2 border rounded-lg text-sm ${
+                    exportFormat === 'csv'
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  CSV
+                </button>
+                <button
+                  onClick={() => setExportFormat('excel')}
+                  className={`flex-1 px-4 py-2 border rounded-lg text-sm ${
+                    exportFormat === 'excel'
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  Excel
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => exportProducts(exportFormat)}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                تصدير
+              </button>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Jump to Page Modal */}
+      {showJumpToPage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-bold mb-4">الانتقال لصفحة</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              إجمالي الصفحات: {pagination?.totalPages || 1}
+            </p>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                رقم الصفحة
+              </label>
+              <input
+                type="number"
+                min="1"
+                max={pagination?.totalPages || 1}
+                placeholder={`1 - ${pagination?.totalPages || 1}`}
+                value={jumpToPage}
+                onChange={(e) => setJumpToPage(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleJumpToPage()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleJumpToPage}
+                disabled={!jumpToPage}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                انتقال
+              </button>
+              <button
+                onClick={() => {
+                  setShowJumpToPage(false);
+                  setJumpToPage('');
+                }}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+              >
+                إلغاء
+              </button>
+            </div>
           </div>
         </div>
       )}

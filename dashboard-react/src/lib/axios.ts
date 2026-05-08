@@ -33,7 +33,7 @@ axiosInstance.interceptors.response.use(
 
     // Handle 403 Forbidden - merchant access issues
     if (error.response?.status === 403) {
-      const errorMessage = error.response?.data?.error || '';
+      const errorMessage = error.response?.data?.error?.message || '';
       
       // If the error is about missing merchant, logout and redirect
       if (errorMessage.includes('merchant') || errorMessage.includes('Merchant')) {

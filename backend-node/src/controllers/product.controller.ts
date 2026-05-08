@@ -5,6 +5,37 @@ import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { AuthRequest } from '../types';
 import { generateSlug } from '../utils/helpers';
 import { calculatePagination } from '../utils/helpers';
+import { checkAndDeductAICredit } from '../utils/aiCredit';
+
+// Cache for storefront data (5 minutes)
+const storefrontCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCacheKey(subdomain: string, endpoint: string, params: string): string {
+  return `${subdomain}:${endpoint}:${params}`;
+}
+
+function getCachedData(key: string): any | null {
+  const cached = storefrontCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  storefrontCache.delete(key);
+  return null;
+}
+
+function setCachedData(key: string, data: any): void {
+  storefrontCache.set(key, { data, timestamp: Date.now() });
+}
+
+// Clear cache for a specific merchant
+export function clearMerchantCache(subdomain: string): void {
+  for (const key of storefrontCache.keys()) {
+    if (key.startsWith(`${subdomain}:`)) {
+      storefrontCache.delete(key);
+    }
+  }
+}
 
 async function callAIService(productName: string, category: string, price?: number, tags?: string[]): Promise<string> {
   const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
@@ -41,6 +72,17 @@ async function callAIService(productName: string, category: string, price?: numb
 /**
  * Get all products (for merchant)
  * GET /api/products
+ * 
+ * Query params:
+ * - page, limit: pagination
+ * - sort: newest, oldest, price_asc, price_desc, name_asc, stock_asc
+ * - status: draft, active, archived
+ * - category: category name
+ * - search: text search in name, description, tags, sku
+ * - minPrice, maxPrice: price range filter
+ * - stock: in_stock, low_stock, out_of_stock
+ * - tags: comma-separated tags
+ * - isFeatured: true/false
  */
 export const getProducts = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -50,31 +92,94 @@ export const getProducts = asyncHandler(
       throw new AppError('No merchant associated', 400);
     }
 
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
     const { skip } = calculatePagination(page, limit);
 
     const filter: any = { merchantId };
 
-    // Filters
-    if (req.query.status) {
+    // Status filter
+    if (req.query.status && ['draft', 'active', 'archived'].includes(req.query.status as string)) {
       filter.status = req.query.status;
     }
+
+    // Category filter
     if (req.query.category) {
-      filter.category = req.query.category;
+      filter.category = { $regex: new RegExp(req.query.category as string, 'i') };
     }
+
+    // Featured filter
+    if (req.query.isFeatured === 'true') {
+      filter.isFeatured = true;
+    }
+
+    // Advanced Search (name, description, tags, sku)
     if (req.query.search) {
+      const searchRegex = new RegExp(req.query.search as string, 'i');
       filter.$or = [
-        { name: { $regex: req.query.search, $options: 'i' } },
-        { description: { $regex: req.query.search, $options: 'i' } },
+        { name: searchRegex },
+        { description: searchRegex },
+        { tags: { $in: [searchRegex] } },
+        { sku: searchRegex },
       ];
     }
+
+    // Price range filter
+    const minPrice = parseFloat(req.query.minPrice as string);
+    const maxPrice = parseFloat(req.query.maxPrice as string);
+    if (!isNaN(minPrice) || !isNaN(maxPrice)) {
+      filter.price = {};
+      if (!isNaN(minPrice)) filter.price.$gte = minPrice;
+      if (!isNaN(maxPrice)) filter.price.$lte = maxPrice;
+    }
+
+    // Stock filter
+    if (req.query.stock) {
+      switch (req.query.stock) {
+        case 'in_stock':
+          filter.$or = [
+            { trackQuantity: false },
+            { trackQuantity: true, quantity: { $gt: 0 } },
+          ];
+          break;
+        case 'low_stock':
+          filter.trackQuantity = true;
+          filter.$expr = { $lte: ['$quantity', '$lowStockThreshold'] };
+          break;
+        case 'out_of_stock':
+          filter.trackQuantity = true;
+          filter.quantity = 0;
+          break;
+      }
+    }
+
+    // Tags filter (comma-separated)
+    if (req.query.tags) {
+      const tags = (req.query.tags as string).split(',').map(t => t.trim().toLowerCase());
+      filter.tags = { $in: tags };
+    }
+
+    // Sorting options
+    const sortMap: Record<string, Record<string, number>> = {
+      newest:      { createdAt: -1 },
+      oldest:      { createdAt: 1 },
+      price_asc:   { price: 1 },
+      price_desc:  { price: -1 },
+      name_asc:    { name: 1 },
+      name_desc:   { name: -1 },
+      stock_asc:   { quantity: 1 },
+      stock_desc:  { quantity: -1 },
+      sales:       { sales: -1 },
+      views:       { views: -1 },
+    };
+    const sort = sortMap[(req.query.sort as string)] || sortMap.newest;
 
     const [products, total] = await Promise.all([
       Product.find(filter)
         .skip(skip)
         .limit(limit)
-        .sort({ createdAt: -1 }),
+        .sort(sort as any)
+        .lean(),
       Product.countDocuments(filter),
     ]);
 
@@ -87,6 +192,14 @@ export const getProducts = asyncHandler(
           limit,
           total,
           pages: Math.ceil(total / limit),
+        },
+        filters: {
+          applied: Object.keys(filter).filter(k => k !== 'merchantId'),
+          available: {
+            sortOptions: Object.keys(sortMap),
+            statusOptions: ['draft', 'active', 'archived'],
+            stockOptions: ['in_stock', 'low_stock', 'out_of_stock'],
+          },
         },
       },
     });
@@ -364,6 +477,8 @@ export const generateProductDescription = asyncHandler(
     }
 
     try {
+      await checkAndDeductAICredit(merchantId);
+
       const generatedDescription = await callAIService(
         product.name,
         product.category || 'general',
@@ -409,6 +524,13 @@ export const generateDescriptionDraft = asyncHandler(
     }
 
     try {
+      const merchantId = req.user?.merchantId;
+      if (!merchantId) {
+        throw new AppError('No merchant associated', 400);
+      }
+      
+      await checkAndDeductAICredit(merchantId);
+
       const generatedDescription = await callAIService(
         productName.trim(),
         category || 'general',

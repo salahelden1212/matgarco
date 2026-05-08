@@ -84,45 +84,37 @@ const normalizeSlug = (raw: string) =>
 export const getDashboardKPIs = async (_req: AuthRequest, res: Response) => {
   const totalMerchants = await Merchant.countDocuments();
   const activeMerchants = await Merchant.countDocuments({ isActive: true });
-  
-  // Calculate Platform GMV (Gross Merchandise Value)
-  const gmvAggregation = await Order.aggregate([
+
+  // Churn Rate — cancelled this month vs total
+  const thisMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const cancelledThisMonth = await Merchant.countDocuments({
+    subscriptionStatus: 'cancelled',
+    updatedAt: { $gte: thisMonthStart },
+  });
+  const churnRate = totalMerchants > 0 ? parseFloat(((cancelledThisMonth / totalMerchants) * 100).toFixed(2)) : 0;
+
+  // New merchants this month
+  const newMerchantsThisMonth = await Merchant.countDocuments({ createdAt: { $gte: thisMonthStart } });
+
+  // Platform GMV
+  const gmvAgg = await Order.aggregate([
     { $match: { paymentStatus: 'paid' } },
-    { $group: { _id: null, totalGMV: { $sum: '$total' } } }
+    { $group: { _id: null, totalGMV: { $sum: '$total' } } },
   ]);
-  const totalGMV = gmvAggregation.length > 0 ? gmvAggregation[0].totalGMV : 0;
+  const totalGMV = gmvAgg[0]?.totalGMV || 0;
 
-  // Calculate Subscriptions approximate MRR (Monthly Recurring Revenue)
-  // Standard pricing: Starter 250, Pro 450, Business 699
-  const pricingMap: Record<string, number> = {
-    free_trial: 0,
-    starter: 250,
-    professional: 450,
-    business: 699
-  };
-
+  // MRR
+  const pricingMap: Record<string, number> = { free_trial: 0, starter: 250, professional: 450, business: 699 };
   const merchantsByPlan = await Merchant.aggregate([
     { $match: { subscriptionStatus: 'active' } },
-    { $group: { _id: '$subscriptionPlan', count: { $sum: 1 } } }
+    { $group: { _id: '$subscriptionPlan', count: { $sum: 1 } } },
   ]);
-
   let mrr = 0;
-  merchantsByPlan.forEach((planStats) => {
-    const planName = planStats._id as string;
-    if (pricingMap[planName]) {
-      mrr += planStats.count * pricingMap[planName];
-    }
-  });
+  merchantsByPlan.forEach((ps) => { mrr += (pricingMap[ps._id as string] || 0) * ps.count; });
 
   res.status(200).json({
     success: true,
-    data: {
-      totalMerchants,
-      activeMerchants,
-      totalGMV,
-      mrr,
-      merchantsDistribution: merchantsByPlan
-    }
+    data: { totalMerchants, activeMerchants, totalGMV, mrr, churnRate, newMerchantsThisMonth, cancelledThisMonth, merchantsDistribution: merchantsByPlan },
   });
 };
 
@@ -466,6 +458,17 @@ export const getDashboardCharts = async (_req: AuthRequest, res: Response) => {
     { $group: { _id: null, count: { $sum: 1 }, revenue: { $sum: '$total' } } }
   ]);
 
+  // Top 5 merchants by total revenue
+  const topMerchants = await Order.aggregate([
+    { $match: { paymentStatus: 'paid' } },
+    { $group: { _id: '$merchantId', totalRevenue: { $sum: '$total' }, orderCount: { $sum: 1 } } },
+    { $sort: { totalRevenue: -1 } },
+    { $limit: 5 },
+    { $lookup: { from: 'merchants', localField: '_id', foreignField: '_id', as: 'merchant' } },
+    { $unwind: { path: '$merchant', preserveNullAndEmpty: false } },
+    { $project: { _id: 0, storeName: '$merchant.storeName', subdomain: '$merchant.subdomain', subscriptionPlan: '$merchant.subscriptionPlan', totalRevenue: 1, orderCount: 1 } },
+  ]);
+
   res.status(200).json({
     success: true,
     data: {
@@ -473,12 +476,13 @@ export const getDashboardCharts = async (_req: AuthRequest, res: Response) => {
       revenueTrend,
       planDistribution,
       recentActivity,
+      topMerchants,
       dailyPulse: {
         newMerchants: todayMerchants,
         todayOrders: todayOrders[0]?.count || 0,
-        todayRevenue: todayOrders[0]?.revenue || 0
-      }
-    }
+        todayRevenue: todayOrders[0]?.revenue || 0,
+      },
+    },
   });
 };
 
@@ -684,6 +688,89 @@ export const deleteTheme = async (req: AuthRequest, res: Response) => {
 
   await Theme.findByIdAndDelete(req.params.id);
   res.status(200).json({ success: true, message: 'تم حذف القالب بنجاح' });
+};
+
+/**
+ * @desc    Clone a base theme (creates a new draft copy)
+ * @route   POST /api/superadmin/themes/:id/clone
+ * @access  Private (super_admin)
+ */
+export const cloneTheme = async (req: AuthRequest, res: Response) => {
+  const source = await Theme.findById(req.params.id).lean();
+  if (!source) throw new AppError('Theme not found', 404);
+
+  const srcAny = source as any;
+  const baseName = req.body?.name || `${srcAny.name} (نسخة)`;
+  const baseSlug = normalizeSlug(req.body?.slug || `${srcAny.slug}-copy-${Date.now()}`);
+
+  const exists = await Theme.findOne({ slug: baseSlug });
+  if (exists) throw new AppError('الـ slug موجود بالفعل', 409);
+
+  const cloned = await Theme.create({
+    ...srcAny,
+    _id: undefined,
+    name: baseName,
+    slug: baseSlug,
+    status: 'draft',
+    isBuiltIn: false,
+    merchantCount: 0,
+    previousVersions: [],
+    version: '1.0.0',
+    changelog: `Cloned from: ${srcAny.name} v${srcAny.version || '1.0.0'}`,
+    globalSettings: cloneThemeDefaults(srcAny.globalSettings || DEFAULT_THEME_GLOBAL_SETTINGS),
+    pages: cloneThemeDefaults(srcAny.pages || DEFAULT_THEME_PAGES),
+    createdAt: undefined,
+    updatedAt: undefined,
+  });
+
+  res.status(201).json({ success: true, data: cloned });
+};
+
+/**
+ * @desc    Revenue report by period
+ * @route   GET /api/superadmin/finance/report?period=monthly|weekly|daily
+ * @access  Private (super_admin)
+ */
+export const getFinanceReport = async (req: AuthRequest, res: Response) => {
+  const period = (req.query.period as string) || 'monthly';
+
+  let groupFormat: string;
+  let rangeStart: Date;
+  const now = new Date();
+
+  if (period === 'daily') {
+    groupFormat = '%Y-%m-%d';
+    rangeStart = new Date(now);
+    rangeStart.setDate(rangeStart.getDate() - 30);
+  } else if (period === 'weekly') {
+    groupFormat = '%Y-%U';
+    rangeStart = new Date(now);
+    rangeStart.setDate(rangeStart.getDate() - 84); // 12 weeks
+  } else {
+    groupFormat = '%Y-%m';
+    rangeStart = new Date(now);
+    rangeStart.setMonth(rangeStart.getMonth() - 12);
+  }
+
+  const report = await Order.aggregate([
+    { $match: { paymentStatus: 'paid', createdAt: { $gte: rangeStart } } },
+    { $group: {
+      _id: { $dateToString: { format: groupFormat, date: '$createdAt' } },
+      revenue: { $sum: '$total' },
+      orders: { $sum: 1 },
+      commission: { $sum: '$platformCommission.amount' },
+    }},
+    { $sort: { _id: 1 } },
+    { $project: { period: '$_id', revenue: 1, orders: 1, commission: 1, _id: 0 } },
+  ]);
+
+  const totals = report.reduce((acc, r) => ({
+    revenue: acc.revenue + r.revenue,
+    orders: acc.orders + r.orders,
+    commission: acc.commission + r.commission,
+  }), { revenue: 0, orders: 0, commission: 0 });
+
+  res.status(200).json({ success: true, data: { period, report, totals } });
 };
 
 /**

@@ -8,6 +8,7 @@ import {
   notifyMerchant,
   changeMerchantPlan,
   getAdvancedFinanceReports,
+  getFinanceReport,
   getThemes,
   getTheme,
   createTheme,
@@ -17,6 +18,7 @@ import {
   releaseThemeVersion,
   getThemeMerchants,
   deleteTheme,
+  cloneTheme,
   impersonateMerchant,
   listPlans,
   updatePlan
@@ -62,12 +64,17 @@ router.post('/impersonate/:merchantId', impersonateMerchant);
 router.get('/themes', getThemes);
 router.get('/themes/:id', getTheme);
 router.post('/themes', createTheme);
+router.post('/themes/:id/clone', cloneTheme);
 router.patch('/themes/:id', updateThemeDetails);
 router.patch('/themes/:id/status', updateThemeStatus);
 router.patch('/themes/:id/plans', updateThemePlans);
 router.post('/themes/:id/version', releaseThemeVersion);
 router.get('/themes/:id/merchants', getThemeMerchants);
 router.delete('/themes/:id', deleteTheme);
+
+// Finance Reports
+router.get('/finance/advanced', getAdvancedFinanceReports);
+router.get('/finance/report', getFinanceReport);
 
 // Platform Settings
 router.get('/settings', getPlatformSettings);

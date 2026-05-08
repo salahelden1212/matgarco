@@ -8,8 +8,34 @@ import Merchant from '../models/Merchant';
 import Product from '../models/Product';
 import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { calculatePagination } from '../utils/helpers';
-import StoreTheme from '../models/StoreTheme'; // Added import for StoreTheme
+import StoreTheme from '../models/StoreTheme';
 import { normalizeThemePages } from '../utils/themeNormalization';
+
+// Simple in-memory cache for storefront data
+const storefrontCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getStorefrontCache(key: string): any | null {
+  const cached = storefrontCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  storefrontCache.delete(key);
+  return null;
+}
+
+function setStorefrontCache(key: string, data: any): void {
+  storefrontCache.set(key, { data, timestamp: Date.now() });
+}
+
+// Clear cache for a specific merchant (call this when products/theme are updated)
+export function clearStorefrontCache(subdomain: string): void {
+  for (const key of storefrontCache.keys()) {
+    if (key.includes(subdomain.toLowerCase())) {
+      storefrontCache.delete(key);
+    }
+  }
+}
 
 /** GET /api/storefront/:subdomain/products */
 export const getStorefrontProducts = asyncHandler(async (req: Request, res: Response) => {
@@ -125,6 +151,18 @@ export const getStorefrontCategories = asyncHandler(async (req: Request, res: Re
  */
 export const getStorefrontTheme = asyncHandler(async (req: Request, res: Response) => {
   const { subdomain } = req.params;
+  const cacheKey = `theme:${subdomain.toLowerCase()}`;
+  
+  // Check cache first
+  const cached = getStorefrontCache(cacheKey);
+  if (cached && !req.query.nocache) {
+    return res.json({
+      success: true,
+      data: cached,
+      cached: true,
+    });
+  }
+
   const merchant = await Merchant.findOne({ subdomain: subdomain.toLowerCase(), isActive: true }).lean();
   if (!merchant) throw new AppError('Store not found', 404);
 
@@ -138,12 +176,18 @@ export const getStorefrontTheme = asyncHandler(async (req: Request, res: Respons
       }
     : null;
 
+  const response = {
+    theme: normalizedTheme,
+    merchant,
+  };
+  
+  // Cache the response
+  setStorefrontCache(cacheKey, response);
+
   res.json({
     success: true,
-    data: {
-      theme: normalizedTheme,
-      merchant,
-    }
+    data: response,
+    cached: false,
   });
 });
 

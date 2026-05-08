@@ -69,6 +69,40 @@ export interface IMerchant extends Document {
     integrationId?: string;
   };
 
+  // Payment Methods Enabled
+  paymentSettings?: {
+    codEnabled: boolean;
+    codFee: number;
+    onlineCardEnabled: boolean;
+  };
+
+  // Shipping Config
+  shippingConfig?: {
+    flatRateEnabled: boolean;
+    flatRateAmount: number;
+    freeShippingEnabled: boolean;
+    freeShippingThreshold: number;
+    cityRatesEnabled: boolean;
+    cityRates: Array<{ city: string; rate: number }>;
+    estimatedDelivery: string;
+  };
+
+  // Email & Notifications Settings
+  emailSettings?: {
+    enabled: boolean;
+    provider: 'default' | 'smtp';
+    smtpHost?: string;
+    smtpPort?: number;
+    smtpUser?: string;
+    smtpPass?: string;
+    fromName?: string;
+    fromEmail?: string;
+    templates: {
+      orderConfirmation?: string;
+      orderStatusChanged?: string;
+    };
+  };
+
   // Payout / Settlement
   payoutInfo: {
     bankName?: string;
@@ -248,9 +282,43 @@ const merchantSchema = new Schema<IMerchant>(
 
     // Payment Gateway (Business plan: own Paymob)
     paymobConfig: {
-      secretKey: { type: String, select: false },     // encrypted ideally
+      secretKey: { type: String, select: false },
       publicKey: { type: String },
       integrationId: { type: String },
+    },
+
+    // Payment Methods Enabled
+    paymentSettings: {
+      codEnabled: { type: Boolean, default: true },
+      codFee: { type: Number, default: 0 },
+      onlineCardEnabled: { type: Boolean, default: false },
+    },
+
+    // Shipping Config
+    shippingConfig: {
+      flatRateEnabled: { type: Boolean, default: true },
+      flatRateAmount: { type: Number, default: 50 },
+      freeShippingEnabled: { type: Boolean, default: false },
+      freeShippingThreshold: { type: Number, default: 500 },
+      cityRatesEnabled: { type: Boolean, default: false },
+      cityRates: [{ city: { type: String }, rate: { type: Number } }],
+      estimatedDelivery: { type: String, default: '3-5 أيام عمل' },
+    },
+
+    // Email & Notifications Settings
+    emailSettings: {
+      enabled: { type: Boolean, default: true },
+      provider: { type: String, enum: ['default', 'smtp'], default: 'default' },
+      smtpHost: { type: String },
+      smtpPort: { type: Number },
+      smtpUser: { type: String },
+      smtpPass: { type: String, select: false },
+      fromName: { type: String },
+      fromEmail: { type: String },
+      templates: {
+        orderConfirmation: { type: String },
+        orderStatusChanged: { type: String },
+      },
     },
 
     // Payout / Settlement

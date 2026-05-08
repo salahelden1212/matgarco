@@ -58,6 +58,45 @@ export const authenticate = async (
 };
 
 /**
+ * Optional authentication - doesn't fail if no token
+ */
+export const optionalAuth = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next(); // Continue without authentication
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = verifyAccessToken(token);
+    req.user = decoded;
+
+    // For staff users, load fresh permissions from DB
+    if (decoded.role === 'merchant_staff') {
+      const userDoc = await User.findById(decoded.userId).select('permissions staffRole staffRoleLabel isActive').lean();
+      if (userDoc && userDoc.isActive !== false) {
+        const permissionsObj: Record<string, boolean> = {};
+        if (userDoc.permissions && typeof userDoc.permissions === 'object') {
+          Object.assign(permissionsObj, userDoc.permissions);
+        }
+        req.user.permissions = permissionsObj;
+        req.user.staffRole = (userDoc.staffRole as string) || 'staff';
+      }
+    }
+
+    next();
+  } catch {
+    // If token is invalid, continue without authentication
+    next();
+  }
+};
+
+/**
  * Authorize user by role
  */
 export const authorize = (...roles: UserRole[]) => {

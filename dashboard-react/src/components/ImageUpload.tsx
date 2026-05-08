@@ -127,6 +127,49 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     }
   };
 
+  // Drag and drop handlers
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const newPreview = [...preview];
+    const [draggedItem] = newPreview.splice(draggedIndex, 1);
+    newPreview.splice(dropIndex, 0, draggedItem);
+    
+    setPreview(newPreview);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    
+    if (onImagesReordered) {
+      onImagesReordered(newPreview);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
   return (
     <div className="space-y-4">
       {/* Upload Button */}
@@ -177,16 +220,37 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         </div>
       )}
 
-      {/* Preview Grid */}
+      {/* Preview Grid - Draggable */}
       {preview.length > 0 && (
         <div className="grid grid-cols-3 gap-4">
           {preview.map((url, index) => (
-            <div key={index} className="relative group aspect-square">
+            <div 
+              key={index} 
+              className={`relative group aspect-square cursor-move ${
+                draggedIndex === index ? 'opacity-50' : ''
+              } ${
+                dragOverIndex === index && dragOverIndex !== draggedIndex 
+                  ? 'ring-2 ring-blue-500 ring-offset-2' 
+                  : ''
+              }`}
+              draggable
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, index)}
+              onDragEnd={handleDragEnd}
+            >
               <img
                 src={url}
                 alt={`Preview ${index + 1}`}
                 className="w-full h-full object-cover rounded-lg border-2 border-gray-200"
               />
+              {/* Drag hint */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <div className="bg-black/50 text-white px-2 py-1 rounded text-xs">
+                  اسحب لإعادة الترتيب
+                </div>
+              </div>
               
               {/* Reorder buttons */}
               {preview.length > 1 && (

@@ -27,20 +27,9 @@ export default async function StorefrontHomePage({ params, searchParams }: Props
 
   const { theme, merchant } = data;
 
-  // ─── NEW SYSTEM: Extract sections from pages.home.sections ──────────────
-  // Master Theme Preview:  theme = { themeId: { pages }, draft: { pages }, published: { pages } }
-  // StoreTheme (merchant):  theme = { pages: { home: { sections } } }
-  // Legacy ThemeSettings:   theme = { sections: [{id, config, enabled}] } — will be removed
-
-  const baseTheme: any = (theme as any)?.themeId ?? theme;
-
-  // Try all possible locations for sections (new system priority)
-  const pages: any =
-    (theme as any)?.draft?.pages ??
-    (theme as any)?.published?.pages ??
-    baseTheme?.pages ??
-    {};
-
+  // Since fetchMasterThemePreview now normalizes the response,
+  // all data sources return the same shape: theme.globalSettings + theme.pages
+  const pages: any = (theme as any)?.pages ?? {};
   const rawSections: any[] = pages?.home?.sections ?? [];
 
   // If no sections from new system, try legacy format and convert

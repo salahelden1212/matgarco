@@ -5,6 +5,7 @@ import Subscription from '../models/Subscription';
 import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { AuthRequest } from '../types';
 import { generateSlug } from '../utils/helpers';
+import { testSmtpConnection } from '../services/email.service';
 import { isValidSubdomain } from '../utils/validators';
 import { SUBSCRIPTION_PLANS } from '../utils/constants';
 
@@ -390,5 +391,39 @@ export const activateMerchant = asyncHandler(
       message: 'Merchant activated',
       data: { merchant },
     });
+  }
+);
+
+/**
+ * Test SMTP settings for a merchant
+ * POST /api/merchants/:id/test-smtp
+ */
+export const testSmtp = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    const { host, port, user, pass, fromName, fromEmail, testEmail } = req.body;
+
+    if (!host || !port || !user || !pass || !testEmail) {
+      throw new AppError('يرجى تعبئة جميع بيانات الـ SMTP المطلوبة وبريد الاختبار.', 400);
+    }
+
+    // Attempt connection
+    try {
+      await testSmtpConnection({
+        host,
+        port: parseInt(port),
+        user,
+        pass,
+        fromName,
+        fromEmail
+      }, testEmail);
+
+      res.status(200).json({
+        success: true,
+        message: 'تم اختبار الاتصال وإرسال رسالة تجريبية بنجاح.',
+      });
+    } catch (error: any) {
+      throw new AppError(`فشل الاتصال: ${error.message || 'يرجى مراجعة بيانات الاعتماد أو صلاحيات الخادم.'}`, 400);
+    }
   }
 );

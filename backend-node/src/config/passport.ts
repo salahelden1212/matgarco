@@ -1,6 +1,7 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as AppleStrategy } from 'passport-apple';
+import type { VerifyCallback } from 'passport-google-oauth20';
 import User from '../models/User';
 import { oauthLoginHandler } from '../controllers/oauth.controller';
 
@@ -46,7 +47,7 @@ passport.serializeUser((user: any, done) => {
 });
 
 // Deserialize user
-passport.deserializeUser(async (id, done) => {
+passport.deserializeUser(async (id: string, done: (err: any, user?: any) => void) => {
   try {
     const user = await User.findById(id);
     done(null, user);
