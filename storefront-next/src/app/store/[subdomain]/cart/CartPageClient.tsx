@@ -77,7 +77,7 @@ export default function CartPageClient({ subdomain }: Props) {
                   <p className="font-bold text-base text-[var(--text)] line-clamp-2 pr-4">{item.name}</p>
                   <button
                     onClick={() => removeItem(item.productId)}
-                    className="hover:text-red-500 transition-colors text-[var(--text-muted)] p-1"
+                    className="hover:text-red-500 transition-colors text-[var(--text-muted)] p-2.5"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
@@ -88,21 +88,21 @@ export default function CartPageClient({ subdomain }: Props) {
                   <div className="flex items-center rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--background)]">
                     <button
                       onClick={() => updateQty(item.productId, Math.max(1, item.quantity - 1))}
-                      className="px-3 py-1.5 text-base hover:bg-[var(--surface)] text-[var(--text)] transition-colors"
+                      className="px-3 py-3 text-base hover:bg-[var(--surface)] text-[var(--text)] transition-colors"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
                     <span className="px-4 text-sm font-bold text-[var(--text)]">{item.quantity}</span>
                     <button
                       onClick={() => updateQty(item.productId, item.quantity + 1)}
-                      className="px-3 py-1.5 text-base hover:bg-[var(--surface)] text-[var(--text)] transition-colors"
+                      className="px-3 py-3 text-base hover:bg-[var(--surface)] text-[var(--text)] transition-colors"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
                   {/* Price */}
                   <span className="font-black text-lg text-[var(--primary)]">
-                    {(item.price * item.quantity).toLocaleString()} ج.م
+                    {(item.price * item.quantity).toLocaleString('en-US')} ج.م
                   </span>
                 </div>
               </div>
@@ -116,7 +116,7 @@ export default function CartPageClient({ subdomain }: Props) {
           <div className="space-y-4 text-base mb-6 text-[var(--text-muted)] font-medium">
             <div className="flex justify-between">
               <span>المنتجات ({totalItems})</span>
-              <span>{totalPrice.toLocaleString()} ج.م</span>
+              <span>{totalPrice.toLocaleString('en-US')} ج.م</span>
             </div>
             <div className="flex justify-between">
               <span>الشحن</span>
@@ -125,7 +125,7 @@ export default function CartPageClient({ subdomain }: Props) {
           </div>
           <div className="flex justify-between font-black text-xl py-4 border-t border-[var(--border)] text-[var(--text)]">
             <span>الإجمالي</span>
-            <span className="text-[var(--primary)]">{totalPrice.toLocaleString()} ج.م</span>
+            <span className="text-[var(--primary)]">{totalPrice.toLocaleString('en-US')} ج.م</span>
           </div>
 
           <Link

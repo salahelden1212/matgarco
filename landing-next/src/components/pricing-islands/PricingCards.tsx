@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useUIStore } from "@/store/useUIStore";
+import { DASHBOARD_REGISTER } from "@/lib/config";
 
 /**
  * PricingCards — Phase 13: Absolute Perfect Symmetry
@@ -119,7 +120,9 @@ export function PricingCards() {
 
                   {/* ── 4. CTA BUTTON: mt-auto locks it to the bottom ── */}
                   <a
-                    href="http://localhost:3002/register"
+                    href={DASHBOARD_REGISTER}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className={`w-full h-14 mt-auto rounded-full flex items-center justify-center text-sm font-extrabold tracking-wide transition-all duration-300 ${
                       isPro
                         ? "bg-[#000080] text-white shadow-[0_10px_30px_rgba(0,0,128,0.3)]"

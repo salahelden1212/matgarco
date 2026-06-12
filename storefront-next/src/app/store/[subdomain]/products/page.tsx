@@ -110,8 +110,8 @@ export default async function ProductsPage({ params, searchParams }: Props) {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {products.map((product: any) => (
-              <ProductCard key={product._id} product={product} />
+            {products.map((product: any, i: number) => (
+              <ProductCard key={product._id} product={product} priority={i < 4} />
             ))}
           </div>
         )}
@@ -122,7 +122,7 @@ export default async function ProductsPage({ params, searchParams }: Props) {
             {currentPage > 1 && (
               <Link
                 href={`?page=${currentPage - 1}${searchParams.q ? `&q=${searchParams.q}` : ''}${searchParams.sort ? `&sort=${searchParams.sort}` : ''}`}
-                className="px-6 py-2.5 rounded-[var(--radius)] text-sm font-bold bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] hover:shadow-md transition-shadow"
+                className="px-6 py-3.5 rounded-[var(--radius)] text-sm font-bold bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] hover:shadow-md transition-shadow"
               >
                 ← الصفحة السابقة
               </Link>
@@ -130,7 +130,7 @@ export default async function ProductsPage({ params, searchParams }: Props) {
             {total > currentPage * 20 && (
               <Link
                 href={`?page=${currentPage + 1}${searchParams.q ? `&q=${searchParams.q}` : ''}${searchParams.sort ? `&sort=${searchParams.sort}` : ''}`}
-                className="px-6 py-2.5 rounded-[var(--radius)] text-sm font-bold text-white bg-[var(--primary)] hover:opacity-90 shadow-lg"
+                className="px-6 py-3.5 rounded-[var(--radius)] text-sm font-bold text-white bg-[var(--primary)] hover:opacity-90 shadow-lg"
               >
                 الصفحة التالية →
               </Link>

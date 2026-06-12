@@ -54,11 +54,66 @@ const INITIAL: OnboardingData = {
 export default function OnboardingWizard() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+  const updateUser = useAuthStore((s) => s.updateUser);
   const [step, setStep] = useState(1);
   const [data, setData] = useState<OnboardingData>(INITIAL);
 
+  const toSubdomainBase = (value: string) => {
+    const base = value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    let safeBase = base;
+    if (!safeBase || !/^[a-z]/.test(safeBase)) {
+      safeBase = `store-${safeBase}`.replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    if (!safeBase) {
+      safeBase = `store-${Math.floor(1000 + Math.random() * 9000)}`;
+    }
+
+    return safeBase.slice(0, 24);
+  };
+
+  const findAvailableSubdomain = async (base: string) => {
+    let candidate = base;
+    for (let i = 0; i < 5; i += 1) {
+      const response = await merchantAPI.checkSubdomain(candidate);
+      if (response.data.data.available) return candidate;
+
+      const suffix = Math.floor(100 + Math.random() * 900).toString();
+      const trimmedBase = base.slice(0, Math.max(1, 30 - (suffix.length + 1)));
+      candidate = `${trimmedBase}-${suffix}`;
+    }
+
+    const fallback = Math.floor(1000 + Math.random() * 9000).toString();
+    return `${base.slice(0, Math.max(1, 30 - (fallback.length + 1)))}-${fallback}`;
+  };
+
   const saveMutation = useMutation({
     mutationFn: async () => {
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+
+      let currentMerchantId = user.merchantId;
+
+      if (!currentMerchantId) {
+        const storeName = data.store.name?.trim() || 'Store';
+        const base = toSubdomainBase(storeName);
+        const subdomain = await findAvailableSubdomain(base);
+        const createResponse = await merchantAPI.create({
+          name: storeName,
+          subdomain,
+          description: data.store.description,
+        });
+
+        currentMerchantId = createResponse.data.data.merchant.id;
+        updateUser({ merchantId: currentMerchantId, subdomain });
+      }
+
       // 1. Apply template
       await themeAPI.applyTemplate(data.templateId);
       // 2. Save all customizations as draft
@@ -70,8 +125,8 @@ export default function OnboardingWizard() {
       // 3. Immediately publish so storefront is live
       await themeAPI.publish();
       // 4. Mark onboarding as completed
-      if (user?.merchantId) {
-        await merchantAPI.completeOnboarding(user.merchantId);
+      if (currentMerchantId) {
+        await merchantAPI.completeOnboarding(currentMerchantId);
       }
     },
     onSuccess: () => {

@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { DASHBOARD_REGISTER } from "@/lib/config";
 
 /**
  * PricingCTA — Phase 13: Honest Shopify-style Bento Grid + Edge-to-Edge Ribbon
@@ -51,7 +52,9 @@ export function PricingCTA() {
 
       {/* ── INFINITE NAVY RIBBON (EDGE-TO-EDGE) ── */}
       <a 
-        href="http://localhost:3002/register" 
+        href={DASHBOARD_REGISTER} 
+        target="_blank"
+        rel="noopener noreferrer"
         dir="ltr"
         className="block w-screen relative left-[50%] right-[50%] -ml-[50vw] -mr-[50vw] mt-24 cursor-pointer group overflow-hidden"
       >

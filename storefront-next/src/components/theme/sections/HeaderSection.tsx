@@ -108,7 +108,7 @@ export default function HeaderSection({ settings = {}, storeData }: { settings?:
                   )}
                 </div>
                 <span className="hidden lg:block font-bold mt-1 text-sm bg-[var(--surface)] px-2 py-0.5 rounded">
-                  {totalPrice > 0 ? `${totalPrice.toLocaleString()} ج.م` : '0.00 ج.م'}
+                  {totalPrice > 0 ? `${totalPrice.toLocaleString('en-US')} ج.م` : '0.00 ج.م'}
                 </span>
               </Link>
             )}

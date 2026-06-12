@@ -71,7 +71,7 @@ function PaymentResultContent() {
               </div>
               <div className="flex justify-between">
                 <span style={{ color: 'var(--color-text-muted)' }}>المبلغ المدفوع</span>
-                <span className="font-bold text-green-600">{orderDetails.total?.toLocaleString()} ج.م</span>
+                <span className="font-bold text-green-600">{orderDetails.total?.toLocaleString('en-US')} ج.م</span>
               </div>
               {transactionId && (
                 <div className="flex justify-between">

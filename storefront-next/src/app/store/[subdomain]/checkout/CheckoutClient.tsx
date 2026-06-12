@@ -339,7 +339,7 @@ export default function CheckoutClient({ subdomain, shippingConfig }: Props) {
                     {item.variant && <p className="text-xs mt-1 font-medium text-[var(--text-muted)]">{item.variant}</p>}
                   </div>
                   <span className="text-sm font-black flex-shrink-0 text-[var(--primary)]">
-                    {(item.price * item.quantity).toLocaleString()}
+                    {(item.price * item.quantity).toLocaleString('en-US')}
                   </span>
                 </div>
               ))}
@@ -348,14 +348,14 @@ export default function CheckoutClient({ subdomain, shippingConfig }: Props) {
             <div className="px-6 py-5 space-y-4 border-t border-[var(--border)] bg-[var(--background)]">
               <div className="flex justify-between text-sm font-medium text-[var(--text-muted)]">
                 <span>المجموع الفرعي</span>
-                <span>{totalPrice.toLocaleString()} {currency}</span>
+                <span>{totalPrice.toLocaleString('en-US')} {currency}</span>
               </div>
               <div className="flex justify-between text-sm font-medium text-[var(--text-muted)]">
                 <span className="flex items-center gap-1"><Truck className="w-4 h-4" /> رسوم الشحن</span>
                 {shippingCost === 0 ? (
                   <span className="text-green-600 bg-green-50 px-2.5 py-0.5 rounded-full font-bold">مجاناً</span>
                 ) : (
-                  <span className="font-bold">{shippingCost.toLocaleString()} {currency}</span>
+                  <span className="font-bold">{shippingCost.toLocaleString('en-US')} {currency}</span>
                 )}
               </div>
               {shippingConfig?.estimatedDelivery && (
@@ -366,7 +366,7 @@ export default function CheckoutClient({ subdomain, shippingConfig }: Props) {
               )}
               <div className="flex justify-between font-black text-xl pt-5 border-t border-[var(--border)] text-[var(--text)]">
                 <span>الإجمالي</span>
-                <span className="text-[var(--primary)]">{orderTotal.toLocaleString()} {currency}</span>
+                <span className="text-[var(--primary)]">{orderTotal.toLocaleString('en-US')} {currency}</span>
               </div>
             </div>
 

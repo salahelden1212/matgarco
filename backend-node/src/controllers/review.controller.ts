@@ -26,7 +26,11 @@ const updateProductRating = async (productId: string) => {
 
 import mongoose from 'mongoose';
 
-// Get reviews for a product (public)
+/**
+ * @desc    Get reviews for a product (public)
+ * @route   GET /api/reviews/product/:productId
+ * @access  Public
+ */
 export const getProductReviews = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { productId } = req.params;
   const { page = 1, limit = 10, rating } = req.query;
@@ -59,7 +63,11 @@ export const getProductReviews = asyncHandler(async (req: AuthRequest, res: Resp
   });
 });
 
-// Check if customer can review (verified purchase)
+/**
+ * @desc    Check if customer can review (verified purchase)
+ * @route   GET /api/reviews/product/:productId/can-review
+ * @access  Public
+ */
 export const checkCanReview = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { productId } = req.params;
   const customerId = req.user?.customerId;
@@ -90,7 +98,11 @@ export const checkCanReview = asyncHandler(async (req: AuthRequest, res: Respons
   });
 });
 
-// Create review
+/**
+ * @desc    Create review
+ * @route   POST /api/reviews
+ * @access  Public
+ */
 export const createReview = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { productId, customerName, customerEmail, rating, title, comment, images } = req.body;
   const customerId = req.user?.customerId;
@@ -160,7 +172,11 @@ export const createReview = asyncHandler(async (req: AuthRequest, res: Response)
   });
 });
 
-// Dashboard: Get all reviews for merchant
+/**
+ * @desc    Get all reviews for merchant (dashboard)
+ * @route   GET /api/reviews
+ * @access  Private (Merchant)
+ */
 export const getMerchantReviews = asyncHandler(async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new AppError('No merchant associated', 400);
@@ -204,7 +220,11 @@ export const getMerchantReviews = asyncHandler(async (req: AuthRequest, res: Res
   });
 });
 
-// Dashboard: Approve/reject review
+/**
+ * @desc    Approve/reject review (dashboard)
+ * @route   PATCH /api/reviews/:id/status
+ * @access  Private (Merchant)
+ */
 export const updateReviewStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new AppError('No merchant associated', 400);
@@ -232,7 +252,11 @@ export const updateReviewStatus = asyncHandler(async (req: AuthRequest, res: Res
   res.status(200).json({ success: true, data: review });
 });
 
-// Dashboard: Respond to review
+/**
+ * @desc    Respond to review (dashboard)
+ * @route   PATCH /api/reviews/:id/respond
+ * @access  Private (Merchant)
+ */
 export const respondToReview = asyncHandler(async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new AppError('No merchant associated', 400);
@@ -258,7 +282,11 @@ export const respondToReview = asyncHandler(async (req: AuthRequest, res: Respon
   res.status(200).json({ success: true, data: review });
 });
 
-// Mark review as helpful
+/**
+ * @desc    Mark review as helpful
+ * @route   POST /api/reviews/:id/helpful
+ * @access  Public
+ */
 export const markHelpful = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
@@ -273,7 +301,11 @@ export const markHelpful = asyncHandler(async (req: AuthRequest, res: Response) 
   res.status(200).json({ success: true, data: { helpfulVotes: review.helpfulVotes } });
 });
 
-// Delete review
+/**
+ * @desc    Delete review
+ * @route   DELETE /api/reviews/:id
+ * @access  Private (Merchant)
+ */
 export const deleteReview = asyncHandler(async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   const { id } = req.params;
@@ -290,7 +322,11 @@ export const deleteReview = asyncHandler(async (req: AuthRequest, res: Response)
   res.status(200).json({ success: true, message: 'Review deleted' });
 });
 
-// Get review analytics for dashboard
+/**
+ * @desc    Get review analytics for dashboard
+ * @route   GET /api/reviews/analytics
+ * @access  Private (Merchant)
+ */
 export const getReviewAnalytics = asyncHandler(async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new AppError('No merchant associated', 400);

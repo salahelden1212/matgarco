@@ -4,9 +4,9 @@ import Notification from '../models/Notification';
 import { AppError } from '../middleware/error.middleware';
 
 /**
- * GET /api/notifications
- * Returns the 50 most recent notifications for the merchant.
- * Also returns unreadCount for the bell badge.
+ * @desc    Returns the 50 most recent notifications for the merchant. Also returns unreadCount for the bell badge.
+ * @route   GET /api/notifications
+ * @access  Private/Merchant
  */
 export const getNotifications = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -27,8 +27,9 @@ export const getNotifications = async (req: AuthRequest, res: Response, next: Ne
 };
 
 /**
- * PATCH /api/notifications/:id/read
- * Marks a single notification as read.
+ * @desc    Marks a single notification as read.
+ * @route   PATCH /api/notifications/:id/read
+ * @access  Private/Merchant
  */
 export const markRead = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -50,8 +51,9 @@ export const markRead = async (req: AuthRequest, res: Response, next: NextFuncti
 };
 
 /**
- * PATCH /api/notifications/read-all
- * Marks all merchant notifications as read.
+ * @desc    Marks all merchant notifications as read.
+ * @route   PATCH /api/notifications/read-all
+ * @access  Private/Merchant
  */
 export const markAllRead = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -66,8 +68,9 @@ export const markAllRead = async (req: AuthRequest, res: Response, next: NextFun
 };
 
 /**
- * DELETE /api/notifications/:id
- * Deletes a single notification.
+ * @desc    Deletes a single notification.
+ * @route   DELETE /api/notifications/:id
+ * @access  Private/Merchant
  */
 export const deleteNotification = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {

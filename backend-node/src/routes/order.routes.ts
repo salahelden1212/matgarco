@@ -29,7 +29,8 @@ const orderCreationLimiter = rateLimit({
 // Validation schemas
 const createOrderSchema = z.object({
   body: z.object({
-    merchantId: z.string(),
+    merchantId: z.string().optional(),
+    subdomain: z.string().optional(),
     items: z.array(
       z.object({
         productId: z.string(),

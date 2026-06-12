@@ -16,9 +16,11 @@ export const MATGARCO_COMMISSION: Record<string, number> = {
 // Helper
 function roundEgp(n: number) { return Math.round(n * 100) / 100; }
 
-// ─────────────────────────────────────────────
-// GET /api/payouts/pending  [Super Admin]
-// ─────────────────────────────────────────────
+/**
+ * @desc    Get all pending payouts grouped by merchant (Super Admin)
+ * @route   GET /api/payouts/pending
+ * @access  Private/Super Admin
+ */
 export const getPendingPayouts = async (_req: AuthRequest, res: Response) => {
   // Group unpaid orders by merchant
   const pending = await Order.aggregate([
@@ -73,15 +75,22 @@ export const getPendingPayouts = async (_req: AuthRequest, res: Response) => {
   return res.status(200).json({ success: true, data: pending, total: pending.length });
 };
 
-// ─────────────────────────────────────────────
-// POST /api/payouts/process  [Super Admin]
-// Create payout record + mark orders as included
-// ─────────────────────────────────────────────
+/**
+ * @desc    Create a payout record and mark orders as included
+ * @route   POST /api/payouts/process
+ * @access  Private/Super Admin
+ */
 export const processPayout = async (req: AuthRequest, res: Response) => {
   const { merchantId, transferReference, notes } = req.body;
 
   if (!merchantId) {
     return res.status(400).json({ success: false, message: 'merchantId required' });
+  }
+
+  // Verify merchant exists before processing
+  const merchantExists = await Merchant.findById(merchantId).select('_id storeName').lean();
+  if (!merchantExists) {
+    return res.status(404).json({ success: false, message: 'Merchant not found' });
   }
 
   // Fetch all pending paid orders
@@ -145,10 +154,11 @@ export const processPayout = async (req: AuthRequest, res: Response) => {
   return res.status(201).json({ success: true, data: payout });
 };
 
-// ─────────────────────────────────────────────
-// GET /api/payouts/history  [Super Admin]
-// All payouts, paginated
-// ─────────────────────────────────────────────
+/**
+ * @desc    Get all payouts paginated (Super Admin)
+ * @route   GET /api/payouts/history
+ * @access  Private/Super Admin
+ */
 export const getPayoutHistory = async (req: AuthRequest, res: Response) => {
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 20;
@@ -175,10 +185,11 @@ export const getPayoutHistory = async (req: AuthRequest, res: Response) => {
   });
 };
 
-// ─────────────────────────────────────────────
-// GET /api/payouts/my  [Merchant]
-// My pending balance + payout history
-// ─────────────────────────────────────────────
+/**
+ * @desc    Get merchant's pending balance and payout history
+ * @route   GET /api/payouts/my
+ * @access  Private/Merchant
+ */
 export const getMyPayouts = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new Error('Merchant not found');
@@ -225,9 +236,11 @@ export const getMyPayouts = async (req: AuthRequest, res: Response) => {
   });
 };
 
-// ─────────────────────────────────────────────
-// PATCH /api/payouts/:id/mark-paid  [Super Admin]
-// ─────────────────────────────────────────────
+/**
+ * @desc    Mark a payout as paid (Super Admin)
+ * @route   PATCH /api/payouts/:id/mark-paid
+ * @access  Private/Super Admin
+ */
 export const markPayoutPaid = async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const { transferReference, notes } = req.body;
@@ -249,10 +262,11 @@ export const markPayoutPaid = async (req: AuthRequest, res: Response) => {
   return res.status(200).json({ success: true, data: payout });
 };
 
-// ─────────────────────────────────────────────
-// GET /api/payouts/bank-info  [Merchant]
-// Get merchant bank details
-// ─────────────────────────────────────────────
+/**
+ * @desc    Get merchant bank details for payouts
+ * @route   GET /api/payouts/bank-info
+ * @access  Private/Merchant
+ */
 export const getBankInfo = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new Error('Merchant not found');
@@ -266,10 +280,11 @@ export const getBankInfo = async (req: AuthRequest, res: Response) => {
   });
 };
 
-// ─────────────────────────────────────────────
-// PUT /api/payouts/bank-info  [Merchant]
-// Update merchant bank details for payouts
-// ─────────────────────────────────────────────
+/**
+ * @desc    Update merchant bank details for payouts
+ * @route   PUT /api/payouts/bank-info
+ * @access  Private/Merchant
+ */
 export const updateBankInfo = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new Error('Merchant not found');
@@ -286,10 +301,11 @@ export const updateBankInfo = async (req: AuthRequest, res: Response) => {
   return res.status(200).json({ success: true, message: 'Bank info updated' });
 };
 
-// ─────────────────────────────────────────────
-// GET /api/payouts/paymob-config  [Merchant]
-// Get merchant Paymob configuration
-// ─────────────────────────────────────────────
+/**
+ * @desc    Get merchant Paymob configuration
+ * @route   GET /api/payouts/paymob-config
+ * @access  Private/Merchant
+ */
 export const getPaymobConfig = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new Error('Merchant not found');
@@ -306,9 +322,11 @@ export const getPaymobConfig = async (req: AuthRequest, res: Response) => {
   });
 };
 
-// ─────────────────────────────────────────────
-// PUT /api/payouts/paymob-config  [Merchant — Business plan only]
-// ─────────────────────────────────────────────
+/**
+ * @desc    Update merchant Paymob configuration (Business plan only)
+ * @route   PUT /api/payouts/paymob-config
+ * @access  Private/Business plan only
+ */
 export const updatePaymobConfig = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new Error('Merchant not found');

@@ -4,7 +4,11 @@ import Product from '../models/Product';
 import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { AuthRequest } from '../types';
 
-// Get customer's wishlist
+/**
+ * @desc    Get customer's wishlist
+ * @route   GET /api/wishlist
+ * @access  Private (Customer)
+ */
 export const getWishlist = asyncHandler(async (req: AuthRequest, res: Response) => {
   const customerId = req.user?.customerId;
   if (!customerId) {
@@ -30,7 +34,11 @@ export const getWishlist = asyncHandler(async (req: AuthRequest, res: Response) 
   });
 });
 
-// Add product to wishlist
+/**
+ * @desc    Add a product to wishlist
+ * @route   POST /api/wishlist/add
+ * @access  Private (Customer)
+ */
 export const addToWishlist = asyncHandler(async (req: AuthRequest, res: Response) => {
   const customerId = req.user?.customerId;
   const { productId } = req.body;
@@ -81,7 +89,11 @@ export const addToWishlist = asyncHandler(async (req: AuthRequest, res: Response
   });
 });
 
-// Remove product from wishlist
+/**
+ * @desc    Remove a product from wishlist
+ * @route   DELETE /api/wishlist/remove/:productId
+ * @access  Private (Customer)
+ */
 export const removeFromWishlist = asyncHandler(async (req: AuthRequest, res: Response) => {
   const customerId = req.user?.customerId;
   const { productId } = req.params;
@@ -113,7 +125,11 @@ export const removeFromWishlist = asyncHandler(async (req: AuthRequest, res: Res
   });
 });
 
-// Check if product is in wishlist
+/**
+ * @desc    Check if a product is in the customer's wishlist
+ * @route   GET /api/wishlist/check/:productId
+ * @access  Public (optional auth)
+ */
 export const checkWishlist = asyncHandler(async (req: AuthRequest, res: Response) => {
   const customerId = req.user?.customerId;
   const { productId } = req.params;
@@ -141,7 +157,11 @@ export const checkWishlist = asyncHandler(async (req: AuthRequest, res: Response
   });
 });
 
-// Clear entire wishlist
+/**
+ * @desc    Clear entire wishlist
+ * @route   DELETE /api/wishlist/clear
+ * @access  Private (Customer)
+ */
 export const clearWishlist = asyncHandler(async (req: AuthRequest, res: Response) => {
   const customerId = req.user?.customerId;
 
@@ -164,7 +184,11 @@ export const clearWishlist = asyncHandler(async (req: AuthRequest, res: Response
   });
 });
 
-// Sync guest wishlist (localStorage items) with server
+/**
+ * @desc    Sync guest wishlist items with server
+ * @route   POST /api/wishlist/sync
+ * @access  Private (Customer)
+ */
 export const syncWishlist = asyncHandler(async (req: AuthRequest, res: Response) => {
   const customerId = req.user?.customerId;
   const { productIds } = req.body;

@@ -6,35 +6,23 @@ import { AuthRequest } from '../types';
 import { generateSlug } from '../utils/helpers';
 import { calculatePagination } from '../utils/helpers';
 import { checkAndDeductAICredit } from '../utils/aiCredit';
-
-// Cache for storefront data (5 minutes)
-const storefrontCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+import { cacheService } from '../services/cache.service';
 
 function getCacheKey(subdomain: string, endpoint: string, params: string): string {
-  return `${subdomain}:${endpoint}:${params}`;
+  return `product:${subdomain}:${endpoint}:${params}`;
 }
 
-function getCachedData(key: string): any | null {
-  const cached = storefrontCache.get(key);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.data;
-  }
-  storefrontCache.delete(key);
-  return null;
+async function getCachedData(key: string): Promise<any | null> {
+  const raw = await cacheService.get(key);
+  return raw ? JSON.parse(raw) : null;
 }
 
-function setCachedData(key: string, data: any): void {
-  storefrontCache.set(key, { data, timestamp: Date.now() });
+async function setCachedData(key: string, data: any): Promise<void> {
+  await cacheService.set(key, JSON.stringify(data), 300);
 }
 
-// Clear cache for a specific merchant
-export function clearMerchantCache(subdomain: string): void {
-  for (const key of storefrontCache.keys()) {
-    if (key.startsWith(`${subdomain}:`)) {
-      storefrontCache.delete(key);
-    }
-  }
+export async function clearMerchantCache(subdomain: string): Promise<void> {
+  await cacheService.delByPattern(`product:${subdomain}:*`);
 }
 
 async function callAIService(productName: string, category: string, price?: number, tags?: string[]): Promise<string> {
@@ -70,19 +58,9 @@ async function callAIService(productName: string, category: string, price?: numb
 }
 
 /**
- * Get all products (for merchant)
- * GET /api/products
- * 
- * Query params:
- * - page, limit: pagination
- * - sort: newest, oldest, price_asc, price_desc, name_asc, stock_asc
- * - status: draft, active, archived
- * - category: category name
- * - search: text search in name, description, tags, sku
- * - minPrice, maxPrice: price range filter
- * - stock: in_stock, low_stock, out_of_stock
- * - tags: comma-separated tags
- * - isFeatured: true/false
+ * @desc    Get all products (for merchant)
+ * @route   GET /api/products
+ * @access  Private (Merchant)
  */
 export const getProducts = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -207,8 +185,9 @@ export const getProducts = asyncHandler(
 );
 
 /**
- * Get single product
- * GET /api/products/:id
+ * @desc    Get single product
+ * @route   GET /api/products/:id
+ * @access  Private (Merchant)
  */
 export const getProductById = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -236,8 +215,9 @@ export const getProductById = asyncHandler(
 );
 
 /**
- * Get product by slug (public)
- * GET /api/products/slug/:slug
+ * @desc    Get product by slug (public)
+ * @route   GET /api/products/slug/:slug
+ * @access  Public
  */
 export const getProductBySlug = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -271,8 +251,9 @@ export const getProductBySlug = asyncHandler(
 );
 
 /**
- * Create product
- * POST /api/products
+ * @desc    Create product
+ * @route   POST /api/products
+ * @access  Private (Merchant)
  */
 export const createProduct = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -346,8 +327,9 @@ export const createProduct = asyncHandler(
 );
 
 /**
- * Update product
- * PATCH /api/products/:id
+ * @desc    Update product
+ * @route   PATCH /api/products/:id
+ * @access  Private (Merchant)
  */
 export const updateProduct = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -396,8 +378,9 @@ export const updateProduct = asyncHandler(
 );
 
 /**
- * Delete product
- * DELETE /api/products/:id
+ * @desc    Delete product
+ * @route   DELETE /api/products/:id
+ * @access  Private (Merchant)
  */
 export const deleteProduct = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -423,8 +406,9 @@ export const deleteProduct = asyncHandler(
 );
 
 /**
- * Duplicate product
- * POST /api/products/:id/duplicate
+ * @desc    Duplicate product
+ * @route   POST /api/products/:id/duplicate
+ * @access  Private (Merchant)
  */
 export const duplicateProduct = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -458,8 +442,9 @@ export const duplicateProduct = asyncHandler(
 );
 
 /**
- * Generate product description using AI (for existing product)
- * POST /api/products/:id/generate-description
+ * @desc    Generate product description using AI (for existing product)
+ * @route   POST /api/products/:id/generate-description
+ * @access  Private (Merchant)
  */
 export const generateProductDescription = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -512,8 +497,9 @@ export const generateProductDescription = asyncHandler(
 );
 
 /**
- * Generate product description using AI (for new product, no ID needed)
- * POST /api/products/generate-description
+ * @desc    Generate product description using AI (for new product, no ID needed)
+ * @route   POST /api/products/generate-description
+ * @access  Private (Merchant)
  */
 export const generateDescriptionDraft = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -556,8 +542,9 @@ export const generateDescriptionDraft = asyncHandler(
 );
 
 /**
- * Get featured products (public)
- * GET /api/products/featured
+ * @desc    Get featured products (public)
+ * @route   GET /api/products/featured
+ * @access  Public
  */
 export const getFeaturedProducts = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { DASHBOARD_REGISTER } from "@/lib/config";
 
 /**
  * PricingHero — Phase 13: V2 Final
@@ -168,7 +169,9 @@ export function PricingHero() {
             {/* Claim Offer CTA */}
             <div className="mt-8">
               <a
-                href="http://localhost:3002/register"
+                href={DASHBOARD_REGISTER}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex h-12 px-8 rounded-full bg-white text-black font-extrabold shadow-[0_0_20px_rgba(255,255,255,0.7)] hover:shadow-[0_0_40px_rgba(255,255,255,1)] hover:scale-105 transition-all duration-300 items-center justify-center text-sm tracking-wide"
               >
                 {hero.claimOffer}
@@ -242,7 +245,9 @@ export function PricingHero() {
                 className="flex-1 bg-transparent border-none focus:outline-none text-white px-6 h-14 md:h-16 w-full placeholder:text-white/30 text-base font-medium"
               />
               <a
-                href="http://localhost:3002/register"
+                href={DASHBOARD_REGISTER}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-full sm:w-auto h-14 md:h-16 px-8 rounded-full bg-white text-black font-extrabold shadow-[0_0_20px_rgba(255,255,255,0.7)] hover:shadow-[0_0_40px_rgba(255,255,255,1)] hover:scale-105 transition-all duration-300 flex items-center justify-center tracking-wide shrink-0 mt-2 sm:mt-0"
               >
                 {hero.ctaButton}

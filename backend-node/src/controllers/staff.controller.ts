@@ -11,7 +11,11 @@ const mapToObj = (map: unknown): Record<string, boolean> => {
   return {};
 };
 
-// ─── GET /api/staff ────────────────────────────────────────────────────────────
+/**
+ * @desc    Get all staff members
+ * @route   GET /api/staff
+ * @access  Private (Merchant Owner/Staff)
+ */
 export const getStaff = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const merchantId = req.user!.merchantId;
@@ -34,7 +38,11 @@ export const getStaff = async (req: AuthRequest, res: Response, next: NextFuncti
   }
 };
 
-// ─── POST /api/staff ───────────────────────────────────────────────────────────
+/**
+ * @desc    Create a new staff member
+ * @route   POST /api/staff
+ * @access  Private (Merchant Owner/Staff)
+ */
 export const createStaff = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const merchantId = req.user!.merchantId;
@@ -93,7 +101,11 @@ export const createStaff = async (req: AuthRequest, res: Response, next: NextFun
   }
 };
 
-// ─── PATCH /api/staff/:id ──────────────────────────────────────────────────────
+/**
+ * @desc    Update a staff member
+ * @route   PATCH /api/staff/:id
+ * @access  Private (Merchant Owner/Staff)
+ */
 export const updateStaff = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const merchantId = req.user!.merchantId;
@@ -141,7 +153,11 @@ export const updateStaff = async (req: AuthRequest, res: Response, next: NextFun
   }
 };
 
-// ─── DELETE /api/staff/:id ─────────────────────────────────────────────────────
+/**
+ * @desc    Delete a staff member
+ * @route   DELETE /api/staff/:id
+ * @access  Private (Merchant Owner/Staff)
+ */
 export const deleteStaff = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const merchantId = req.user!.merchantId;
@@ -158,7 +174,11 @@ export const deleteStaff = async (req: AuthRequest, res: Response, next: NextFun
   }
 };
 
-// ─── POST /api/staff/:id/reset-password ───────────────────────────────────────
+/**
+ * @desc    Reset staff member password
+ * @route   POST /api/staff/:id/reset-password
+ * @access  Private (Merchant Owner/Staff)
+ */
 export const resetStaffPassword = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const merchantId = req.user!.merchantId;

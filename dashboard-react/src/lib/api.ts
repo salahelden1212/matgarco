@@ -28,6 +28,8 @@ export const authAPI = {
 
   resetPassword: (token: string, password: string) =>
     axios.post('/auth/reset-password', { token, password }),
+
+  verifyEmail: (token: string) => axios.post('/auth/verify-email', { token }),
 };
 
 // Merchant API
@@ -75,6 +77,22 @@ export const productAPI = {
   delete: (id: string) => axios.delete(`/products/${id}`),
 
   duplicate: (id: string) => axios.post(`/products/${id}/duplicate`),
+
+  generateDescription: (data: {
+    productName: string;
+    category?: string;
+    price?: number;
+    tags?: string[];
+    language?: string;
+  }) => axios.post('/products/generate-description', data),
+
+  generateDescriptionDraft: (data: {
+    productName: string;
+    category?: string;
+    price?: number;
+    tags?: string[];
+    language?: string;
+  }) => axios.post('/products/generate-description-draft', data),
 };
 
 // Order API
@@ -244,4 +262,57 @@ export const aiAPI = {
 
   suggestActions: () =>
     axios.post('/ai/assistant/suggest-actions'),
+};
+
+// Review API
+export const reviewAPI = {
+  getAll: (params?: { page?: number; limit?: number; productId?: string; status?: string }) =>
+    axios.get('/reviews', { params }),
+  getById: (id: string) => axios.get(`/reviews/${id}`),
+  create: (data: { productId: string; rating: number; comment?: string }) =>
+    axios.post('/reviews', data),
+  update: (id: string, data: { rating?: number; comment?: string }) =>
+    axios.patch(`/reviews/${id}`, data),
+  delete: (id: string) => axios.delete(`/reviews/${id}`),
+  getAnalytics: () => axios.get('/reviews/analytics'),
+  updateStatus: (id: string, status: string) => axios.patch(`/reviews/${id}/status`, { status }),
+  respond: (id: string, response: string) => axios.post(`/reviews/${id}/respond`, { response }),
+};
+
+// Wishlist API
+export const wishlistAPI = {
+  getAll: () => axios.get('/wishlist'),
+  add: (productId: string) => axios.post('/wishlist', { productId }),
+  remove: (productId: string) => axios.delete(`/wishlist/${productId}`),
+  sync: (productIds: string[]) => axios.post('/wishlist/sync', { productIds }),
+  clear: () => axios.delete('/wishlist/clear'),
+};
+
+// Discount API
+export const discountAPI = {
+  getAll: (params?: { page?: number; limit?: number; code?: string }) =>
+    axios.get('/discounts', { params }),
+  getById: (id: string) => axios.get(`/discounts/${id}`),
+  create: (data: {
+    code: string;
+    type: 'percentage' | 'fixed';
+    value: number;
+    minOrderAmount?: number;
+    maxUses?: number;
+    startDate?: string;
+    endDate?: string;
+    isActive?: boolean;
+  }) => axios.post('/discounts', data),
+  update: (id: string, data: Partial<{
+    code: string;
+    type: 'percentage' | 'fixed';
+    value: number;
+    minOrderAmount: number;
+    maxUses: number;
+    startDate: string;
+    endDate: string;
+    isActive: boolean;
+  }>) => axios.patch(`/discounts/${id}`, data),
+  delete: (id: string) => axios.delete(`/discounts/${id}`),
+  validate: (code: string) => axios.post('/discounts/validate', { code }),
 };

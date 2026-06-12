@@ -39,8 +39,8 @@ export default function FeaturedProductsSection({ settings, storeData }: { setti
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {displayProducts.map((product: any) => (
-              <ProductCard key={product._id} product={product} />
+            {displayProducts.map((product: any, i: number) => (
+              <ProductCard key={product._id} product={product} priority={i < 4} />
             ))}
           </div>
         )}

@@ -2849,6 +2849,246 @@ POST /orders
 
 ---
 
-**Document Version:** 2.0  
-**Last Updated:** March 17, 2026  
-**Status:** Phase 3 Complete — Next: Phase 4 Payment Integration (Paymob) 🚀
+---
+
+## 🏗️ Architecture Diagrams
+
+### 1. System Architecture
+
+```mermaid
+graph TB
+    subgraph "🌐 Frontend Apps"
+        L[landing-next<br/>Port 3000]
+        S[storefront-next<br/>Port 3001]
+        D[dashboard-react<br/>Port 3002]
+        A[super-admin-react<br/>Port 3003]
+    end
+
+    subgraph "⚙️ Backend API"
+        BE[backend-node<br/>Port 5000]
+        MW[Middleware Stack<br/>Auth · Tenant Isolation · Zod]
+        CT[Controllers<br/>22 controllers]
+        MD[Mongoose Models<br/>15+ models]
+    end
+
+    subgraph "🤖 AI Service"
+        PY[ai-python<br/>Port 8000]
+        OL[Ollama<br/>Llama 3 / Mistral]
+    end
+
+    subgraph "🗄️ Data Stores"
+        DB[(MongoDB<br/>Shared Database)]
+        CN[(Cloudinary<br/>Media Storage)]
+    end
+
+    subgraph "💳 External"
+        PM[Paymob API]
+        EM[SMTP Email]
+        OA[OAuth Providers<br/>Google · Apple]
+    end
+
+    L --> BE
+    S --> BE
+    D --> BE
+    A --> BE
+    BE --> MW
+    MW --> CT
+    CT --> MD
+    MD --> DB
+    CT --> CN
+    CT -.-> PY
+    PY -.-> OL
+    CT -.-> PM
+    CT -.-> EM
+    CT -.-> OA
+```
+
+### 2. Multi-Tenant Isolation Pattern
+
+```mermaid
+graph TB
+    subgraph "Tenant A — متجر الأحذية"
+        UA[User A<br/>merchant_owner]
+        M1[Merchant A<br/>_id: abc123<br/>subdomain: shoe-store]
+        P1[Products<br/>merchantId: abc123]
+        O1[Orders<br/>merchantId: abc123]
+    end
+
+    subgraph "Tenant B — متجر الإلكترونيات"
+        UB[User B<br/>merchant_owner]
+        M2[Merchant B<br/>_id: def456<br/>subdomain: electro-store]
+        P2[Products<br/>merchantId: def456]
+        O2[Orders<br/>merchantId: def456]
+    end
+
+    subgraph "🛡️ Isolation by Middleware"
+        JWT[JWT → req.user<br/>{ merchantId, role }]
+        TI[tenantIsolation<br/>req.user.merchantId<br/>↓<br/>Query filter]
+        RM[Route Level<br/>authenticate + authorize]
+    end
+
+    subgraph "🗄️ Shared Database — matgarco"
+        COL[(Collections<br/>merchants<br/>products<br/>orders<br/>users<br/>...)]
+    end
+
+    UA --> JWT
+    UB --> JWT
+    JWT --> TI
+    TI --> RM
+    RM -->|"db.find({ merchantId: req.user.merchantId })"| COL
+
+    M1 -.-> COL
+    M2 -.-> COL
+    P1 -.-> COL
+    P2 -.-> COL
+
+    style COL fill:#2d3748,stroke:#718096,color:#e2e8f0
+    style TI fill:#553c9a,stroke:#805ad5,color:#e2e8f0
+```
+
+**Pattern:** Shared Database + Shared Collections + Logical Tenant Isolation
+- Each document has a `merchantId` field linking it to its tenant
+- All merchant-scoped queries filter by `req.user.merchantId`
+- Super admin can bypass isolation (view all tenants)
+- Guest checkout uses `subdomain` → `Merchant.findOne({ subdomain })` → resolves `merchantId`
+
+### 3. Guest Checkout Flow
+
+```mermaid
+sequenceDiagram
+    actor Customer
+    participant SF as Storefront (Next.js)
+    participant API as Backend API
+    participant DB as MongoDB
+    participant Email as SMTP
+
+    Customer->>SF: Browses products
+    SF->>API: GET /api/storefront/:subdomain/products
+    API->>DB: Product.find({ merchantId, status: 'active' })
+    DB-->>API: Products
+    API-->>SF: Product list
+    SF-->>Customer: Display products
+
+    Customer->>SF: Adds to cart → Checkout
+    SF->>API: POST /api/orders { subdomain, items, customerInfo, shippingAddress }
+    Note over API: Zod validation
+    API->>DB: Merchant.findOne({ subdomain })
+    DB-->>API: Merchant with merchantId
+    API->>DB: Product.find({ _id: { $in: items }, merchantId })
+    DB-->>API: Validated products with prices
+    API->>DB: Order.create({ merchantId, customerInfo, items, total, ... })
+    DB-->>API: Created order with orderNumber
+    API->>Email: sendEmail(order confirmation)
+    API-->>SF: 201 { order, orderNumber }
+    SF-->>Customer: Order confirmation / payment redirect
+```
+
+### 4. Payment Flow (Paymob Intention API v2)
+
+```mermaid
+sequenceDiagram
+    actor Customer
+    participant SF as Storefront
+    participant API as Backend
+    participant DB as MongoDB
+    participant PM as Paymob API
+
+    Customer->>SF: Selects card payment
+    SF->>API: POST /api/payments/create-intention { orderId, ... }
+    API->>DB: Order.findById(orderId)
+    DB-->>API: Order with merchantId, items, total
+    API->>DB: Merchant.findById(merchantId)
+    DB-->>API: Merchant with paymobConfig
+    alt Merchant has own Paymob keys (Business plan)
+        API->>PM: POST https://accept.paymob.com/v1/intention<br/>{ api_key, amount, items, ... }
+    else Platform Paymob keys
+        API->>PM: POST https://accept.paymob.com/v1/intention<br/>{ api_key, amount, items, ... }
+    end
+    PM-->>API: { client_secret, id, ... }
+    API-->>SF: { paymentUrl, clientSecret }
+    SF-->>Customer: Redirects to Paymob checkout page
+
+    Customer->>PM: Completes payment on Paymob
+    PM->>API: Webhook POST (HMAC signed)
+    API->>API: Verify HMAC signature
+    API->>DB: Order.updateOne({ paymentStatus: 'paid', ... })
+    API-->>PM: 200 OK
+```
+
+### 5. Authentication Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Client as Dashboard / Storefront
+    participant API as Backend API
+    participant DB as MongoDB
+    participant JWT as JWT Service
+
+    User->>Client: Email + Password
+    Client->>API: POST /api/auth/login { email, password }
+    API->>DB: User.findOne({ email })
+    DB-->>API: User with hashed password
+    API->>API: bcrypt.compare(password, hash)
+    alt Valid credentials
+        API->>JWT: sign({ userId, email, role, merchantId })
+        JWT-->>API: accessToken (15m) + refreshToken (7d)
+        API-->>Client: { accessToken, refreshToken, user }
+        Client->>Client: Store tokens (memory + httpOnly cookie)
+        loop Every request
+            Client->>API: Authorization: Bearer accessToken
+            API->>API: authenticate middleware<br/>verifyAccessToken(token)
+            API->>DB: Optionally sync merchantId
+            API-->>Client: Response scoped to tenant
+        end
+    else Invalid credentials
+        API-->>Client: 401 Unauthorized
+    end
+```
+
+---
+
+## 🔐 Tenant Isolation Audit Report
+
+Performed: June 12, 2026
+
+### Methodology
+All 22 controller files were reviewed for how they obtain `merchantId`:
+- **Secure pattern:** `req.user.merchantId` — derived from authenticated JWT
+- **Acceptable pattern:** Subdomain lookup, database joins, super-admin params
+- **Vulnerable pattern:** `req.body.merchantId` / `req.query.merchantId` accepted from user input without validation
+
+### Results
+
+| Controller | Verdict | Notes |
+|-----------|---------|-------|
+| ai.controller.ts | ✅ PASS | Uses `req.user?.merchantId` consistently |
+| auth.controller.ts | ✅ PASS | Reads from DB document |
+| customer.controller.ts | ✅ PASS | Uses `req.user?.merchantId` |
+| discount.controller.ts | ✅ PASS | Uses `req.user?.merchantId` |
+| merchant.controller.ts | ✅ PASS | Assigns from created merchant |
+| notification.controller.ts | ✅ PASS | Uses `req.user!.merchantId` |
+| oauth.controller.ts | ✅ PASS | No merchantId references |
+| order.controller.ts | ✅ PASS | `createOrder` accepts `subdomain` (preferred) or `merchantId` — properly resolves server-side |
+| payment.controller.ts | ✅ PASS | Resolves from order.merchantId (DB) |
+| **payout.controller.ts** | ✅ **FIXED** | `processPayout` & `getPayoutHistory` are super-admin only (`authorize('super_admin')`). Added merchant existence check for defense-in-depth. |
+| product.controller.ts | ✅ PASS | Auth CRUD uses `req.user.merchantId`; public endpoints accept `merchantId` from query (read-only) |
+| review.controller.ts | ✅ PASS | Uses `req.user?.merchantId` |
+| search.controller.ts | ✅ PASS | Uses `req.user!.merchantId` |
+| settings.controller.ts | ✅ PASS | Uses populate only |
+| staff.controller.ts | ✅ PASS | Uses `req.user!.merchantId` |
+| storefront.controller.ts | ✅ PASS | Public — resolves via subdomain |
+| storeTheme.controller.ts | ✅ PASS | Uses `req.user!.merchantId` |
+| subscription.controller.ts | ✅ PASS | Uses `req.user?.merchantId` |
+| superAdmin.controller.ts | ✅ PASS | Super-admin by design |
+| theme.controller.ts | ✅ PASS | Uses resolveMerchantId helper |
+| upload.controller.ts | ✅ PASS | Uses `req.user?.merchantId` |
+| wishlist.controller.ts | ✅ PASS | No merchantId references |
+
+**Final Verdict: 22/22 PASS** ✅ — All controllers enforce tenant isolation. The only endpoint accepting raw `merchantId` from body (`processPayout`) is protected by `authenticate` + `authorize('super_admin')` double middleware and now validates merchant existence as defense-in-depth.
+
+---
+
+**Document Version:** 2.1  
+**Last Updated:** June 12, 2026  
+**Status:** Phase 3 Complete — Phases 1-2 Fully Delivered 🚀

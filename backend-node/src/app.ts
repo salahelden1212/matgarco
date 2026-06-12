@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import passport from './config/passport';
+import logger from './utils/logger';
 import { errorHandler } from './middleware/error.middleware';
 import { notFoundHandler } from './middleware/notFound.middleware';
 
@@ -22,6 +23,7 @@ import notificationRoutes from './routes/notification.routes';
 import searchRoutes from './routes/search.routes';
 import themeRoutes from './routes/theme.routes';
 import storefrontRoutes from './routes/storefront.routes';
+import customerAuthRoutes from './routes/customerAuth.routes';
 import superAdminRoutes from './routes/superAdmin.routes';
 import subscriptionRoutes from './routes/subscription.routes';
 import paymentRoutes from './routes/payment.routes';
@@ -29,13 +31,24 @@ import payoutRoutes from './routes/payout.routes';
 import storeThemeRoutes from './routes/storeTheme.routes';
 import publicThemesRoutes from './routes/publicThemes.routes';
 import aiRoutes from './routes/ai.routes';
+import shippingRoutes from './routes/shipping.routes';
 import discountRoutes from './routes/discount.routes';
 import reviewRoutes from './routes/review.routes';
 import wishlistRoutes from './routes/wishlist.routes';
+import domainRoutes from './routes/domain.routes';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpecs from './utils/swagger';
 
 const app: Application = express();
+
+// Global rate limiter — 100 requests per 15 min for all /api routes
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { success: false, error: 'Too many requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // C5 FIX: Rate limiting for auth endpoints
 const authLimiter = rateLimit({
@@ -93,11 +106,15 @@ app.use(cookieParser());
 app.use(passport.initialize());
 
 // Logging middleware
+const morganStream = { write: (message: string) => logger.info(message.trim()) };
 if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
+  app.use(morgan('dev', { stream: morganStream }));
 } else {
-  app.use(morgan('combined'));
+  app.use(morgan('combined', { stream: morganStream }));
 }
+
+// Apply global rate limiter to all /api routes
+app.use('/api', globalLimiter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -133,10 +150,13 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/theme', themeRoutes);
 app.use('/api/storefront', storefrontRoutes);
+app.use('/api/storefront/auth', customerAuthRoutes);
 app.use('/api/super-admin', superAdminRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/payouts', payoutRoutes);
+app.use('/api/shipping', shippingRoutes);
+app.use('/api/domains', domainRoutes);
 app.use('/api/store-themes', storeThemeRoutes);
 app.use('/api/themes', publicThemesRoutes);
 app.use('/api/ai', aiRoutes);

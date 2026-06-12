@@ -4,10 +4,11 @@ import Order from '../models/Order';
 import Merchant from '../models/Merchant';
 import { createPaymobIntention, verifyPaymobHmac } from '../services/payment.service';
 
-// ─────────────────────────────────────────────
-// POST /api/payments/create-intention
-// Creates a Paymob payment intention for an order
-// ─────────────────────────────────────────────
+/**
+ * @desc    Creates a Paymob payment intention for an order
+ * @route   POST /api/payments/create-intention
+ * @access  Public
+ */
 export const createIntention = async (req: Request, res: Response) => {
   const {
     orderId,
@@ -103,10 +104,11 @@ export const createIntention = async (req: Request, res: Response) => {
   });
 };
 
-// ─────────────────────────────────────────────
-// POST /api/payments/webhook
-// Paymob sends payment result here (Transaction Processed Callback)
-// ─────────────────────────────────────────────
+/**
+ * @desc    Paymob webhook handler for payment results (Transaction Processed Callback)
+ * @route   POST /api/payments/webhook
+ * @access  Public
+ */
 export const handleWebhook = async (req: Request, res: Response) => {
   const hmac = (req.query.hmac as string) || '';
 
@@ -144,10 +146,11 @@ export const handleWebhook = async (req: Request, res: Response) => {
   return res.status(200).json({ success: true, received: true });
 };
 
-// ─────────────────────────────────────────────
-// GET /api/payments/status/:orderId
-// Check payment status for an order
-// ─────────────────────────────────────────────
+/**
+ * @desc    Check payment status for an order
+ * @route   GET /api/payments/status/:orderId
+ * @access  Private/Merchant
+ */
 export const getPaymentStatus = async (req: AuthRequest, res: Response) => {
   const { orderId } = req.params;
   const order = await Order.findById(orderId).select('paymentStatus paymentTransactionId paymentMethod total orderNumber');
@@ -155,10 +158,11 @@ export const getPaymentStatus = async (req: AuthRequest, res: Response) => {
   return res.status(200).json({ success: true, data: order });
 };
 
-// ─────────────────────────────────────────────
-// POST /api/payments/test-keys
-// Test Paymob API key validity for a merchant
-// ─────────────────────────────────────────────
+/**
+ * @desc    Test Paymob API key validity for a merchant
+ * @route   POST /api/payments/test-keys
+ * @access  Private/Merchant
+ */
 export const testPaymobKeys = async (req: AuthRequest, res: Response) => {
   const { secretKey, publicKey } = req.body;
   
@@ -194,10 +198,11 @@ export const testPaymobKeys = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// ─────────────────────────────────────────────
-// PATCH /api/payments/settings
-// Update merchant payment & shipping settings
-// ─────────────────────────────────────────────
+/**
+ * @desc    Update merchant payment & shipping settings
+ * @route   PATCH /api/payments/settings
+ * @access  Private/Merchant
+ */
 export const updatePaymentSettings = async (req: AuthRequest, res: Response) => {
   const { paymentSettings } = req.body;
   const merchant = await Merchant.findByIdAndUpdate(
@@ -209,10 +214,11 @@ export const updatePaymentSettings = async (req: AuthRequest, res: Response) => 
   return res.status(200).json({ success: true, data: merchant });
 };
 
-// ─────────────────────────────────────────────
-// PATCH /api/payments/shipping
-// Update merchant shipping config
-// ─────────────────────────────────────────────
+/**
+ * @desc    Update merchant shipping config
+ * @route   PATCH /api/payments/shipping
+ * @access  Private/Merchant
+ */
 export const updateShippingConfig = async (req: AuthRequest, res: Response) => {
   const { shippingConfig } = req.body;
   const merchant = await Merchant.findByIdAndUpdate(

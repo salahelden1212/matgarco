@@ -17,8 +17,9 @@ import {
 import { sendOrderConfirmationEmail, sendOrderStatusEmail } from '../services/email.service';
 
 /**
- * Get all orders (merchant)
- * GET /api/orders
+ * @desc    Get all orders for the merchant
+ * @route   GET /api/orders
+ * @access  Private/Merchant
  */
 export const getOrders = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -73,8 +74,9 @@ export const getOrders = asyncHandler(
 );
 
 /**
- * Get single order
- * GET /api/orders/:id
+ * @desc    Get a single order by ID
+ * @route   GET /api/orders/:id
+ * @access  Private/Merchant
  */
 export const getOrderById = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -98,13 +100,15 @@ export const getOrderById = asyncHandler(
 );
 
 /**
- * Create order (checkout)
- * POST /api/orders
+ * @desc    Create a new order (storefront checkout)
+ * @route   POST /api/orders
+ * @access  Public
  */
 export const createOrder = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     const {
-      merchantId,
+      merchantId: rawMerchantId,
+      subdomain,
       items,
       customerInfo,
       shippingAddress,
@@ -116,12 +120,23 @@ export const createOrder = asyncHandler(
       discount = 0,
     } = req.body;
 
+    // Resolve merchantId from subdomain if not provided directly
+    let merchantId = rawMerchantId;
+    if (!merchantId && subdomain) {
+      const merchantBySubdomain = await Merchant.findOne({ subdomain: subdomain.toLowerCase(), isActive: true }).select('_id').lean();
+      if (!merchantBySubdomain) {
+        throw new AppError('Store not found', 404, { code: 'MERCHANT_NOT_FOUND' });
+      }
+      merchantId = (merchantBySubdomain as any)._id.toString();
+    }
+
     // Validate required fields
     const validationErrors: string[] = [];
     
     if (!merchantId) validationErrors.push('Merchant ID is required');
     if (!items || !Array.isArray(items) || items.length === 0) validationErrors.push('Order items are required');
-    if (!customerInfo?.name) validationErrors.push('Customer name is required');
+    if (!customerInfo?.firstName) validationErrors.push('Customer first name is required');
+    if (!customerInfo?.lastName) validationErrors.push('Customer last name is required');
     if (!customerInfo?.phone) validationErrors.push('Customer phone is required');
     if (!paymentMethod) validationErrors.push('Payment method is required');
     
@@ -323,8 +338,9 @@ export const createOrder = asyncHandler(
 );
 
 /**
- * Update order status
- * PATCH /api/orders/:id/status
+ * @desc    Update order status
+ * @route   PATCH /api/orders/:id/status
+ * @access  Private/Merchant
  */
 export const updateOrderStatus = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -393,8 +409,9 @@ export const updateOrderStatus = asyncHandler(
 );
 
 /**
- * Update payment status
- * PATCH /api/orders/:id/payment
+ * @desc    Update payment status
+ * @route   PATCH /api/orders/:id/payment
+ * @access  Private/Merchant
  */
 export const updatePaymentStatus = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -432,8 +449,9 @@ export const updatePaymentStatus = asyncHandler(
 );
 
 /**
- * Cancel order
- * POST /api/orders/:id/cancel
+ * @desc    Cancel an order
+ * @route   POST /api/orders/:id/cancel
+ * @access  Private/Merchant
  */
 export const cancelOrder = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -490,8 +508,9 @@ export const cancelOrder = asyncHandler(
 );
 
 /**
- * Add tracking info
- * PATCH /api/orders/:id/tracking
+ * @desc    Add tracking info to an order
+ * @route   PATCH /api/orders/:id/tracking
+ * @access  Private/Merchant
  */
 export const updateTracking = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -530,7 +549,11 @@ export const updateTracking = asyncHandler(
   }
 );
 
-// ─── Track Order (public storefront) ───────────────────────────────────────
+/**
+ * @desc    Track an order by order number (public storefront)
+ * @route   GET /api/orders/track
+ * @access  Public
+ */
 export const trackOrder = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { orderNumber, phone } = req.query;
 

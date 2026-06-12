@@ -16,6 +16,7 @@ import { Request, Response } from 'express';
 import StoreTheme from '../models/StoreTheme';
 import Theme from '../models/Theme';
 import Merchant from '../models/Merchant';
+import User from '../models/User';
 import { AppError } from '../middleware/error.middleware';
 import { AuthRequest } from '../types';
 import { normalizeThemePages, normalizeThemeSection } from '../utils/themeNormalization';
@@ -153,6 +154,26 @@ function normalizePages(pages: any): Record<string, { sections: any[] }> {
   return normalizeThemePages(pages, DEFAULT_PAGES as any) as Record<string, { sections: any[] }>;
 }
 
+async function resolveMerchantId(req: AuthRequest): Promise<string> {
+  const merchantId = req.user?.merchantId?.toString();
+  if (merchantId) return merchantId;
+
+  const userId = req.user?.userId;
+  if (!userId) throw new AppError('Merchant not found', 404);
+
+  if (req.user?.role === 'merchant_owner') {
+    const merchant = await Merchant.findOne({ ownerId: userId }).select('_id').lean();
+    if (merchant) {
+      const resolvedId = (merchant as any)._id.toString();
+      req.user.merchantId = resolvedId;
+      await User.findByIdAndUpdate(userId, { merchantId: resolvedId });
+      return resolvedId;
+    }
+  }
+
+  throw new AppError('Merchant not found', 404);
+}
+
 // ─── Helper: ensure merchant has a StoreTheme doc ─────────────────────────────
 async function ensureStoreTheme(merchantId: string) {
   let storeTheme = await StoreTheme.findOne({ merchantId, isActive: true });
@@ -187,9 +208,13 @@ async function ensureStoreTheme(merchantId: string) {
 
 // ─── GET /api/theme ───────────────────────────────────────────────────────────
 // Returns { published, draft } shape for dashboard compatibility
+/**
+ * @desc    Get merchant's theme (published & draft)
+ * @route   GET /api/theme
+ * @access  Private (Merchant)
+ */
 export const getTheme = async (req: AuthRequest, res: Response): Promise<void> => {
-  const merchantId = req.user?.merchantId?.toString();
-  if (!merchantId) throw new AppError('Merchant not found', 404);
+  const merchantId = await resolveMerchantId(req);
 
   const storeTheme = await ensureStoreTheme(merchantId);
 
@@ -234,9 +259,13 @@ export const getTheme = async (req: AuthRequest, res: Response): Promise<void> =
 };
 
 // ─── PATCH /api/theme/draft ───────────────────────────────────────────────────
+/**
+ * @desc    Save draft theme changes
+ * @route   PATCH /api/theme/draft
+ * @access  Private (Merchant)
+ */
 export const saveDraft = async (req: AuthRequest, res: Response): Promise<void> => {
-  const merchantId = req.user?.merchantId?.toString();
-  if (!merchantId) throw new AppError('Merchant not found', 404);
+  const merchantId = await resolveMerchantId(req);
 
   const storeTheme = await ensureStoreTheme(merchantId);
   const update = req.body;
@@ -328,9 +357,13 @@ export const saveDraft = async (req: AuthRequest, res: Response): Promise<void> 
 };
 
 // ─── POST /api/theme/publish ──────────────────────────────────────────────────
+/**
+ * @desc    Publish theme (make live)
+ * @route   POST /api/theme/publish
+ * @access  Private (Merchant)
+ */
 export const publishTheme = async (req: AuthRequest, res: Response): Promise<void> => {
-  const merchantId = req.user?.merchantId?.toString();
-  if (!merchantId) throw new AppError('Merchant not found', 404);
+  const merchantId = await resolveMerchantId(req);
 
   // In the new system, StoreTheme IS the live data. No separate publish step.
   // The save already persists to the live store.
@@ -341,9 +374,13 @@ export const publishTheme = async (req: AuthRequest, res: Response): Promise<voi
 };
 
 // ─── POST /api/theme/reset-draft ─────────────────────────────────────────────
+/**
+ * @desc    Reset draft to base theme defaults
+ * @route   POST /api/theme/reset-draft
+ * @access  Private (Merchant)
+ */
 export const resetDraft = async (req: AuthRequest, res: Response): Promise<void> => {
-  const merchantId = req.user?.merchantId?.toString();
-  if (!merchantId) throw new AppError('Merchant not found', 404);
+  const merchantId = await resolveMerchantId(req);
 
   const storeTheme = await StoreTheme.findOne({ merchantId, isActive: true }).populate('themeId');
   if (!storeTheme) throw new AppError('Theme not found', 404);
@@ -367,9 +404,13 @@ export const resetDraft = async (req: AuthRequest, res: Response): Promise<void>
 };
 
 // ─── POST /api/theme/apply-template ──────────────────────────────────────────
+/**
+ * @desc    Apply a base template / install a theme
+ * @route   POST /api/theme/apply-template
+ * @access  Private (Merchant)
+ */
 export const applyTemplate = async (req: AuthRequest, res: Response): Promise<void> => {
-  const merchantId = req.user?.merchantId?.toString();
-  if (!merchantId) throw new AppError('Merchant not found', 404);
+  const merchantId = await resolveMerchantId(req);
 
   const { templateId } = req.body;
   if (!templateId) throw new AppError('templateId is required', 400);
@@ -402,6 +443,11 @@ export const applyTemplate = async (req: AuthRequest, res: Response): Promise<vo
 };
 
 // ─── PUBLIC: GET /api/theme/storefront/:subdomain ─────────────────────────────
+/**
+ * @desc    Get published theme for public storefront
+ * @route   GET /api/theme/storefront/:subdomain
+ * @access  Public
+ */
 export const getPublishedTheme = async (req: Request, res: Response): Promise<void> => {
   const { subdomain } = req.params;
 
@@ -451,6 +497,11 @@ export const getPublishedTheme = async (req: Request, res: Response): Promise<vo
 };
 
 // ─── PUBLIC: GET /api/theme/storefront/:subdomain/preview ─────────────────────
+/**
+ * @desc    Get preview theme draft for public storefront
+ * @route   GET /api/theme/storefront/:subdomain/preview
+ * @access  Public
+ */
 export const getPreviewTheme = async (req: Request, res: Response): Promise<void> => {
   const { subdomain } = req.params;
 

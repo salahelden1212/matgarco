@@ -5,6 +5,7 @@ import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../services/jwt.service';
 import { generateToken } from '../utils/helpers';
 import { AuthRequest } from '../types';
+import { sendVerificationEmail, sendPasswordResetEmail } from '../services/email.service';
 
 /**
  * Register new user
@@ -59,7 +60,8 @@ export const register = asyncHandler(
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
     
-    // TODO: Send verification email
+    // Send verification email
+    sendVerificationEmail(user.email, user.firstName, verificationToken);
     
     res.status(201).json({
       success: true,
@@ -322,7 +324,8 @@ export const forgotPassword = asyncHandler(
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
     await user.save();
     
-    // TODO: Send reset email
+    // Send reset email
+    sendPasswordResetEmail(user.email, user.firstName, resetToken);
     
     res.status(200).json({
       success: true,

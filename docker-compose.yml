@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend-node
+      dockerfile: Dockerfile
+    ports:
+      - '5000:5000'
+    env_file: ./backend-node/.env
+    depends_on:
+      - mongodb
+      - redis
+    restart: unless-stopped
+
+  storefront:
+    build:
+      context: ./storefront-next
+      dockerfile: Dockerfile
+    ports:
+      - '3001:3001'
+    env_file: ./storefront-next/.env
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  landing:
+    build:
+      context: ./landing-next
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    env_file: ./landing-next/.env
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ./dashboard-react
+      dockerfile: Dockerfile
+    ports:
+      - '3002:80'
+    env_file: ./dashboard-react/.env
+    restart: unless-stopped
+
+  ai-service:
+    build:
+      context: ./ai-python
+      dockerfile: Dockerfile
+    ports:
+      - '8000:8000'
+    env_file: ./ai-python/.env
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
+  redis-data:

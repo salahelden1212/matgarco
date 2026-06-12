@@ -1,10 +1,10 @@
 import { Response } from 'express';
-import { AuthRequest } from '../types';
+import { AuthRequest, JWTPayload } from '../types';
 import Merchant from '../models/Merchant';
 import Order from '../models/Order';
 import Theme from '../models/Theme';
 import mongoose from 'mongoose';
-import jwt from 'jsonwebtoken';
+import { generateAccessToken } from '../services/jwt.service';
 import { AppError } from '../middleware/error.middleware';
 
 const DEFAULT_THEME_GLOBAL_SETTINGS = {
@@ -372,22 +372,14 @@ export const impersonateMerchant = async (req: AuthRequest, res: Response) => {
 
   const owner = merchant.ownerId as any;
 
-  const payload = {
-    user: {
-      id: owner._id,
-      role: owner.role
-    }
+  const payload: JWTPayload = {
+    userId: owner._id.toString(),
+    email: owner.email,
+    role: owner.role,
+    merchantId: merchant._id.toString(),
   };
 
-  const options: jwt.SignOptions = {
-    expiresIn: (process.env.JWT_EXPIRE || '15m') as any
-  };
-
-  const accessToken = jwt.sign(
-    payload, 
-    process.env.JWT_SECRET || 'fallback_secret', 
-    options
-  );
+  const accessToken = generateAccessToken(payload);
 
   res.status(200).json({
     success: true,
@@ -404,86 +396,91 @@ export const impersonateMerchant = async (req: AuthRequest, res: Response) => {
  * @access  Private (super_admin)
  */
 export const getDashboardCharts = async (_req: AuthRequest, res: Response) => {
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  // Registrations per day (last 30 days)
-  const registrations = await Merchant.aggregate([
-    { $match: { createdAt: { $gte: thirtyDaysAgo } } },
-    { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
-    { $sort: { _id: 1 } },
-    { $project: { date: '$_id', count: 1, _id: 0 } }
-  ]);
+    // Registrations per day (last 30 days)
+    const registrations = await Merchant.aggregate([
+      { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+      { $project: { date: '$_id', count: 1, _id: 0 } }
+    ]);
 
-  // Revenue trend (last 12 months from orders)
-  const twelveMonthsAgo = new Date();
-  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-  const revenueTrend = await Order.aggregate([
-    { $match: { createdAt: { $gte: twelveMonthsAgo }, paymentStatus: 'paid' } },
-    { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } }, revenue: { $sum: '$total' }, orders: { $sum: 1 } } },
-    { $sort: { _id: 1 } },
-    { $project: { month: '$_id', revenue: 1, orders: 1, _id: 0 } }
-  ]);
+    // Revenue trend (last 12 months from orders)
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    const revenueTrend = await Order.aggregate([
+      { $match: { createdAt: { $gte: twelveMonthsAgo }, paymentStatus: 'paid' } },
+      { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } }, revenue: { $sum: '$total' }, orders: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+      { $project: { month: '$_id', revenue: 1, orders: 1, _id: 0 } }
+    ]);
 
-  // Plan distribution for pie chart
-  const planDistribution = await Merchant.aggregate([
-    { $group: { _id: '$subscriptionPlan', count: { $sum: 1 } } },
-    { $project: { plan: '$_id', count: 1, _id: 0 } }
-  ]);
+    // Plan distribution for pie chart
+    const planDistribution = await Merchant.aggregate([
+      { $group: { _id: '$subscriptionPlan', count: { $sum: 1 } } },
+      { $project: { plan: '$_id', count: 1, _id: 0 } }
+    ]);
 
-  // Recent activity (last 10 merchants + last 10 orders)
-  const recentMerchants = await Merchant.find().sort({ createdAt: -1 }).limit(5).select('storeName subdomain subscriptionPlan createdAt');
-  const recentOrders = await Order.find().sort({ createdAt: -1 }).limit(5).select('orderNumber total merchantId createdAt').populate('merchantId', 'storeName');
+    // Recent activity (last 10 merchants + last 10 orders)
+    const recentMerchants = await Merchant.find().sort({ createdAt: -1 }).limit(5).select('storeName subdomain subscriptionPlan createdAt');
+    const recentOrders = await Order.find().sort({ createdAt: -1 }).limit(5).select('orderNumber total merchantId createdAt').populate('merchantId', 'storeName');
 
-  const recentActivity = [
-    ...recentMerchants.map(m => ({
-      type: 'new_merchant' as const,
-      message: `متجر جديد: ${m.storeName}`,
-      detail: `${m.subdomain}.matgarco.com — ${m.subscriptionPlan}`,
-      time: m.createdAt
-    })),
-    ...recentOrders.map(o => ({
-      type: 'new_order' as const,
-      message: `طلب جديد #${o.orderNumber}`,
-      detail: `${o.total.toLocaleString()} ج.م — ${(o.merchantId as any)?.storeName || ''}`,
-      time: o.createdAt
-    }))
-  ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
+    const recentActivity = [
+      ...recentMerchants.map(m => ({
+        type: 'new_merchant' as const,
+        message: `متجر جديد: ${m.storeName}`,
+        detail: `${m.subdomain}.matgarco.com — ${m.subscriptionPlan}`,
+        time: m.createdAt
+      })),
+      ...recentOrders.map(o => ({
+        type: 'new_order' as const,
+        message: `طلب جديد #${o.orderNumber}`,
+        detail: `${o.total.toLocaleString()} ج.م — ${(o.merchantId as any)?.storeName || ''}`,
+        time: o.createdAt
+      }))
+    ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
 
-  // Today stats for Daily Pulse
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const todayMerchants = await Merchant.countDocuments({ createdAt: { $gte: todayStart } });
-  const todayOrders = await Order.aggregate([
-    { $match: { createdAt: { $gte: todayStart } } },
-    { $group: { _id: null, count: { $sum: 1 }, revenue: { $sum: '$total' } } }
-  ]);
+    // Today stats for Daily Pulse
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const todayMerchants = await Merchant.countDocuments({ createdAt: { $gte: todayStart } });
+    const todayOrders = await Order.aggregate([
+      { $match: { createdAt: { $gte: todayStart } } },
+      { $group: { _id: null, count: { $sum: 1 }, revenue: { $sum: '$total' } } }
+    ]);
 
-  // Top 5 merchants by total revenue
-  const topMerchants = await Order.aggregate([
-    { $match: { paymentStatus: 'paid' } },
-    { $group: { _id: '$merchantId', totalRevenue: { $sum: '$total' }, orderCount: { $sum: 1 } } },
-    { $sort: { totalRevenue: -1 } },
-    { $limit: 5 },
-    { $lookup: { from: 'merchants', localField: '_id', foreignField: '_id', as: 'merchant' } },
-    { $unwind: { path: '$merchant', preserveNullAndEmpty: false } },
-    { $project: { _id: 0, storeName: '$merchant.storeName', subdomain: '$merchant.subdomain', subscriptionPlan: '$merchant.subscriptionPlan', totalRevenue: 1, orderCount: 1 } },
-  ]);
+    // Top 5 merchants by total revenue
+    const topMerchants = await Order.aggregate([
+      { $match: { paymentStatus: 'paid' } },
+      { $group: { _id: '$merchantId', totalRevenue: { $sum: '$total' }, orderCount: { $sum: 1 } } },
+      { $sort: { totalRevenue: -1 } },
+      { $limit: 5 },
+      { $lookup: { from: 'merchants', localField: '_id', foreignField: '_id', as: 'merchant' } },
+      { $unwind: { path: '$merchant', preserveNullAndEmptyArrays: false } },
+      { $project: { _id: 0, storeName: '$merchant.storeName', subdomain: '$merchant.subdomain', subscriptionPlan: '$merchant.subscriptionPlan', totalRevenue: 1, orderCount: 1 } },
+    ]);
 
-  res.status(200).json({
-    success: true,
-    data: {
-      registrations,
-      revenueTrend,
-      planDistribution,
-      recentActivity,
-      topMerchants,
-      dailyPulse: {
-        newMerchants: todayMerchants,
-        todayOrders: todayOrders[0]?.count || 0,
-        todayRevenue: todayOrders[0]?.revenue || 0,
+    res.status(200).json({
+      success: true,
+      data: {
+        registrations,
+        revenueTrend,
+        planDistribution,
+        recentActivity,
+        topMerchants,
+        dailyPulse: {
+          newMerchants: todayMerchants,
+          todayOrders: todayOrders[0]?.count || 0,
+          todayRevenue: todayOrders[0]?.revenue || 0,
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error('getDashboardCharts error:', error);
+    res.status(500).json({ success: false, message: 'Failed to load dashboard data' });
+  }
 };
 
 /**

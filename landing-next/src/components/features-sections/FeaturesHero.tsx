@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ar } from "@/i18n/ar";
 import { en } from "@/i18n/en";
+import { DASHBOARD_REGISTER } from "@/lib/config";
 
 interface FeaturesHeroProps {
   lang: string;
@@ -82,12 +83,14 @@ export function FeaturesHero({ lang }: FeaturesHeroProps) {
 
           {/* Button */}
           <motion.div variants={itemVariants} className="mt-10">
-            <Link 
-              href="http://localhost:3002/register"
+            <a 
+              href={DASHBOARD_REGISTER}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-3 px-8 py-4 bg-white text-black font-bold rounded-full hover:bg-neutral-200 hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] transition-all"
             >
               {t.featuresHero.ctaPrimary}
-            </Link>
+            </a>
           </motion.div>
         </motion.div>
 

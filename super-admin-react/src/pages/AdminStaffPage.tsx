@@ -77,7 +77,7 @@ export default function AdminStaffPage() {
   };
 
   const filteredStaff = staff.filter(s => {
-    const matchesSearch = s.name.includes(searchTerm) || s.email.includes(searchTerm);
+    const matchesSearch = (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (s.email || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filterRole === 'all' || s.role === filterRole;
     return matchesSearch && matchesRole;
   });

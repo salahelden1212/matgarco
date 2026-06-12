@@ -5,9 +5,9 @@ import Order from '../models/Order';
 import Customer from '../models/Customer';
 
 /**
- * GET /api/search?q=...
- * Searches products, orders, and customers scoped to the merchant.
- * Returns up to 5 results per category.
+ * @desc    Global search across products, orders, and customers scoped to the merchant
+ * @route   GET /api/search
+ * @access  Private (Merchant)
  */
 export const globalSearch = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {

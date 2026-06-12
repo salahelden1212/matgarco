@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Sparkles, Loader2 } from 'lucide-react';
-import { aiAPI } from '../../../../lib/api';
+import { aiAPI } from '../../../lib/api';
 import { toast } from 'sonner';
 
 interface Props {

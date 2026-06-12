@@ -51,6 +51,8 @@ const notificationSchema = new Schema<INotification>(
   { timestamps: true }
 );
 
+notificationSchema.index({ merchantId: 1, isRead: 1, createdAt: -1 });
+
 // Auto-delete notifications older than 30 days
 notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
 

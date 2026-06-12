@@ -4,8 +4,9 @@ import { AuthRequest } from '../types';
 import { uploadImage, uploadMultipleImages } from '../config/cloudinary';
 
 /**
- * Upload single image
- * POST /api/upload/single
+ * @desc    Upload a single image to Cloudinary
+ * @route   POST /api/upload/single
+ * @access  Private (Merchant/Staff)
  */
 export const uploadSingleImage = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -35,8 +36,9 @@ export const uploadSingleImage = asyncHandler(
 );
 
 /**
- * Upload multiple images
- * POST /api/upload/multiple
+ * @desc    Upload multiple images to Cloudinary
+ * @route   POST /api/upload/multiple
+ * @access  Private (Merchant/Staff)
  */
 export const uploadMultipleImagesController = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {

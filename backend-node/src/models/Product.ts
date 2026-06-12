@@ -263,6 +263,9 @@ const productSchema = new Schema<IProduct>(
 // Compound index for unique slug per merchant
 productSchema.index({ merchantId: 1, slug: 1 }, { unique: true });
 
+// Full-text search index for storefront product search
+productSchema.index({ name: 'text', description: 'text', tags: 'text' });
+
 // Ensure at least one image is primary
 productSchema.pre('save', function (next) {
   if (this.images && this.images.length > 0) {

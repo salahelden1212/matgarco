@@ -30,7 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" className={`dark ${tajawal.variable} ${inter.variable}`} suppressHydrationWarning>
-      <body className="font-sans antialiased min-h-screen bg-[#050505] text-[#f8fafc] transition-colors duration-300" suppressHydrationWarning>
+      <body className="font-sans antialiased min-h-screen overflow-x-hidden bg-[#050505] text-[#f8fafc] transition-colors duration-300" suppressHydrationWarning>
         <LanguageProvider>
           {children}
         </LanguageProvider>

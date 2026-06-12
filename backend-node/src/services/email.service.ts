@@ -1,5 +1,7 @@
 import nodemailer from 'nodemailer';
 import Merchant from '../models/Merchant';
+import { queueService } from './queue.service';
+import { JobType } from './queue.service';
 
 interface EmailOptions {
   to: string;
@@ -58,14 +60,13 @@ const getTransporter = async (merchantId?: string) => {
 };
 
 /**
- * Sends an email
+ * Direct SMTP send (used by queue worker, falls back to this when queue is down)
  */
-export const sendEmail = async (merchantId: string | undefined, options: EmailOptions): Promise<void> => {
+export const sendEmailDirect = async (merchantId: string | undefined, options: EmailOptions): Promise<void> => {
   try {
     const { transporter, from } = await getTransporter(merchantId);
 
-    // Make sure we have credentials before attempting
-    if (!transporter.options.auth?.user) {
+    if (!(transporter.options as any).auth?.user) {
       console.log('⚠️ Email skipped: No SMTP credentials configured.');
       return;
     }
@@ -78,7 +79,22 @@ export const sendEmail = async (merchantId: string | undefined, options: EmailOp
     });
   } catch (error) {
     console.error('❌ Failed to send email:', error);
-    // We don't throw here to avoid breaking the main flows (like order creation)
+  }
+};
+
+/**
+ * Sends email via queue (falls back to direct SMTP if queue unavailable)
+ */
+export const sendEmail = async (merchantId: string | undefined, options: EmailOptions): Promise<void> => {
+  try {
+    await queueService.add(JobType.SEND_EMAIL, {
+      to: options.to,
+      subject: options.subject,
+      body: options.html,
+      merchantId,
+    });
+  } catch {
+    await sendEmailDirect(merchantId, options);
   }
 };
 
@@ -221,6 +237,58 @@ export const sendOrderStatusEmail = async (
     to: customerEmail,
     subject: `تحديث بخصوص طلبك #${orderNumber}`,
     html: wrapHTML(content, storeName),
+  });
+};
+
+/**
+ * Send Email Verification
+ */
+export const sendVerificationEmail = async (
+  email: string,
+  firstName: string,
+  token: string
+) => {
+  const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
+  const content = `
+    <h2>مرحباً ${firstName}،</h2>
+    <p>شكراً لتسجيلك في <strong>متجركو</strong>!</p>
+    <p>يرجى تأكيد بريدك الإلكتروني بالضغط على الرابط أدناه:</p>
+    <div style="text-align: center;">
+      <a href="${verificationUrl}" class="button">تأكيد البريد الإلكتروني</a>
+    </div>
+    <p style="margin-top: 20px; color: #6b7280; font-size: 13px;">إذا لم تقم بالتسجيل، يمكنك تجاهل هذه الرسالة.</p>
+  `;
+
+  await sendEmail(undefined, {
+    to: email,
+    subject: 'تأكيد البريد الإلكتروني - متجركو',
+    html: wrapHTML(content, 'متجركو'),
+  });
+};
+
+/**
+ * Send Password Reset Email
+ */
+export const sendPasswordResetEmail = async (
+  email: string,
+  firstName: string,
+  token: string
+) => {
+  const resetUrl = `${process.env.DASHBOARD_URL || 'http://localhost:3002'}/reset-password?token=${token}`;
+  const content = `
+    <h2>مرحباً ${firstName}،</h2>
+    <p>لقد طلبت إعادة تعيين كلمة المرور الخاصة بحسابك في <strong>متجركو</strong>.</p>
+    <p>يرجى الضغط على الرابط أدناه لإعادة تعيين كلمة المرور:</p>
+    <div style="text-align: center;">
+      <a href="${resetUrl}" class="button">إعادة تعيين كلمة المرور</a>
+    </div>
+    <p style="margin-top: 20px; color: #6b7280; font-size: 13px;">هذا الرابط صالح لمدة ساعة واحدة. إذا لم تطلب إعادة تعيين كلمة المرور، يمكنك تجاهل هذه الرسالة.</p>
+  `;
+
+  await sendEmail(undefined, {
+    to: email,
+    subject: 'إعادة تعيين كلمة المرور - متجركو',
+    html: wrapHTML(content, 'متجركو'),
   });
 };
 

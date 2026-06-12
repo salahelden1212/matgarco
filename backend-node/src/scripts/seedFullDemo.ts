@@ -47,6 +47,7 @@ function orderNum(i: number) {
 const PRODUCTS = [
   {
     name: 'حذاء رياضي نايكي إير ماكس',
+    slug: 'nike-air-max',
     description: 'حذاء رياضي مريح لممارسة الرياضة والمشي اليومي، مصنوع من مواد عالية الجودة توفر دعمًا وراحةً استثنائية.',
     shortDescription: 'حذاء رياضي مريح ومتين',
     price: 450,
@@ -61,6 +62,7 @@ const PRODUCTS = [
   },
   {
     name: 'تيشيرت قطن بريميوم',
+    slug: 'premium-cotton-tee',
     description: 'تيشيرت مصنوع من قطن 100% ناعم وخفيف، مناسب للاستخدام اليومي. متوفر بألوان متعددة.',
     shortDescription: 'قطن 100% ناعم وخفيف',
     price: 89,
@@ -75,6 +77,7 @@ const PRODUCTS = [
   },
   {
     name: 'ساعة ذكية سامسونج جالاكسي',
+    slug: 'samsung-galaxy-watch',
     description: 'ساعة ذكية متطورة تتيح تتبع النشاط البدني، رسائل الإشعارات، ومراقبة معدل ضربات القلب.',
     shortDescription: 'ساعة ذكية متعددة المزايا',
     price: 1299,
@@ -89,6 +92,7 @@ const PRODUCTS = [
   },
   {
     name: 'حقيبة جلد طبيعي يدوية',
+    slug: 'leather-handbag',
     description: 'حقيبة يد أنيقة مصنوعة يدويًا من الجلد الطبيعي، تتميز بمتانتها وأناقتها الفريدة التي تجعلها مثالية لكل المناسبات.',
     shortDescription: 'جلد طبيعي صناعة يدوية',
     price: 750,
@@ -103,6 +107,7 @@ const PRODUCTS = [
   },
   {
     name: 'عطر أود الملكي 100مل',
+    slug: 'oud-malaki-100ml',
     description: 'عطر فاخر بعبق العود الأصيل المستخلص من أجود أنواع الخشب، يمنحك جاذبية وثقة استثنائية.',
     shortDescription: 'عطر عود فاخر طويل الأمد',
     price: 320,
@@ -117,6 +122,7 @@ const PRODUCTS = [
   },
   {
     name: 'سماعات لاسلكية بلوتوث',
+    slug: 'wireless-bluetooth-headphones',
     description: 'سماعات لاسلكية بتقنية إلغاء الضجيج النشط، بطارية تدوم 30 ساعة، وجودة صوت استثنائية.',
     shortDescription: 'صوت نقي وبطارية 30 ساعة',
     price: 699,
@@ -131,6 +137,7 @@ const PRODUCTS = [
   },
   {
     name: 'بلوزة كاجوال نسائية',
+    slug: 'casual-blouse',
     description: 'بلوزة أنيقة مناسبة للعمل والخروجات اليومية، خامة مريحة لا تتجعد.',
     shortDescription: 'أنيقة ومريحة طوال اليوم',
     price: 145,
@@ -145,6 +152,7 @@ const PRODUCTS = [
   },
   {
     name: 'كريم مرطب هيالورونيك',
+    slug: 'hyaluronic-moisturizer',
     description: 'كريم ترطيب مكثف يحتوي على هيالورونيك آسيد بتركيز عالي، يمنح البشرة نضارةً وترطيبًا طويل الأمد.',
     shortDescription: 'ترطيب مكثف 24 ساعة',
     price: 185,
@@ -159,6 +167,7 @@ const PRODUCTS = [
   },
   {
     name: 'حذاء كعب عالي أنيق',
+    slug: 'elegant-high-heels',
     description: 'حذاء بكعب عالي أنيق مصنوع من الجلد الناعم، مريح للارتداء ومثالي للمناسبات الرسمية والسهرات.',
     shortDescription: 'أناقة وراحة في خطوة',
     price: 395,
@@ -173,6 +182,7 @@ const PRODUCTS = [
   },
   {
     name: 'نظارة شمسية ريبان كلاسيك',
+    slug: 'rayban-classic-sunglasses',
     description: 'نظارة شمسية بإطار كلاسيكي وعدسات بحماية UV400 عالية، تجمع بين الأناقة والحماية الفعّالة.',
     shortDescription: 'حماية UV400 وأناقة دائمة',
     price: 280,
@@ -259,11 +269,11 @@ const seed = async () => {
 
     // ── 3. Products ──────────────────────────────────────────────────────────
     const createdProducts = await Promise.all(
-      PRODUCTS.map((p, i) =>
+      PRODUCTS.map((p) =>
         Product.create({
           merchantId,
           name: p.name,
-          slug: `${slug(p.name)}-${i}`,
+          slug: p.slug,
           description: p.description,
           shortDescription: p.shortDescription,
           price: p.price,

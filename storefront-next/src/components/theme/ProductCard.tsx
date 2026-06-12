@@ -1,23 +1,39 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { getProductMainImage, optimizeCloudinaryUrl } from '@/lib/images';
+import { formatCurrency } from '@/lib/utils';
 
-export function ProductCard({ product }: { product: any }) {
+function SmartImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const [error, setError] = useState(false);
+
+  if (error) {
+    return <div className={`bg-slate-100 ${className || ''}`} />;
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      onError={() => setError(true)}
+    />
+  );
+}
+
+export function ProductCard({ product, priority }: { product: any; priority?: boolean }) {
   const imageUrl = getProductMainImage(product);
   const optimizedUrl = optimizeCloudinaryUrl(imageUrl, { width: 600, height: 800, quality: 80 });
   
   return (
     <Link href={`/products/${product.slug}`} className="group block h-full bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] overflow-hidden hover:shadow-lg transition-shadow">
       <div className="relative aspect-[4/5] overflow-hidden bg-gray-100">
-        <img 
+        <SmartImage
           src={optimizedUrl}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          loading="lazy"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = `https://placehold.co/600x800/e2e8f0/64748b?text=${encodeURIComponent(product.name || 'Product')}`;
-          }}
+          {...(priority ? { fetchpriority: 'high', loading: 'eager' } : { loading: 'lazy' })}
         />
         {product.compareAtPrice > product.price && (
           <span className="absolute top-3 right-3 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
@@ -31,11 +47,11 @@ export function ProductCard({ product }: { product: any }) {
         </h3>
         <div className="flex items-center gap-2 mt-auto">
           <span className="font-bold text-[var(--text)] text-lg">
-            {product.price.toLocaleString()} ج.م
+            {product.price.toLocaleString('en-US')} ج.م
           </span>
           {product.compareAtPrice > product.price && (
             <span className="text-sm text-[var(--text-muted)] line-through relative top-0.5">
-              {product.compareAtPrice.toLocaleString()} ج.م
+              {product.compareAtPrice.toLocaleString('en-US')} ج.م
             </span>
           )}
         </div>

@@ -3,6 +3,11 @@ import Discount from '../models/Discount';
 import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { AuthRequest } from '../types';
 
+/**
+ * @desc    Get all discounts
+ * @route   GET /api/discounts
+ * @access  Private/Merchant Owner & Staff
+ */
 export const getDiscounts = asyncHandler(async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new AppError('No merchant associated', 400);
@@ -11,6 +16,11 @@ export const getDiscounts = asyncHandler(async (req: AuthRequest, res: Response)
   res.status(200).json({ success: true, data: discounts });
 });
 
+/**
+ * @desc    Create a new discount
+ * @route   POST /api/discounts
+ * @access  Private/Merchant Owner & Staff
+ */
 export const createDiscount = asyncHandler(async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new AppError('No merchant associated', 400);
@@ -39,6 +49,11 @@ export const createDiscount = asyncHandler(async (req: AuthRequest, res: Respons
   res.status(201).json({ success: true, data: discount });
 });
 
+/**
+ * @desc    Update a discount
+ * @route   PATCH /api/discounts/:id
+ * @access  Private/Merchant Owner & Staff
+ */
 export const updateDiscount = asyncHandler(async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new AppError('No merchant associated', 400);
@@ -56,6 +71,11 @@ export const updateDiscount = asyncHandler(async (req: AuthRequest, res: Respons
   res.status(200).json({ success: true, data: discount });
 });
 
+/**
+ * @desc    Delete a discount
+ * @route   DELETE /api/discounts/:id
+ * @access  Private/Merchant Owner & Staff
+ */
 export const deleteDiscount = asyncHandler(async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new AppError('No merchant associated', 400);
@@ -66,6 +86,11 @@ export const deleteDiscount = asyncHandler(async (req: AuthRequest, res: Respons
   res.status(200).json({ success: true, message: 'Discount deleted' });
 });
 
+/**
+ * @desc    Validate a discount code
+ * @route   POST /api/discounts/validate
+ * @access  Private/Merchant Owner & Staff
+ */
 export const validateDiscount = asyncHandler(async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new AppError('No merchant associated', 400);

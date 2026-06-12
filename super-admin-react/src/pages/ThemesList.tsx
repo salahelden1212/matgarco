@@ -4,6 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import api from '../lib/api';
 import { toast } from 'sonner';
+import { Modal, Button, Skeleton, Card, Badge } from '../components/ui';
+import { PageHeader } from '../components/layout/PageHeader';
 
 const CATEGORY_LABELS: Record<string, string> = {
   general: 'عام',
@@ -356,68 +358,54 @@ function ThemeDetailModal({ theme, merchants, loadingMerchants, tab, setTab, onC
       showToast('تم إصدار التحديث');
     } catch { showToast('فشل إصدار التحديث', 'error'); }
     finally { setVersionSaving(false); }
-  };
+};
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-        {/* Modal Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-100">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900">{theme.name}</h2>
-            <p className="text-sm text-slate-500 mt-1">v{theme.version || '1.0.0'} — {CATEGORY_LABELS[theme.category] || 'عام'}</p>
-          </div>
-          <button onClick={onClose} className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">
-            <X size={20} />
+    <Modal open onClose={onClose} title={theme.name} size="lg">
+      <div className="flex border-b border-slate-100 px-6">
+        {[
+          { id: 'info', label: 'معلومات وتعديل', icon: Settings2 },
+          { id: 'merchants', label: `المتاجر (${merchants.length})`, icon: UsersIcon },
+          { id: 'versions', label: 'الإصدارات', icon: History }
+        ].map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id as any)}
+            className={clsx(
+              "flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition-colors",
+              tab === t.id ? 'border-matgarco-500 text-matgarco-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+            )}
+          >
+            <t.icon size={16} /> {t.label}
           </button>
-        </div>
+        ))}
+      </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-slate-100 px-6">
-          {[
-            { id: 'info', label: 'معلومات وتعديل', icon: Settings2 },
-            { id: 'merchants', label: `المتاجر (${merchants.length})`, icon: UsersIcon },
-            { id: 'versions', label: 'الإصدارات', icon: History }
-          ].map(t => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id as any)}
-              className={clsx(
-                "flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition-colors",
-                tab === t.id ? 'border-matgarco-500 text-matgarco-600' : 'border-transparent text-slate-500 hover:text-slate-700'
-              )}
-            >
-              <t.icon size={16} /> {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {tab === 'info' && (
-            <div className="space-y-5">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">اسم القالب</label>
-                <input value={editName} onChange={e => setEditName(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-matgarco-500 outline-none" />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">الوصف</label>
-                <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-matgarco-500 outline-none resize-none" />
-              </div>
-              <label className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl cursor-pointer">
-                <input type="checkbox" checked={editPremium} onChange={e => setEditPremium(e.target.checked)} className="w-5 h-5 accent-amber-600" />
-                <span className="font-bold text-amber-900">👑 قالب Premium</span>
-              </label>
-              <div className="flex gap-3">
-                <button onClick={handleSaveInfo} disabled={saving} className="flex items-center gap-2 bg-matgarco-600 hover:bg-matgarco-700 text-white px-6 py-2.5 rounded-xl font-bold transition-colors disabled:bg-slate-400">
-                  {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} حفظ
-                </button>
-                <button onClick={onClone} className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl font-bold transition-colors">
-                  <Copy size={18} /> نسخ القالب
-                </button>
-              </div>
+      <div className="flex-1 overflow-y-auto p-6">
+        {tab === 'info' && (
+          <div className="space-y-5">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">اسم القالب</label>
+              <input value={editName} onChange={e => setEditName(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-matgarco-500 outline-none" />
             </div>
-          )}
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">الوصف</label>
+              <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-matgarco-500 outline-none resize-none" />
+            </div>
+            <label className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl cursor-pointer">
+              <input type="checkbox" checked={editPremium} onChange={e => setEditPremium(e.target.checked)} className="w-5 h-5 accent-amber-600" />
+              <span className="font-bold text-amber-900">👑 قالب Premium</span>
+            </label>
+            <div className="flex gap-3">
+              <button onClick={handleSaveInfo} disabled={saving} className="flex items-center gap-2 bg-matgarco-600 hover:bg-matgarco-700 text-white px-6 py-2.5 rounded-xl font-bold transition-colors disabled:bg-slate-400">
+                {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} حفظ
+              </button>
+              <button onClick={onClone} className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl font-bold transition-colors">
+                <Copy size={18} /> نسخ القالب
+              </button>
+            </div>
+          </div>
+        )}
 
         {tab === 'merchants' && (
           loadingMerchants ? <div className="flex justify-center py-10"><div className="animate-spin w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full" /></div>

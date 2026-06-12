@@ -87,6 +87,12 @@ export interface IMerchant extends Document {
     estimatedDelivery: string;
   };
 
+  // Carrier API keys
+  bostaApiKey?: string;
+
+  // Custom Domain
+  domainVerified?: boolean;
+
   // Email & Notifications Settings
   emailSettings?: {
     enabled: boolean;
@@ -304,6 +310,10 @@ const merchantSchema = new Schema<IMerchant>(
       cityRates: [{ city: { type: String }, rate: { type: Number } }],
       estimatedDelivery: { type: String, default: '3-5 أيام عمل' },
     },
+
+    bostaApiKey: { type: String, select: false },
+
+    domainVerified: { type: Boolean, default: false },
 
     // Email & Notifications Settings
     emailSettings: {

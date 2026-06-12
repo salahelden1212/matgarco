@@ -30,7 +30,7 @@ export const authenticate = async (
 
     // For staff users, load fresh permissions from DB
     if (decoded.role === 'merchant_staff') {
-      const userDoc = await User.findById(decoded.userId).select('permissions staffRole staffRoleLabel isActive').lean();
+      const userDoc = await User.findById(decoded.userId).select('permissions staffRole staffRoleLabel isActive merchantId').lean();
       if (!userDoc) {
         throw new AppError('Account not found', 401);
       }
@@ -43,6 +43,23 @@ export const authenticate = async (
       }
       req.user.permissions = permissionsObj;
       req.user.staffRole = (userDoc.staffRole as string) || 'staff';
+      if (!req.user.merchantId && userDoc.merchantId) {
+        req.user.merchantId = userDoc.merchantId.toString();
+      }
+    }
+
+    // For owner tokens missing merchantId, sync from DB
+    if (decoded.role === 'merchant_owner' && !req.user.merchantId) {
+      const ownerDoc = await User.findById(decoded.userId).select('merchantId isActive').lean();
+      if (!ownerDoc) {
+        throw new AppError('Account not found', 401);
+      }
+      if (ownerDoc.isActive === false) {
+        throw new AppError('Account is deactivated', 403);
+      }
+      if (ownerDoc.merchantId) {
+        req.user.merchantId = ownerDoc.merchantId.toString();
+      }
     }
 
     next();
@@ -78,7 +95,7 @@ export const optionalAuth = async (
 
     // For staff users, load fresh permissions from DB
     if (decoded.role === 'merchant_staff') {
-      const userDoc = await User.findById(decoded.userId).select('permissions staffRole staffRoleLabel isActive').lean();
+      const userDoc = await User.findById(decoded.userId).select('permissions staffRole staffRoleLabel isActive merchantId').lean();
       if (userDoc && userDoc.isActive !== false) {
         const permissionsObj: Record<string, boolean> = {};
         if (userDoc.permissions && typeof userDoc.permissions === 'object') {
@@ -86,6 +103,16 @@ export const optionalAuth = async (
         }
         req.user.permissions = permissionsObj;
         req.user.staffRole = (userDoc.staffRole as string) || 'staff';
+        if (!req.user.merchantId && userDoc.merchantId) {
+          req.user.merchantId = userDoc.merchantId.toString();
+        }
+      }
+    }
+
+    if (decoded.role === 'merchant_owner' && !req.user.merchantId) {
+      const ownerDoc = await User.findById(decoded.userId).select('merchantId isActive').lean();
+      if (ownerDoc && ownerDoc.isActive !== false && ownerDoc.merchantId) {
+        req.user.merchantId = ownerDoc.merchantId.toString();
       }
     }
 

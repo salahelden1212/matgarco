@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { DASHBOARD_REGISTER } from "@/lib/config";
 
 /**
  * Phase 5 — InfiniteShowcase (Client Island)
@@ -101,7 +102,9 @@ export function InfiniteShowcase() {
             {/* Premium CTA with Hover Glow - Anchor Tag for Conversion Routing */}
             <div className="mt-4">
               <a
-                href="http://localhost:3002/register"
+                href={DASHBOARD_REGISTER}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center justify-center w-full md:w-auto md:justify-start gap-2 px-6 py-3 bg-[#3B82F6]/10 text-[#3B82F6] border border-[#3B82F6]/30 rounded-xl font-bold text-sm hover:bg-[#3B82F6] hover:text-white transition-all shadow-none hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] active:scale-95 cursor-pointer"
               >
                 {sector.cta}

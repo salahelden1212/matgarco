@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/components/CartProvider';
 import { ShoppingCart, Check, Share2, Facebook, Twitter, MessageCircle, Ruler } from 'lucide-react';
 import { getImageUrl, getProductImagesArray, optimizeCloudinaryUrl, getPlaceholderImage } from '@/lib/images';
+import ReviewSection from '@/components/ReviewSection';
 
 interface Props {
   product: any;
@@ -101,14 +102,14 @@ export default function ProductDetailClient({ product, subdomain, relatedProduct
             )}
           </div>
           {images.length > 1 && (
-            <div className="grid grid-cols-5 gap-2">
+            <div className="flex md:grid md:grid-cols-5 gap-2 overflow-x-auto snap-x snap-mandatory md:overflow-visible">
               {images.map((img: string, i: number) => {
                 const optimizedThumb = optimizeCloudinaryUrl(img, { width: 150, height: 150, quality: 80 });
                 return (
                   <button
                     key={i}
                     onClick={() => setSelectedImage(i)}
-                    className="relative aspect-square rounded-lg overflow-hidden transition-all bg-[var(--surface)]"
+                    className="relative w-16 md:w-auto aspect-square rounded-lg overflow-hidden transition-all bg-[var(--surface)] snap-start flex-shrink-0 md:flex-shrink"
                     style={{
                       border: i === selectedImage ? `2px solid var(--primary)` : `1px solid var(--border)`,
                     }}
@@ -142,11 +143,11 @@ export default function ProductDetailClient({ product, subdomain, relatedProduct
           {/* Pricing */}
           <div className="flex items-baseline gap-3 mb-6">
             <span className="text-3xl font-black text-[var(--primary)]">
-              {product.price?.toLocaleString()} ج.م
+              {product.price?.toLocaleString('en-US')} ج.م
             </span>
             {hasDiscount && (
               <span className="text-lg line-through text-[var(--text-muted)]">
-                {product.comparePrice?.toLocaleString()}
+                {product.comparePrice?.toLocaleString('en-US')}
               </span>
             )}
             {hasDiscount && (
@@ -269,7 +270,7 @@ export default function ProductDetailClient({ product, subdomain, relatedProduct
                   </div>
                   <div className="p-3">
                     <p className="text-sm font-semibold line-clamp-1 text-[var(--text)]">{rp.name}</p>
-                    <p className="text-sm font-bold mt-1 text-[var(--primary)]">{rp.price?.toLocaleString()} ج.م</p>
+                    <p className="text-sm font-bold mt-1 text-[var(--primary)]">{rp.price?.toLocaleString('en-US')} ج.م</p>
                   </div>
                 </Link>
               );
@@ -310,7 +311,7 @@ export default function ProductDetailClient({ product, subdomain, relatedProduct
                   </div>
                   <div className="p-3">
                     <p className="text-sm font-semibold line-clamp-1 text-[var(--text)]">{rp.name}</p>
-                    <p className="text-sm font-bold mt-1 text-[var(--text-muted)]">{rp.price?.toLocaleString()} ج.م</p>
+                    <p className="text-sm font-bold mt-1 text-[var(--text-muted)]">{rp.price?.toLocaleString('en-US')} ج.م</p>
                   </div>
                 </Link>
               );
@@ -318,6 +319,9 @@ export default function ProductDetailClient({ product, subdomain, relatedProduct
           </div>
         </div>
       )}
+
+      {/* Reviews */}
+      <ReviewSection productId={product._id} subdomain={subdomain} />
 
       {/* Size Guide Modal */}
       {showSizeGuide && (

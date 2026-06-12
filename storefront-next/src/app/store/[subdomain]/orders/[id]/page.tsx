@@ -73,7 +73,7 @@ export default async function OrderConfirmationPage({ params }: Props) {
                       <p className="text-sm font-medium text-[var(--text-muted)] mt-1">الكمية: {item.quantity}</p>
                     </div>
                     <span className="text-base font-black flex-shrink-0 text-[var(--primary)]">
-                      {item.subtotal?.toLocaleString()} {currency}
+                      {item.subtotal?.toLocaleString('en-US')} {currency}
                     </span>
                   </div>
                 ))}
@@ -82,7 +82,7 @@ export default async function OrderConfirmationPage({ params }: Props) {
               <div className="flex justify-between items-center px-6 py-5 border-t border-[var(--border)] bg-[var(--background)]">
                 <span className="font-black text-lg text-[var(--text-muted)]">الإجمالي الكلي</span>
                 <span className="text-2xl font-black text-[var(--primary)]">
-                  {order.total?.toLocaleString()} {currency}
+                  {order.total?.toLocaleString('en-US')} {currency}
                 </span>
               </div>
             </div>

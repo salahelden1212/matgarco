@@ -17,6 +17,13 @@ async def health_check():
     )
 
 
+@router.get("/cache-stats")
+async def cache_stats():
+    from services.qwen_client import qwen_client
+
+    return {"cache": qwen_client.cache_stats}
+
+
 @router.get("/")
 async def root():
     """Root endpoint."""
@@ -32,6 +39,7 @@ async def root():
             "analytics-insights": "POST /api/analytics/insights",
             "product-recommendations": "POST /api/analytics/product-recommendations",
             "customer-insights": "POST /api/analytics/customer-insights",
+            "cache-stats": "GET /cache-stats",
             "assistant-chat": "POST /api/assistant/chat",
             "suggest-actions": "POST /api/assistant/suggest-actions",
         },

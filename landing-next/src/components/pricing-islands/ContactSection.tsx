@@ -3,6 +3,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { MapPin, Phone, Mail, Globe } from "lucide-react";
+import { API_URL } from "@/lib/config";
 
 /**
  * ContactSection — Phase 13: Step 5 (Enterprise Contact System - UI Overhaul)
@@ -61,7 +62,7 @@ export function ContactSection() {
     setSubmitStatus("idle");
 
     try {
-      const response = await fetch("http://localhost:5000/api/contact", {
+      const response = await fetch(`${API_URL}/api/contact`, {
         method: "POST",
         mode: "cors",
         headers: {

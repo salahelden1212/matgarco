@@ -2,6 +2,7 @@
 
 import { useLanguage } from "@/i18n/LanguageContext";
 import { HeroWordFlip } from "./HeroWordFlip";
+import { DASHBOARD_REGISTER } from "@/lib/config";
 
 export function HeroContent() {
   const { t, lang } = useLanguage();
@@ -27,7 +28,9 @@ export function HeroContent() {
         style={{ animationDelay: "400ms" }}
       >
         <a
-          href="http://localhost:3002/register"
+          href={DASHBOARD_REGISTER}
+          target="_blank"
+          rel="noopener noreferrer"
           className={`group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#000080] text-white rounded-2xl font-black text-lg md:text-xl shadow-[0_15px_40px_rgba(0,0,128,0.4)] hover:shadow-[0_20px_50px_rgba(0,0,128,0.6)] hover:-translate-y-1 active:scale-95 transition-all duration-300 overflow-hidden outline-none w-full sm:w-auto ${typographyClass}`}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-[#000080] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0" />

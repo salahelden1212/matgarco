@@ -34,6 +34,11 @@ const PLAN_ORDER: PlanId[] = ['free_trial', 'starter', 'professional', 'business
 // ─────────────────────────────────────────────
 // GET /api/subscriptions/plans
 // ─────────────────────────────────────────────
+/**
+ * @desc    List all available subscription plans
+ * @route   GET /api/subscriptions/plans
+ * @access  Public
+ */
 export const listPlans = async (_req: AuthRequest, res: Response) => {
   const plans = Object.values(PLANS).map((p) => ({
     id: p.id,
@@ -51,6 +56,11 @@ export const listPlans = async (_req: AuthRequest, res: Response) => {
 // ─────────────────────────────────────────────
 // GET /api/subscriptions/my
 // ─────────────────────────────────────────────
+/**
+ * @desc    Get current merchant's subscription
+ * @route   GET /api/subscriptions/my
+ * @access  Private (Merchant)
+ */
 export const getMySubscription = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new AppError('Merchant not found', 403);
@@ -68,6 +78,11 @@ export const getMySubscription = async (req: AuthRequest, res: Response) => {
 // ─────────────────────────────────────────────
 // POST /api/subscriptions/subscribe
 // ─────────────────────────────────────────────
+/**
+ * @desc    Subscribe to a new plan
+ * @route   POST /api/subscriptions/subscribe
+ * @access  Private (Merchant)
+ */
 export const subscribeToPlan = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new AppError('Merchant not found', 403);
@@ -147,6 +162,11 @@ export const subscribeToPlan = async (req: AuthRequest, res: Response) => {
 // ─────────────────────────────────────────────
 // POST /api/subscriptions/upgrade
 // ─────────────────────────────────────────────
+/**
+ * @desc    Upgrade to a higher plan
+ * @route   POST /api/subscriptions/upgrade
+ * @access  Private (Merchant)
+ */
 export const upgradePlan = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new AppError('Merchant not found', 403);
@@ -211,6 +231,11 @@ export const upgradePlan = async (req: AuthRequest, res: Response) => {
 // ─────────────────────────────────────────────
 // POST /api/subscriptions/downgrade
 // ─────────────────────────────────────────────
+/**
+ * @desc    Downgrade to a lower plan
+ * @route   POST /api/subscriptions/downgrade
+ * @access  Private (Merchant)
+ */
 export const downgradePlan = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new AppError('Merchant not found', 403);
@@ -253,6 +278,11 @@ export const downgradePlan = async (req: AuthRequest, res: Response) => {
 // ─────────────────────────────────────────────
 // POST /api/subscriptions/cancel
 // ─────────────────────────────────────────────
+/**
+ * @desc    Cancel current subscription
+ * @route   POST /api/subscriptions/cancel
+ * @access  Private (Merchant)
+ */
 export const cancelSubscription = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new AppError('Merchant not found', 403);
@@ -285,6 +315,11 @@ export const cancelSubscription = async (req: AuthRequest, res: Response) => {
 // ─────────────────────────────────────────────
 // GET /api/subscriptions/invoices
 // ─────────────────────────────────────────────
+/**
+ * @desc    List subscription invoices
+ * @route   GET /api/subscriptions/invoices
+ * @access  Private (Merchant)
+ */
 export const listInvoices = async (req: AuthRequest, res: Response) => {
   const merchantId = req.user?.merchantId;
   if (!merchantId) throw new AppError('Merchant not found', 403);
@@ -307,6 +342,11 @@ export const listInvoices = async (req: AuthRequest, res: Response) => {
 // ─────────────────────────────────────────────
 // GET /api/super-admin/subscriptions/all
 // ─────────────────────────────────────────────
+/**
+ * @desc    Get all subscriptions (super admin)
+ * @route   GET /api/super-admin/subscriptions/all
+ * @access  Private (Super Admin)
+ */
 export const getAllSubscriptions = async (req: AuthRequest, res: Response) => {
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 20;

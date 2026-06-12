@@ -14,12 +14,12 @@ import { HeroContent } from "@/components/islands/HeroContent";
  */
 export function HeroSection() {
   return (
-    <section className="relative pt-32 pb-0 overflow-hidden bg-[#050505] min-h-screen flex flex-col justify-between border-b border-white/10 isolate">
+    <section className="relative pb-0 overflow-hidden bg-[#050505] min-h-screen flex flex-col justify-between border-b border-white/10 isolate">
 
       {/* z-0 — Infinite panning e-commerce image grid */}
       <HeroBackgroundGrid />
 
-      <div className="w-full max-w-7xl mx-auto px-6 relative z-10 flex-1 flex flex-col justify-center mt-12 py-10">
+      <div className="w-full max-w-7xl mx-auto px-6 relative z-10 flex-1 flex flex-col justify-center">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center w-full">
 
           {/* Start column — reactive i18n text + CTA */}

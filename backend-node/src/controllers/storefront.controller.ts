@@ -10,34 +10,26 @@ import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { calculatePagination } from '../utils/helpers';
 import StoreTheme from '../models/StoreTheme';
 import { normalizeThemePages } from '../utils/themeNormalization';
+import { cacheService } from '../services/cache.service';
 
-// Simple in-memory cache for storefront data
-const storefrontCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-function getStorefrontCache(key: string): any | null {
-  const cached = storefrontCache.get(key);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.data;
-  }
-  storefrontCache.delete(key);
-  return null;
+async function getStorefrontCache(key: string): Promise<any | null> {
+  const raw = await cacheService.get(key);
+  return raw ? JSON.parse(raw) : null;
 }
 
-function setStorefrontCache(key: string, data: any): void {
-  storefrontCache.set(key, { data, timestamp: Date.now() });
+async function setStorefrontCache(key: string, data: any): Promise<void> {
+  await cacheService.set(key, JSON.stringify(data), 300);
 }
 
-// Clear cache for a specific merchant (call this when products/theme are updated)
-export function clearStorefrontCache(subdomain: string): void {
-  for (const key of storefrontCache.keys()) {
-    if (key.includes(subdomain.toLowerCase())) {
-      storefrontCache.delete(key);
-    }
-  }
+export async function clearStorefrontCache(subdomain: string): Promise<void> {
+  await cacheService.delByPattern(`storefront:*${subdomain.toLowerCase()}*`);
 }
 
-/** GET /api/storefront/:subdomain/products */
+/**
+ * @desc    Get storefront products with filtering & pagination
+ * @route   GET /api/storefront/:subdomain/products
+ * @access  Public
+ */
 export const getStorefrontProducts = asyncHandler(async (req: Request, res: Response) => {
   const { subdomain } = req.params;
 
@@ -86,7 +78,11 @@ export const getStorefrontProducts = asyncHandler(async (req: Request, res: Resp
   });
 });
 
-/** GET /api/storefront/:subdomain/products/slug/:slug */
+/**
+ * @desc    Get a single storefront product by slug
+ * @route   GET /api/storefront/:subdomain/products/slug/:slug
+ * @access  Public
+ */
 export const getStorefrontProductBySlug = asyncHandler(async (req: Request, res: Response) => {
   const { subdomain, slug } = req.params;
 
@@ -127,7 +123,11 @@ export const getStorefrontProductBySlug = asyncHandler(async (req: Request, res:
   });
 });
 
-/** GET /api/storefront/:subdomain/categories */
+/**
+ * @desc    Get storefront categories
+ * @route   GET /api/storefront/:subdomain/categories
+ * @access  Public
+ */
 export const getStorefrontCategories = asyncHandler(async (req: Request, res: Response) => {
   const { subdomain } = req.params;
 
@@ -154,7 +154,7 @@ export const getStorefrontTheme = asyncHandler(async (req: Request, res: Respons
   const cacheKey = `theme:${subdomain.toLowerCase()}`;
   
   // Check cache first
-  const cached = getStorefrontCache(cacheKey);
+  const cached = await getStorefrontCache(cacheKey);
   if (cached && !req.query.nocache) {
     return res.json({
       success: true,
@@ -182,7 +182,7 @@ export const getStorefrontTheme = asyncHandler(async (req: Request, res: Respons
   };
   
   // Cache the response
-  setStorefrontCache(cacheKey, response);
+  await setStorefrontCache(cacheKey, response);
 
   res.json({
     success: true,

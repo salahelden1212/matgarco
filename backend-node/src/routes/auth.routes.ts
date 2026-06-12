@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import {
   register,
   login,
@@ -64,7 +65,15 @@ router.get('/me', authenticate, getCurrentUser);
 router.patch('/me', authenticate, updateProfile);
 router.post('/change-password', authenticate, changePassword);
 router.post('/verify-email', validate(verifyEmailSchema), verifyEmail);
-router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
-router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
+const strictLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { success: false, error: 'Too many requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+router.post('/forgot-password', strictLimiter, validate(forgotPasswordSchema), forgotPassword);
+router.post('/reset-password', strictLimiter, validate(resetPasswordSchema), resetPassword);
 
 export default router;

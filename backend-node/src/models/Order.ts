@@ -323,6 +323,10 @@ orderSchema.pre('save', function (next) {
   next();
 });
 
+orderSchema.index({ merchantId: 1, createdAt: -1 });
+orderSchema.index({ merchantId: 1, orderStatus: 1 });
+orderSchema.index({ merchantId: 1, paymentStatus: 1 });
+
 const Order = mongoose.model<IOrder>('Order', orderSchema);
 
 export default Order;

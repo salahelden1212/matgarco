@@ -345,7 +345,7 @@ export default function MerchantDetails() {
               </button>
               <button onClick={() => setShowNotify(false)} className="flex-1 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200">إلغاء</button>
             </div>
-          </Card>
+          </div>
         </div>
       )}
     </div>
