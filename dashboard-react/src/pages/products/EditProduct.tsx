@@ -95,7 +95,7 @@ export const EditProduct: React.FC = () => {
 
   // Generate description mutation
   const generateDescriptionMutation = useMutation({
-    mutationFn: () => productAPI.generateDescription(id!),
+    mutationFn: () => productAPI.generateDescriptionForProduct(id!),
     onSuccess: (response: any) => {
       const generatedDescription = response.data?.data?.generatedDescription || response.data?.data?.product?.description;
       if (generatedDescription) {

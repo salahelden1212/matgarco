@@ -6,25 +6,7 @@ import Merchant from '../models/Merchant';
 import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { AuthRequest } from '../types';
 import { checkAndDeductAICredit } from '../utils/aiCredit';
-
-async function callAIService(endpoint: string, data: any): Promise<any> {
-  const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
-
-  const response = await fetch(`${aiServiceUrl}${endpoint}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`AI service error (${response.status}): ${errorText}`);
-  }
-
-  return response.json();
-}
+import { callAIService } from '../services/aiServiceClient';
 
 export const generateSEO = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -262,6 +244,254 @@ export const assistantChat = asyncHandler(
       console.error('AI Assistant Error:', error.message);
       throw new AppError(error.message || 'Failed to get assistant response', 503);
     }
+  }
+);
+
+export const generateAltText = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { productName, imageContext, language } = req.body;
+
+    if (!productName) {
+      throw new AppError('Product name is required', 400);
+    }
+
+    try {
+      const merchantId = req.user?.merchantId;
+      if (!merchantId) throw new AppError('No merchant associated', 400);
+
+      await checkAndDeductAICredit(merchantId);
+
+      const result = await callAIService('/api/generate-alt-text', {
+        productName,
+        imageContext: imageContext || '',
+        language: language || 'ar',
+      });
+
+      res.status(200).json({ success: true, data: { altText: result.altText } });
+    } catch (error: any) {
+      console.error('AI Alt Text Error:', error.message);
+      throw new AppError(error.message || 'Failed to generate alt text', 503);
+    }
+  }
+);
+
+export const generateMarketingCopy = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { productName, description, audience, language } = req.body;
+
+    if (!productName) {
+      throw new AppError('Product name is required', 400);
+    }
+
+    try {
+      const merchantId = req.user?.merchantId;
+      if (!merchantId) throw new AppError('No merchant associated', 400);
+
+      await checkAndDeductAICredit(merchantId);
+
+      const result = await callAIService('/api/generate-marketing-copy', {
+        productName,
+        description: description || '',
+        audience: audience || '',
+        language: language || 'ar',
+      });
+
+      res.status(200).json({ success: true, data: { marketingCopy: result.marketingCopy } });
+    } catch (error: any) {
+      console.error('AI Marketing Error:', error.message);
+      throw new AppError(error.message || 'Failed to generate marketing copy', 503);
+    }
+  }
+);
+
+export const predictSales = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { language } = req.body;
+
+    try {
+      const merchantId = req.user?.merchantId;
+      if (!merchantId) throw new AppError('No merchant associated', 400);
+
+      await checkAndDeductAICredit(merchantId);
+
+      const [products, orders] = await Promise.all([
+        Product.find({ merchantId }).select('name price quantity category status sales createdAt').limit(30),
+        Order.find({ merchantId }).select('total items orderStatus createdAt').sort({ createdAt: -1 }).limit(50),
+      ]);
+
+      const salesData = orders.map((o: any) => ({
+        total: o.total,
+        items: o.items?.length || 0,
+        status: o.orderStatus,
+        date: o.createdAt,
+      }));
+
+      const result = await callAIService('/api/predict-sales', {
+        salesData,
+        productsData: products,
+        language: language || 'ar',
+      });
+
+      res.status(200).json({ success: true, data: { predictions: result.predictions } });
+    } catch (error: any) {
+      console.error('AI Prediction Error:', error.message);
+      throw new AppError(error.message || 'Failed to generate predictions', 503);
+    }
+  }
+);
+
+export const generateCategorySuggestion = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { productName, description, language } = req.body;
+
+    if (!productName) {
+      throw new AppError('Product name is required', 400);
+    }
+
+    try {
+      const merchantId = req.user?.merchantId;
+      if (!merchantId) {
+        throw new AppError('No merchant associated', 400);
+      }
+
+      await checkAndDeductAICredit(merchantId);
+
+      const result = await callAIService('/api/suggest-categories', {
+        productName,
+        description: description || '',
+        language: language || 'ar',
+      });
+
+      res.status(200).json({
+        success: true,
+        data: result.data,
+      });
+    } catch (error: any) {
+      console.error('AI Category Error:', error.message);
+      throw new AppError(error.message || 'Failed to suggest categories', 503);
+    }
+  }
+);
+
+export const generateTags = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { productName, category, features, language } = req.body;
+
+    if (!productName) {
+      throw new AppError('Product name is required', 400);
+    }
+
+    try {
+      const merchantId = req.user?.merchantId;
+      if (!merchantId) throw new AppError('No merchant associated', 400);
+
+      await checkAndDeductAICredit(merchantId);
+
+      const result = await callAIService('/api/generate-tags', {
+        productName,
+        category: category || '',
+        features: features || [],
+        language: language || 'ar',
+      });
+
+      res.status(200).json({ success: true, data: result.data });
+    } catch (error: any) {
+      console.error('AI Tags Error:', error.message);
+      throw new AppError(error.message || 'Failed to generate tags', 503);
+    }
+  }
+);
+
+export const generateStoreSEO = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { storeName, description, industry, language } = req.body;
+
+    if (!storeName) {
+      throw new AppError('Store name is required', 400);
+    }
+
+    try {
+      const merchantId = req.user?.merchantId;
+
+      if (merchantId) {
+        await checkAndDeductAICredit(merchantId);
+      }
+
+      const result = await callAIService('/api/generate-store-seo', {
+        storeName,
+        description: description || '',
+        industry: industry || '',
+        language: language || 'ar',
+      });
+
+      res.status(200).json({ success: true, data: result.data });
+    } catch (error: any) {
+      console.error('AI Store SEO Error:', error.message);
+      throw new AppError(error.message || 'Failed to generate store SEO', 503);
+    }
+  }
+);
+
+export const generateBrandingSuggestions = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { businessName, businessType, industry, description, language } = req.body;
+
+    if (!businessName) {
+      throw new AppError('Business name is required', 400);
+    }
+
+    try {
+      const merchantId = req.user?.merchantId;
+
+      // Deduct credit only if merchant exists (during onboarding there's no merchant yet)
+      if (merchantId) {
+        await checkAndDeductAICredit(merchantId);
+      }
+
+      const result = await callAIService('/api/suggest-branding', {
+        businessName,
+        businessType: businessType || '',
+        industry: industry || '',
+        description: description || '',
+        language: language || 'ar',
+      });
+
+      res.status(200).json({ success: true, data: result.data });
+    } catch (error: any) {
+      console.error('AI Branding Error:', error.message);
+      throw new AppError(error.message || 'Failed to generate branding suggestions', 503);
+    }
+  }
+);
+
+export const getAIUsage = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const merchantId = req.user?.merchantId;
+    if (!merchantId) {
+      throw new AppError('No merchant associated', 400);
+    }
+
+    const merchant = await Merchant.findById(merchantId).select('limits subscriptionPlan');
+    if (!merchant) {
+      throw new AppError('Merchant not found', 404);
+    }
+
+    const creditsPerMonth = merchant.limits.aiCreditsPerMonth;
+    const creditsUsed = merchant.limits.aiCreditsUsed;
+    const creditsRemaining = creditsPerMonth === -1 ? -1 : Math.max(0, creditsPerMonth - creditsUsed);
+    const usagePercent = creditsPerMonth === -1 ? 0 : Math.round((creditsUsed / creditsPerMonth) * 100);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        plan: merchant.subscriptionPlan,
+        creditsPerMonth,
+        creditsUsed,
+        creditsRemaining,
+        usagePercent,
+        isUnlimited: creditsPerMonth === -1,
+      },
+    });
   }
 );
 

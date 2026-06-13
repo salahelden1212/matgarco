@@ -73,13 +73,15 @@ export const checkCanReview = asyncHandler(async (req: AuthRequest, res: Respons
   const customerId = req.user?.customerId;
 
   if (!customerId) {
-    return res.status(200).json({ success: true, data: { canReview: false, reason: 'not_logged_in' } });
+    res.status(200).json({ success: true, data: { canReview: false, reason: 'not_logged_in' } });
+    return;
   }
 
   // Check if already reviewed
   const existingReview = await Review.findOne({ productId, customerId });
   if (existingReview) {
-    return res.status(200).json({ success: true, data: { canReview: false, reason: 'already_reviewed' } });
+    res.status(200).json({ success: true, data: { canReview: false, reason: 'already_reviewed' } });
+    return;
   }
 
   // Check if verified purchase

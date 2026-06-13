@@ -6,6 +6,7 @@ import { AuthRequest } from '../types';
 import { generateSlug } from '../utils/helpers';
 import { calculatePagination } from '../utils/helpers';
 import { checkAndDeductAICredit } from '../utils/aiCredit';
+import { callAIService } from '../services/aiServiceClient';
 import { cacheService } from '../services/cache.service';
 
 function getCacheKey(subdomain: string, endpoint: string, params: string): string {
@@ -25,31 +26,16 @@ export async function clearMerchantCache(subdomain: string): Promise<void> {
   await cacheService.delByPattern(`product:${subdomain}:*`);
 }
 
-async function callAIService(productName: string, category: string, price?: number, tags?: string[]): Promise<string> {
-  const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
-
-  const response = await fetch(`${aiServiceUrl}/api/generate-description`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      productName,
-      category,
-      price,
-      tags,
-      language: 'ar',
-    }),
+async function callDescriptionAIService(productName: string, category: string, price?: number, tags?: string[]): Promise<string> {
+  const data = await callAIService('/api/generate-description', {
+    productName,
+    category: category || 'general',
+    price,
+    tags: tags || [],
+    language: 'ar',
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`AI service error (${response.status}): ${errorText}`);
-  }
-
-  const data = await response.json();
   const description = (data as any).description;
-
   if (!description) {
     throw new Error('Empty response from AI service');
   }
@@ -464,7 +450,7 @@ export const generateProductDescription = asyncHandler(
     try {
       await checkAndDeductAICredit(merchantId);
 
-      const generatedDescription = await callAIService(
+      const generatedDescription = await callDescriptionAIService(
         product.name,
         product.category || 'general',
         product.price,
@@ -517,7 +503,7 @@ export const generateDescriptionDraft = asyncHandler(
       
       await checkAndDeductAICredit(merchantId);
 
-      const generatedDescription = await callAIService(
+      const generatedDescription = await callDescriptionAIService(
         productName.trim(),
         category || 'general',
         price,

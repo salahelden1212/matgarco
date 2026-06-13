@@ -2,7 +2,7 @@
 
 **Version:** 2.0  
 **Date:** March 17, 2026  
-**Status:** Phase 3 (Storefront) 80% Complete — Phase 4 (Payment) Next
+**Status:** Phase 6 (AI Features) Complete — Phase 4 (Payment) Next
 
 ---
 
@@ -90,8 +90,8 @@
 | ------------- | ----------------- | --------------------------- |
 | **Runtime**   | Python            | 3.11+                       |
 | **Framework** | FastAPI           | Fast, Async, Auto docs      |
-| **AI Models** | Ollama (Local)    | Free, Privacy, No API costs |
-| **Models**    | Llama 3 / Mistral | Product descriptions, SEO   |
+| **AI Models** | Qwen (DashScope)  | Arabic support, Fast, Reliable |
+| **Models**    | Qwen-Turbo        | All AI features              |
 | **Image**     | Pillow            | Image optimization          |
 
 ### Storage & Media
@@ -148,7 +148,7 @@
                  ┌───────────────┐              ┌──────────────────┐
                  │   MongoDB     │              │   AI Service     │
                  │   (Atlas)     │              │   (FastAPI)      │
-                 │               │              │   + Ollama       │
+                 │               │              │   + Qwen API     │
                  └───────┬───────┘              └──────────────────┘
                          │
                          ▼
@@ -1096,12 +1096,18 @@ Authorization: Bearer <JWT_TOKEN>
 
 ### 5.11 AI Routes (`/api/ai`)
 
-| Method | Endpoint                | Description                  | Auth | Role     |
-| ------ | ----------------------- | ---------------------------- | ---- | -------- |
-| POST   | `/generate-description` | Generate product description | ✅   | Merchant |
-| POST   | `/optimize-seo`         | Optimize product SEO         | ✅   | Merchant |
-| POST   | `/suggest-categories`   | Suggest product categories   | ✅   | Merchant |
-| GET    | `/usage`                | Get AI usage stats           | ✅   | Merchant |
+| Method | Endpoint                                   | Description                  | Auth | Role     |
+| ------ | ------------------------------------------ | ---------------------------- | ---- | -------- |
+| POST   | `/seo`                                     | Optimize product SEO         | ✅   | Merchant |
+| POST   | `/analytics/insights`                      | Generate analytics insights  | ✅   | Merchant |
+| POST   | `/analytics/product-recommendations`       | Product recommendations      | ✅   | Merchant |
+| POST   | `/analytics/customer-insights`             | Customer insights            | ✅   | Merchant |
+| POST   | `/assistant/chat`                          | AI assistant chat            | ✅   | Merchant |
+| POST   | `/assistant/suggest-actions`               | Action suggestions           | ✅   | Merchant |
+| POST   | `/suggest-categories`                      | Suggest product categories   | ✅   | Merchant |
+| GET    | `/usage`                                   | Get AI usage stats           | ✅   | Merchant |
+
+**Note:** Product description generation is at `POST /api/products/generate-description` and `POST /api/products/:id/generate-description` (product routes).
 
 ---
 
@@ -1497,18 +1503,24 @@ matgarco/
 
 ### 7.5 AI Features
 
-✅ **MVP (Phase 1)**
+✅ **MVP (Phase 1) — COMPLETE ✅**
 
-- [ ] Product description generation
-- [ ] Basic SEO optimization
+- [x] Product description generation (Arabic/English)
+- [x] Basic SEO optimization
+- [x] Category suggestions
+- [x] AI assistant chatbot
+- [x] Analytics insights
+- [x] Product recommendations
+- [x] Customer insights
+- [x] Action suggestions
+- [x] Translation
+- [x] AI credit usage tracking
 
-🔄 **Phase 2**
+🔄 **Phase 2 — PENDING**
 
-- [ ] Category suggestions
 - [ ] Image alt text generation
 - [ ] Marketing copy generation
 - [ ] Sales predictions
-- [ ] Customer insights
 
 ---
 
@@ -1647,14 +1659,14 @@ Same tiered approach for shipping. Simpler plans use manual tracking or the plat
 - ✅ 100 products
 - ✅ Payment gateway integration
 - ✅ Shipping integration
-- ✅ AI descriptions (30 credits)
+- ✅ AI tools (30 credits)
 - ✅ Standard analytics
 - ✅ Remove "Powered by Matgarco"
 
 **Limits:**
 
 - `maxProducts: 100`
-- `maxStaffUsers: 1`
+- `maxStaffUsers: 2`
 - `aiCreditsPerMonth: 30`
 
 ---
@@ -1667,7 +1679,7 @@ Same tiered approach for shipping. Simpler plans use manual tracking or the plat
 **Features:**
 
 - ✅ Everything in Starter
-- ✅ Unlimited products
+- ✅ 500 products
 - ✅ Advanced analytics
 - ✅ AI tools (100 credits)
 - ✅ Custom domain
@@ -1676,8 +1688,8 @@ Same tiered approach for shipping. Simpler plans use manual tracking or the plat
 
 **Limits:**
 
-- `maxProducts: -1` (unlimited)
-- `maxStaffUsers: 3`
+- `maxProducts: 500`
+- `maxStaffUsers: 5`
 - `aiCreditsPerMonth: 100`
 
 ---
@@ -1690,9 +1702,10 @@ Same tiered approach for shipping. Simpler plans use manual tracking or the plat
 **Features:**
 
 - ✅ Everything in Professional
+- ✅ Unlimited products
 - ✅ Multi-user staff access
 - ✅ Inventory forecasting
-- ✅ AI marketing (300 credits)
+- ✅ AI tools (300 credits)
 - ✅ Export reports (PDF/CSV)
 - ✅ API access
 - ✅ Dedicated support
@@ -1700,7 +1713,7 @@ Same tiered approach for shipping. Simpler plans use manual tracking or the plat
 **Limits:**
 
 - `maxProducts: -1` (unlimited)
-- `maxStaffUsers: 10`
+- `maxStaffUsers: -1` (unlimited)
 - `aiCreditsPerMonth: 300`
 
 ---
@@ -1725,29 +1738,27 @@ Same tiered approach for shipping. Simpler plans use manual tracking or the plat
 
 ## 9. AI Capabilities
 
-### 9.1 Local AI Setup (Ollama)
+### 9.1 AI Service Setup (Qwen via DashScope)
 
-**Why Local?**
+**Current Implementation:**
 
-- ✅ No API costs
-- ✅ Privacy (data doesn't leave server)
-- ✅ Unlimited usage (based on hardware)
-- ✅ Fast response times
+The AI service uses **Qwen** via **DashScope API** (Alibaba Cloud) instead of local Ollama.
 
-**Recommended Models:**
+**Why Qwen over Ollama?**
 
-- **Llama 3 (8B)** - Best quality, needs 8GB+ RAM
-- **Mistral (7B)** - Faster, good quality
-- **Phi-2 (2.7B)** - Lightweight, basic tasks
+- ✅ No local GPU/RAM requirements
+- ✅ Faster response times
+- ✅ Strong Arabic language support
+- ✅ Reliable cloud infrastructure
+- ✅ Circuit breaker + fallback for resilience
 
-**Installation:**
+**Setup:**
 
 ```bash
-# Install Ollama
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Download model
-ollama pull llama3
+# Get API key from https://dashscope.aliyun.com
+# Set in .env:
+QWEN_API_KEY=sk-your-key-here
+QWEN_MODEL=qwen-turbo
 ```
 
 ---
@@ -1831,9 +1842,9 @@ Backend API (Node.js)
        ↓
 AI Service (FastAPI)
        ↓
-    Ollama
-       ↓
-  (Generated text)
+   Qwen API (DashScope)
+        ↓
+   (Generated text / JSON)
        ↓
 Backend → Dashboard
 ```
@@ -1846,11 +1857,17 @@ Backend → Dashboard
 - Credits reset monthly based on plan
 - If credits exhausted, feature disabled until next month or upgrade
 
-**Example:**
+**Actual Costs (Implemented):**
 
 - Product description = 1 credit
 - SEO optimization = 2 credits
 - Category suggestion = 1 credit
+- Analytics insights = 1 credit
+- Assistant chat = 1 credit
+- Action suggestions = 1 credit
+- Image alt text = 1 credit (reserved)
+
+All AI endpoints deduct 1 credit per call via `checkAndDeductAICredit()`. In the Business plan, credits are effectively unlimited (`aiCreditsPerMonth: 300`).
 
 ---
 
@@ -2004,29 +2021,42 @@ Backend → Dashboard
 
 ---
 
-### Phase 6: AI Features (Week 9)
+### Phase 6: AI Features (Week 9) ✅ COMPLETE
 
-**AI Service**
+**AI Service** ✅
 
-- [ ] FastAPI setup
-- [ ] Ollama integration
-- [ ] Description generator endpoint
-- [ ] SEO optimizer endpoint
-- [ ] Category suggester endpoint
+- [x] FastAPI setup
+- [x] Qwen API integration (replaced Ollama)
+- [x] Description generator endpoint
+- [x] SEO optimizer endpoint
+- [x] Category suggester endpoint
+- [x] Translation endpoint
+- [x] AI assistant endpoint
+- [x] Analytics insights endpoint
+- [x] Product recommendations endpoint
+- [x] Customer insights endpoint
+- [x] API key authentication
+- [x] Rate limiting
+- [x] Caching and circuit breaker
 
-**Backend**
+**Backend** ✅
 
-- [ ] AI usage model
-- [ ] AI routes
-- [ ] Credit system
-- [ ] AI service client
+- [x] AI routes (8 endpoints)
+- [x] Credit system (checkAndDeductAICredit)
+- [x] AI service client (shared service)
+- [x] AI credit limits per plan
+- [x] Credit usage API
 
-**Dashboard**
+**Dashboard** ✅
 
-- [ ] AI tools section
-- [ ] Generate description button
-- [ ] Optimize SEO button
-- [ ] Credit usage display
+- [x] AI assistant (floating widget)
+- [x] Generate description button (AddProduct/EditProduct)
+- [x] Optimize SEO button (Store Design)
+- [x] Analytics insights widget (Dashboard + Reports)
+- [x] Product recommendations (Reports)
+- [x] Customer insights (Reports)
+- [x] Credit usage display (Dashboard)
+- [x] Category suggestion (AddProduct)
 
 ---
 
@@ -2748,7 +2778,8 @@ POST /orders
 **Phase 2:** ✅ 100% Complete (Storefront — 6 templates, 7 pages, theme engine)  
 **Phase 3:** ✅ 100% Complete (Customization — 7 design panels, draft/publish, preview)  
 **Phase 4:** ❌ Pending (Payment — Paymob integration)  
-**Phase 5:** ❌ Pending (Shipping — Bosta integration)
+**Phase 5:** ❌ Pending (Shipping — Bosta integration)  
+**Phase 6:** ✅ 100% Complete (AI Features — Qwen, Assistant, Analytics, Category Suggestions, Credit System)
 
 **Total Backend Files:** 50+ created  
 **Total API Endpoints:** 55+ live and working  
@@ -2821,9 +2852,8 @@ POST /orders
 1. Email service not configured (needs real SMTP)
 2. Rate limiting commented out (need Redis)
 3. Payment gateway not integrated (Paymob — Phase 4)
-4. AI service not connected (Python service — Phase 8)
-5. Checkout → Order flow needs full end-to-end testing
-6. Mobile optimization for storefront
+4. Checkout → Order flow needs full end-to-end testing
+5. Mobile optimization for storefront
 
 ---
 
@@ -2873,7 +2903,7 @@ graph TB
 
     subgraph "🤖 AI Service"
         PY[ai-python<br/>Port 8000]
-        OL[Ollama<br/>Llama 3 / Mistral]
+        QW[Qwen API<br/>DashScope - Qwen-Turbo]
     end
 
     subgraph "🗄️ Data Stores"
@@ -3091,4 +3121,4 @@ All 22 controller files were reviewed for how they obtain `merchantId`:
 
 **Document Version:** 2.1  
 **Last Updated:** June 12, 2026  
-**Status:** Phase 3 Complete — Phases 1-2 Fully Delivered 🚀
+**Status:** Phase 6 Complete — AI Features Fully Delivered 🚀

@@ -1,36 +1,17 @@
 # Matgarco AI Service
 
-AI-powered features using local LLM (Ollama).
+AI-powered features using Qwen via DashScope API.
 
 ## Tech Stack
 
 - **Framework:** FastAPI
 - **Language:** Python 3.11+
-- **LLM:** Ollama (Llama 3 / Mistral)
+- **LLM:** Qwen (DashScope API) with fallback responses
 - **Image Processing:** Pillow
 
-## Setup
+## Quick Start
 
-### 1. Install Ollama
-
-```bash
-# Windows (PowerShell as Admin)
-Invoke-WebRequest -Uri https://ollama.com/download/windows -OutFile ollama-setup.exe
-.\ollama-setup.exe
-
-# Start Ollama
-ollama serve
-```
-
-### 2. Download AI Model
-
-```bash
-ollama pull llama3
-# or
-ollama pull mistral
-```
-
-### 3. Create Virtual Environment
+### 1. Create Virtual Environment
 
 ```bash
 python -m venv venv
@@ -42,13 +23,13 @@ python -m venv venv
 source venv/bin/activate
 ```
 
-### 4. Install Dependencies
+### 2. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 5. Environment Variables
+### 3. Environment Variables
 
 Copy `.env.example` to `.env`:
 
@@ -56,34 +37,67 @@ Copy `.env.example` to `.env`:
 cp .env.example .env
 ```
 
-### 6. Run Server
+Edit `.env` and set your **QWEN_API_KEY** (from DashScope/Alibaba Cloud).
+
+### 4. Run Server
 
 ```bash
-uvicorn app.main:app --reload --port 8000
+python main.py
+# or
+uvicorn main:app --reload --port 8000
 ```
 
 The API will be available at `http://localhost:8000`
 
 API Documentation: `http://localhost:8000/docs`
 
+## Authentication
+
+All endpoints except `/health` require an API key in the `Authorization` header:
+
+```
+Authorization: Bearer your-ai-service-secret-key
+```
+
+Set `AI_SERVICE_API_KEY` in `.env`. In development, auth can be skipped by leaving the key empty.
+
 ## Features
 
-- **Product Description Generator** - Generate engaging product descriptions
+- **Product Description Generator** - Generate engaging product descriptions (AR/EN)
 - **SEO Optimizer** - Create SEO-friendly titles, descriptions, and keywords
 - **Category Suggester** - Suggest relevant product categories and tags
-
-## Available Models
-
-- **llama3:8b** - Best quality, requires 8GB+ RAM
-- **mistral:7b** - Faster, good quality
-- **phi:2.7b** - Lightweight, basic tasks
+- **Translation** - Translate text between languages
+- **AI Assistant** - Smart assistant for store management
+- **Analytics Insights** - Data-driven store analysis
+- **Product Recommendations** - AI-powered product suggestions
+- **Customer Insights** - Customer behavior analysis
+- **Action Suggestions** - Actionable store improvement tips
 
 ## API Endpoints
 
-- `POST /api/generate-description` - Generate product description
-- `POST /api/optimize-seo` - Optimize product SEO
-- `POST /api/suggest-categories` - Suggest categories
-- `GET /health` - Health check
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Health check |
+| POST | `/api/generate-description` | Generate product description |
+| POST | `/api/generate-seo` | Generate SEO metadata |
+| POST | `/api/suggest-categories` | Suggest product categories |
+| POST | `/api/translate` | Translate text |
+| POST | `/api/chat` | General chat completion |
+| POST | `/api/analytics/insights` | Analytics insights |
+| POST | `/api/analytics/product-recommendations` | Product recommendations |
+| POST | `/api/analytics/customer-insights` | Customer insights |
+| POST | `/api/assistant/chat` | AI assistant chat |
+| POST | `/api/assistant/suggest-actions` | Action suggestions |
+| GET | `/cache-stats` | Cache statistics |
+
+## Features
+
+- In-memory caching with TTL
+- Circuit breaker pattern (3 failures → 60s recovery)
+- Automatic retry with exponential backoff
+- Fallback responses when API is unavailable
+- Rate limiting (configurable)
+- API key authentication
 
 ## License
 

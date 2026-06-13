@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { themeAPI, merchantAPI } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
+import { Store, LayoutTemplate, Palette, Share2, Sparkles, Check } from 'lucide-react';
 
 // Step components
 import StepStoreInfo from './steps/StepStoreInfo';
@@ -13,11 +14,11 @@ import StepSocial from './steps/StepSocial';
 import StepDone from './steps/StepDone';
 
 const STEPS = [
-  { id: 1, label: 'معلومات المتجر', icon: '🏪' },
-  { id: 2, label: 'اختر القالب',    icon: '🎨' },
-  { id: 3, label: 'الألوان والخط',   icon: '✏️' },
-  { id: 4, label: 'روابط التواصل',   icon: '📱' },
-  { id: 5, label: 'جاهز!',          icon: '🚀' },
+  { id: 1, label: 'معلومات المتجر', icon: Store },
+  { id: 2, label: 'اختر القالب',    icon: LayoutTemplate },
+  { id: 3, label: 'الألوان والخط',   icon: Palette },
+  { id: 4, label: 'روابط التواصل',   icon: Share2 },
+  { id: 5, label: 'جاهز!',          icon: Sparkles },
 ];
 
 export interface OnboardingData {
@@ -28,6 +29,9 @@ export interface OnboardingData {
     email: string;
     address: string;
     currency: string;
+    subdomain: string;
+    businessType: string;
+    industry: string;
   };
   templateId: string;
   colors: {
@@ -45,7 +49,7 @@ export interface OnboardingData {
 }
 
 const INITIAL: OnboardingData = {
-  store: { name: '', description: '', phone: '', email: '', address: '', currency: 'SAR' },
+  store: { name: '', description: '', phone: '', email: '', address: '', currency: 'SAR', subdomain: '', businessType: '', industry: '' },
   templateId: 'spark',
   colors: { primary: '#6366F1', secondary: '#8B5CF6', background: '#FFFFFF', text: '#111827' },
   social: { instagram: '', twitter: '', facebook: '', tiktok: '' },
@@ -57,6 +61,21 @@ export default function OnboardingWizard() {
   const updateUser = useAuthStore((s) => s.updateUser);
   const [step, setStep] = useState(1);
   const [data, setData] = useState<OnboardingData>(INITIAL);
+
+  // Pre-populate default store name and email based on user's profile
+  useEffect(() => {
+    if (user && !data.store.name) {
+      const defaultName = `متجر ${user.firstName || ''} ${user.lastName || ''}`.trim();
+      setData((prev) => ({
+        ...prev,
+        store: {
+          ...prev.store,
+          name: prev.store.name || defaultName || 'متجري',
+          email: prev.store.email || user.email || '',
+        },
+      }));
+    }
+  }, [user]);
 
   const toSubdomainBase = (value: string) => {
     const base = value
@@ -83,7 +102,7 @@ export default function OnboardingWizard() {
       const response = await merchantAPI.checkSubdomain(candidate);
       if (response.data.data.available) return candidate;
 
-      const suffix = Math.floor(100 + Math.random() * 900).toString();
+      const suffix = Math.floor(100 + Math.random() * 950).toString();
       const trimmedBase = base.slice(0, Math.max(1, 30 - (suffix.length + 1)));
       candidate = `${trimmedBase}-${suffix}`;
     }
@@ -102,8 +121,13 @@ export default function OnboardingWizard() {
 
       if (!currentMerchantId) {
         const storeName = data.store.name?.trim() || 'Store';
-        const base = toSubdomainBase(storeName);
-        const subdomain = await findAvailableSubdomain(base);
+        let subdomain = data.store.subdomain?.trim().toLowerCase();
+        
+        if (!subdomain) {
+          const base = toSubdomainBase(storeName);
+          subdomain = await findAvailableSubdomain(base);
+        }
+        
         const createResponse = await merchantAPI.create({
           name: storeName,
           subdomain,
@@ -145,30 +169,39 @@ export default function OnboardingWizard() {
   const back = () => setStep((s) => s - 1);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
+    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl select-none">
         {/* Progress bar */}
         {step < 5 && (
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-3">
-              {STEPS.slice(0, 4).map((s) => (
-                <div key={s.id} className="flex flex-col items-center gap-1 flex-1">
-                  <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center text-base font-bold transition-all ${
-                      step >= s.id
-                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
-                        : 'bg-white text-gray-400 border border-gray-200'
-                    }`}
-                  >
-                    {step > s.id ? '✓' : s.icon}
+            <div className="flex items-center justify-between mb-4">
+              {STEPS.slice(0, 4).map((s) => {
+                const IconComponent = s.icon;
+                const isActive = step >= s.id;
+                const isCompleted = step > s.id;
+                return (
+                  <div key={s.id} className="flex flex-col items-center gap-2 flex-1 relative">
+                    <div
+                      className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-305 border ${
+                        isActive
+                          ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100'
+                          : 'bg-white border-slate-200 text-slate-400'
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <Check className="w-5 h-5" />
+                      ) : (
+                        <IconComponent className="w-5 h-5" />
+                      )}
+                    </div>
+                    <span className={`text-[11px] font-bold text-center transition-colors duration-300 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`}>
+                      {s.label}
+                    </span>
                   </div>
-                  <span className={`text-[10px] font-medium text-center ${step >= s.id ? 'text-indigo-600' : 'text-gray-400'}`}>
-                    {s.label}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
-            <div className="relative h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div className="relative h-1.5 bg-slate-250 bg-slate-200 rounded-full overflow-hidden mx-6">
               <div
                 className="absolute top-0 right-0 h-full bg-indigo-600 rounded-full transition-all duration-500"
                 style={{ width: `${((step - 1) / 3) * 100}%` }}
@@ -178,7 +211,7 @@ export default function OnboardingWizard() {
         )}
 
         {/* Step card */}
-        <div className="bg-white rounded-3xl shadow-xl shadow-indigo-100/50 overflow-hidden">
+        <div className="bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden">
           {step === 1 && (
             <StepStoreInfo
               data={data.store}
@@ -198,6 +231,7 @@ export default function OnboardingWizard() {
             <StepColors
               colors={data.colors}
               templateId={data.templateId}
+              storeData={data.store}
               onChange={(colors) => update({ colors })}
               onNext={next}
               onBack={back}

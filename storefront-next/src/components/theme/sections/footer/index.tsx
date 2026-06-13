@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { Mail, Phone } from 'lucide-react';
 
 interface FooterProps {
   id?: string;
@@ -65,8 +66,16 @@ export default function FooterSection({ variant = 'classic', settings = {}, stor
           <div>
             <h3 className="text-3xl font-bold mb-6 tracking-tight text-white">{merchant.storeName || 'المتجر'}</h3>
             <p className="text-base opacity-70 leading-relaxed mb-6 font-medium">{aboutText}</p>
-            {merchant.email && <p className="text-sm flex items-center gap-2 opacity-80 mb-2">✉️ {merchant.email}</p>}
-            {merchant.phone && <p className="text-sm flex items-center gap-2 opacity-80">📞 {merchant.phone}</p>}
+            {merchant.email && (
+              <p className="text-sm flex items-center gap-2 opacity-80 mb-2 font-medium">
+                <Mail className="w-4 h-4 text-slate-400" /> {merchant.email}
+              </p>
+            )}
+            {merchant.phone && (
+              <p className="text-sm flex items-center gap-2 opacity-80 font-medium">
+                <Phone className="w-4 h-4 text-slate-400" /> {merchant.phone}
+              </p>
+            )}
           </div>
 
           {/* Quick Links */}

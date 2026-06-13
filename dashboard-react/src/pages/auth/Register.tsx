@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { authAPI, merchantAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
+import { Mail, Phone, Lock, Eye, EyeOff, Store, Globe, FileText, Loader2, AlertCircle, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -10,28 +11,26 @@ export default function Register() {
   
   const [step, setStep] = useState(1); // 1: User Info, 2: Store Info
   const [formData, setFormData] = useState({
-    // User info
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
     password: '',
     confirmPassword: '',
-    
-    // Store info
     storeName: '',
     subdomain: '',
     description: '',
   });
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<any>({});
   const [subdomainAvailable, setSubdomainAvailable] = useState<boolean | null>(null);
   const [subdomainChecking, setSubdomainChecking] = useState(false);
   const subdomainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // C1 FIX: Track if merchant was created successfully
   const [merchantError, setMerchantError] = useState<string | null>(null);
 
-  // Check subdomain availability with debounce (H1 FIX)
+  // Check subdomain availability with debounce
   const checkSubdomainMutation = useMutation({
     mutationFn: merchantAPI.checkSubdomain,
     onMutate: () => setSubdomainChecking(true),
@@ -51,7 +50,7 @@ export default function Register() {
     }
     subdomainTimerRef.current = setTimeout(() => {
       checkSubdomainMutation.mutate(value);
-    }, 400);
+    }, 450);
   }, []);
 
   // Cleanup timer on unmount
@@ -63,7 +62,7 @@ export default function Register() {
     };
   }, []);
 
-  // Register user
+  // Register user mutation
   const registerMutation = useMutation({
     mutationFn: authAPI.register,
     onSuccess: async (response) => {
@@ -82,19 +81,14 @@ export default function Register() {
         navigate('/onboarding');
       } catch (error: any) {
         console.error('Merchant creation error:', error.response?.data);
-        
         const errorMessage = error.response?.data?.message || 
                             error.response?.data?.error || 
                             'فشل في إنشاء المتجر. حاول مرة أخرى.';
         
         setMerchantError(errorMessage);
         setErrors({ 
-          merchant: errorMessage + ' تم إنشاء حسابك بنجاح. يمكنك المحاولة مرة أخرى من لوحة التحكم.' 
+          merchant: errorMessage + ' تم إنشاء حسابك بنجاح. يمكنك إعادة المحاولة.' 
         });
-        
-        // C1 FIX: Don't navigate to onboarding if merchant creation failed
-        // User is logged in but has no merchant - they need to retry merchant creation
-        // Navigate to a special page or show retry option
       }
     },
     onError: (error: any) => {
@@ -107,11 +101,9 @@ export default function Register() {
           const field = detail.field?.replace('body.', '') || detail.path?.join('.') || 'unknown';
           const message = detail.message || detail.msg || 'خطأ في التحقق';
           validationErrors[field] = message;
-          console.log('Validation error:', field, '=', message);
         });
         setErrors(validationErrors);
       } else {
-        // Show user-friendly error message
         let errorMessage = 'فشل التسجيل. حاول مرة أخرى.';
         
         if (error.response?.data?.error) {
@@ -122,7 +114,6 @@ export default function Register() {
           errorMessage = error.message;
         }
         
-        // Translate common errors to Arabic
         if (errorMessage.toLowerCase().includes('email already')) {
           errorMessage = 'البريد الإلكتروني مسجل بالفعل';
         } else if (errorMessage.toLowerCase().includes('password')) {
@@ -143,30 +134,37 @@ export default function Register() {
     // Clear errors
     setErrors({ ...errors, [name]: '' });
     
-    // Check subdomain availability with debounce (H1 FIX)
-    if (name === 'subdomain' && value.length >= 3) {
-      setSubdomainAvailable(null);
-      debouncedCheckSubdomain(value);
+    // Check subdomain availability
+    if (name === 'subdomain') {
+      const cleanSubdomain = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+      setFormData((prev) => ({ ...prev, subdomain: cleanSubdomain }));
+      
+      if (cleanSubdomain.length >= 3) {
+        setSubdomainAvailable(null);
+        debouncedCheckSubdomain(cleanSubdomain);
+      } else {
+        setSubdomainAvailable(null);
+      }
     }
   };
 
   const validateStep1 = () => {
     const newErrors: any = {};
     
-    if (!formData.firstName) newErrors.firstName = 'الاسم الأول مطلوب';
-    if (!formData.lastName) newErrors.lastName = 'اسم العائلة مطلوب';
-    if (!formData.email) newErrors.email = 'البريد الإلكتروني مطلوب';
+    if (!formData.firstName.trim()) newErrors.firstName = 'الاسم الأول مطلوب';
+    if (!formData.lastName.trim()) newErrors.lastName = 'اسم العائلة مطلوب';
+    if (!formData.email.trim()) newErrors.email = 'البريد الإلكتروني مطلوب';
     
     if (!formData.password) {
       newErrors.password = 'كلمة المرور مطلوبة';
     } else if (formData.password.length < 8) {
-      newErrors.password = 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
+      newErrors.password = 'يجب أن تكون كلمة المرور 8 أحرف على الأقل';
     } else if (!/[A-Z]/.test(formData.password)) {
-      newErrors.password = 'كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل';
+      newErrors.password = 'يجب أن تحتوي على حرف كبير واحد (A-Z)';
     } else if (!/[a-z]/.test(formData.password)) {
-      newErrors.password = 'كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل';
+      newErrors.password = 'يجب أن تحتوي على حرف صغير واحد (a-z)';
     } else if (!/[0-9]/.test(formData.password)) {
-      newErrors.password = 'كلمة المرور يجب أن تحتوي على رقم واحد على الأقل';
+      newErrors.password = 'يجب أن تحتوي على رقم واحد على الأقل (0-9)';
     }
     
     if (formData.password !== formData.confirmPassword) {
@@ -180,12 +178,12 @@ export default function Register() {
   const validateStep2 = () => {
     const newErrors: any = {};
     
-    if (!formData.storeName) newErrors.storeName = 'اسم المتجر مطلوب';
-    if (!formData.subdomain) newErrors.subdomain = 'النطاق الفرعي مطلوب';
-    
-    // H2 FIX: Allow submission when subdomainAvailable is null (pending check)
-    // Server-side validation will catch duplicates anyway
-    if (subdomainAvailable === false) {
+    if (!formData.storeName.trim()) newErrors.storeName = 'اسم المتجر مطلوب';
+    if (!formData.subdomain.trim()) {
+      newErrors.subdomain = 'النطاق الفرعي مطلوب';
+    } else if (formData.subdomain.length < 3) {
+      newErrors.subdomain = 'يجب أن يكون النطاق الفرعي 3 أحرف على الأقل';
+    } else if (subdomainAvailable === false) {
       newErrors.subdomain = 'النطاق الفرعي غير متاح';
     }
     
@@ -201,8 +199,6 @@ export default function Register() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-    
     if (validateStep2()) {
       registerMutation.mutate({
         firstName: formData.firstName,
@@ -215,44 +211,51 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Matgarco</h1>
-          <p className="text-gray-600 mt-2">ابدأ متجرك الإلكتروني الآن</p>
+    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4 font-sans select-none relative overflow-hidden">
+      <div className="max-w-md w-full bg-white border border-slate-200 rounded-3xl shadow-xl p-8 relative">
+        {/* Brand Header */}
+        <div className="text-center mb-6">
+          <div className="flex flex-col items-center justify-center">
+            <img src="/logo.png" alt="Matgarco" className="h-14 w-auto object-contain mb-3" />
+            <div className="text-2xl font-black text-slate-900 tracking-wider">
+              MATGARCO
+            </div>
+          </div>
+          <h1 className="text-xl font-bold text-slate-800 mt-4">إنشاء حساب تاجر جديد</h1>
+          <p className="text-slate-500 mt-1 text-xs">ابدأ متجرك الإلكتروني الاحترافي بدقائق</p>
         </div>
 
-        {/* Progress Steps */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-            }`}>
-              1
-            </div>
-            <div className={`w-16 h-1 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`} />
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-            }`}>
-              2
-            </div>
+        {/* Custom Progress Indicators */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs transition-all border ${
+            step >= 1 ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-200'
+          }`}>
+            {step > 1 ? <Check className="w-4 h-4" /> : '1'}
+          </div>
+          <div className={`w-12 h-[2px] transition-all ${step >= 2 ? 'bg-indigo-600' : 'bg-slate-100'}`} />
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs transition-all border ${
+            step >= 2 ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-200'
+          }`}>
+            2
           </div>
         </div>
 
-        {/* Error Message */}
+        {/* Global Errors */}
         {(errors.register || errors.merchant) && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-            {errors.register || errors.merchant}
-            {/* C1 FIX: Retry button if merchant creation failed */}
+          <div className="mb-6 p-4 bg-red-50/80 border border-red-100 rounded-2xl text-red-700 text-xs flex flex-col gap-2">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <div>{errors.register || errors.merchant}</div>
+            </div>
             {merchantError && (
               <button
+                type="button"
                 onClick={() => {
                   setMerchantError(null);
                   setErrors({});
                   setStep(2);
                 }}
-                className="mt-2 px-4 py-1.5 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition"
+                className="self-end px-3 py-1 bg-red-600 text-white rounded-lg text-[10px] font-semibold hover:bg-red-700 transition"
               >
                 إعادة المحاولة
               </button>
@@ -265,111 +268,127 @@ export default function Register() {
           <form onSubmit={(e) => { e.preventDefault(); handleNext(); }} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  الاسم الأول
-                </label>
-                <input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    errors.firstName ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
+                <label className="block text-xs font-bold text-slate-600 mb-2 mr-1">الاسم الأول</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    className={`w-full bg-slate-50 border ${errors.firstName ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-200 focus:border-indigo-600 focus:ring-indigo-100'} rounded-2xl px-4 py-3 text-slate-900 outline-none focus:bg-white focus:ring-4 transition text-sm`}
+                    placeholder="أحمد"
+                  />
+                </div>
+                {errors.firstName && <p className="text-red-600 text-[10px] mt-1 mr-1">{errors.firstName}</p>}
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  اسم العائلة
-                </label>
-                <input
-                  type="text"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    errors.lastName ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
+                <label className="block text-xs font-bold text-slate-600 mb-2 mr-1">اسم العائلة</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    className={`w-full bg-slate-50 border ${errors.lastName ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-200 focus:border-indigo-600 focus:ring-indigo-100'} rounded-2xl px-4 py-3 text-slate-900 outline-none focus:bg-white focus:ring-4 transition text-sm`}
+                    placeholder="محمد"
+                  />
+                </div>
+                {errors.lastName && <p className="text-red-600 text-[10px] mt-1 mr-1">{errors.lastName}</p>}
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                البريد الإلكتروني
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                  errors.email ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+              <label className="block text-xs font-bold text-slate-600 mb-2 mr-1">البريد الإلكتروني</label>
+              <div className="relative">
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={`w-full bg-slate-50 border ${errors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-200 focus:border-indigo-600 focus:ring-indigo-100'} rounded-2xl px-4 py-3 pr-10 text-slate-900 outline-none focus:bg-white focus:ring-4 transition text-sm`}
+                  placeholder="name@example.com"
+                />
+                <div className="absolute inset-y-0 right-3.5 flex items-center text-slate-400">
+                  <Mail className="w-4 h-4" />
+                </div>
+              </div>
+              {errors.email && <p className="text-red-600 text-[10px] mt-1 mr-1">{errors.email}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                رقم الهاتف (اختياري)
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="01xxxxxxxxx"
-                dir="ltr"
-              />
+              <label className="block text-xs font-bold text-slate-600 mb-2 mr-1">رقم الهاتف (اختياري)</label>
+              <div className="relative">
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 pr-10 text-slate-900 outline-none focus:border-indigo-600 focus:bg-white focus:ring-4 focus:ring-indigo-100 transition text-sm"
+                  placeholder="01xxxxxxxxx"
+                  dir="ltr"
+                />
+                <div className="absolute inset-y-0 right-3.5 flex items-center text-slate-400">
+                  <Phone className="w-4 h-4" />
+                </div>
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                كلمة المرور
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                  errors.password ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
-              {!errors.password && (
-                <p className="text-gray-500 text-xs mt-1">
-                  ⓘ يجب أن تحتوي على 8 أحرف، حرف كبير، حرف صغير، ورقم
-                </p>
-              )}
+              <label className="block text-xs font-bold text-slate-600 mb-2 mr-1">كلمة المرور</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={`w-full bg-slate-50 border ${errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-200 focus:border-indigo-600 focus:ring-indigo-100'} rounded-2xl px-4 py-3 pr-10 pl-10 text-slate-900 outline-none focus:bg-white focus:ring-4 transition text-sm`}
+                  placeholder="••••••••"
+                />
+                <div className="absolute inset-y-0 right-3.5 flex items-center text-slate-400">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 left-3.5 flex items-center text-slate-400 hover:text-slate-600 transition"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {errors.password && <p className="text-red-600 text-[10px] mt-1 mr-1">{errors.password}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                تأكيد كلمة المرور
-              </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                  errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
+              <label className="block text-xs font-bold text-slate-600 mb-2 mr-1">تأكيد كلمة المرور</label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={`w-full bg-slate-50 border ${errors.confirmPassword ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-200 focus:border-indigo-600 focus:ring-indigo-100'} rounded-2xl px-4 py-3 pr-10 pl-10 text-slate-900 outline-none focus:bg-white focus:ring-4 transition text-sm`}
+                  placeholder="••••••••"
+                />
+                <div className="absolute inset-y-0 right-3.5 flex items-center text-slate-400">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 left-3.5 flex items-center text-slate-400 hover:text-slate-600 transition"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {errors.confirmPassword && <p className="text-red-600 text-[10px] mt-1 mr-1">{errors.confirmPassword}</p>}
             </div>
 
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+              className="w-full mt-2 py-3.5 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 active:scale-[0.98] transition shadow-md shadow-indigo-100 text-sm"
             >
-              التالي
+              الخطوة التالية
             </button>
           </form>
         )}
@@ -378,94 +397,107 @@ export default function Register() {
         {step === 2 && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                اسم المتجر
-              </label>
-              <input
-                type="text"
-                name="storeName"
-                value={formData.storeName}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                  errors.storeName ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="متجر أحمد للإلكترونيات"
-              />
-              {errors.storeName && <p className="text-red-500 text-xs mt-1">{errors.storeName}</p>}
+              <label className="block text-xs font-bold text-slate-600 mb-2 mr-1">اسم المتجر</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  name="storeName"
+                  value={formData.storeName}
+                  onChange={handleChange}
+                  className={`w-full bg-slate-50 border ${errors.storeName ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-200 focus:border-indigo-600 focus:ring-indigo-100'} rounded-2xl px-4 py-3 pr-10 text-slate-900 outline-none focus:bg-white focus:ring-4 transition text-sm`}
+                  placeholder="متجر أحمد للملابس"
+                />
+                <div className="absolute inset-y-0 right-3.5 flex items-center text-slate-400">
+                  <Store className="w-4 h-4" />
+                </div>
+              </div>
+              {errors.storeName && <p className="text-red-600 text-[10px] mt-1 mr-1">{errors.storeName}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                النطاق الفرعي (Subdomain)
-              </label>
-              <div className="flex items-center">
+              <label className="block text-xs font-bold text-slate-600 mb-2 mr-1">النطاق الفرعي (Subdomain)</label>
+              <div className="relative flex items-stretch">
                 <input
                   type="text"
                   name="subdomain"
                   value={formData.subdomain}
                   onChange={handleChange}
-                  className={`flex-1 px-4 py-3 border rounded-l-lg focus:ring-2 focus:ring-blue-500 ${
-                    errors.subdomain ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`flex-1 bg-slate-50 border ${errors.subdomain ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-200 focus:border-indigo-600 focus:ring-indigo-100'} rounded-r-2xl px-4 py-3 pr-10 text-slate-900 outline-none focus:bg-white focus:ring-4 transition text-sm font-semibold text-left border-l-0`}
                   placeholder="ahmed-shop"
+                  dir="ltr"
                 />
-                <span className="px-4 py-3 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-gray-600">
+                <span className="flex items-center px-4 bg-slate-100 border border-r-0 border-slate-200 rounded-l-2xl text-xs text-slate-500 font-semibold select-none">
                   .matgarco.com
                 </span>
+                <div className="absolute inset-y-0 right-3.5 flex items-center text-slate-400">
+                  <Globe className="w-4 h-4" />
+                </div>
               </div>
               {subdomainAvailable === true && (
-                <p className="text-green-600 text-xs mt-1">✓ النطاق متاح</p>
+                <p className="text-green-600 text-[10px] mt-1 mr-1 flex items-center gap-1">✓ هذا النطاق متاح للاستخدام</p>
               )}
               {subdomainAvailable === false && (
-                <p className="text-red-500 text-xs mt-1">✗ النطاق غير متاح</p>
+                <p className="text-red-600 text-[10px] mt-1 mr-1 flex items-center gap-1">✗ هذا النطاق غير متاح</p>
               )}
               {subdomainChecking && (
-                <p className="text-gray-400 text-xs mt-1">جاري التحقق...</p>
+                <p className="text-slate-500 text-[10px] mt-1 mr-1 flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> جاري التحقق من النطاق...</p>
               )}
-              {errors.subdomain && <p className="text-red-500 text-xs mt-1">{errors.subdomain}</p>}
+              {errors.subdomain && <p className="text-red-600 text-[10px] mt-1 mr-1">{errors.subdomain}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                وصف المتجر (اختياري)
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="أفضل متجر للإلكترونيات في مصر"
-              />
+              <label className="block text-xs font-bold text-slate-600 mb-2 mr-1">وصف المتجر (اختياري)</label>
+              <div className="relative">
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 pr-10 text-slate-900 outline-none focus:border-indigo-600 focus:bg-white focus:ring-4 focus:ring-indigo-100 transition text-sm resize-none"
+                  placeholder="اكتب نبذة مختصرة عن متجرك..."
+                />
+                <div className="absolute top-3.5 right-3.5 text-slate-400">
+                  <FileText className="w-4 h-4" />
+                </div>
+              </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 mt-2">
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
+                className="flex-1 py-3.5 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition active:scale-[0.98] flex items-center justify-center gap-1.5 text-sm"
               >
+                <ArrowRight className="w-4 h-4" />
                 السابق
               </button>
               <button
                 type="submit"
-                disabled={registerMutation.isPending}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:bg-blue-400"
+                disabled={registerMutation.isPending || subdomainAvailable === false}
+                className="flex-1 py-3.5 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2 shadow-md shadow-indigo-100 text-sm"
               >
-                {registerMutation.isPending ? 'جاري الإنشاء...' : 'إنشاء المتجر'}
+                {registerMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    جاري الإنشاء...
+                  </>
+                ) : (
+                  <>
+                    أنشئ متجري
+                    <ArrowLeft className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </div>
           </form>
         )}
 
-        {/* Login Link */}
-        <div className="mt-6 text-center">
-          <p className="text-gray-600 text-sm">
-            لديك حساب بالفعل؟{' '}
-            <Link to="/login" className="text-blue-600 hover:text-blue-700 font-semibold">
-              تسجيل الدخول
-            </Link>
-          </p>
+        {/* Footer Link */}
+        <div className="mt-8 text-center text-xs text-slate-400">
+          لديك حساب بالفعل؟{' '}
+          <Link to="/login" className="text-indigo-600 hover:text-indigo-700 font-bold transition ml-1">
+            تسجيل الدخول
+          </Link>
         </div>
       </div>
     </div>

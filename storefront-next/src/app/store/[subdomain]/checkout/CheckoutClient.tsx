@@ -45,8 +45,14 @@ export default function CheckoutClient({ subdomain, shippingConfig }: Props) {
     notes: '',
   });
 
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; type: string; value: number; discountAmount: number } | null>(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+
   // Dynamic shipping cost calculation
   const shippingCost = useMemo(() => {
+    if (appliedCoupon && appliedCoupon.type === 'free_shipping') return 0;
     if (!shippingConfig) return 0;
     // Free shipping threshold takes priority
     if (shippingConfig.freeShippingEnabled && totalPrice >= (shippingConfig.freeShippingThreshold || 500)) return 0;
@@ -58,9 +64,52 @@ export default function CheckoutClient({ subdomain, shippingConfig }: Props) {
     // Flat rate
     if (shippingConfig.flatRateEnabled) return shippingConfig.flatRateAmount || 0;
     return 0;
-  }, [shippingConfig, totalPrice, form.city]);
+  }, [shippingConfig, totalPrice, form.city, appliedCoupon]);
 
-  const orderTotal = totalPrice + shippingCost;
+  const discountAmount = useMemo(() => {
+    if (!appliedCoupon || appliedCoupon.type === 'free_shipping') return 0;
+    return appliedCoupon.discountAmount;
+  }, [appliedCoupon]);
+
+  const orderTotal = Math.max(0, totalPrice + shippingCost - discountAmount);
+
+  async function handleApplyCoupon() {
+    if (!couponCode.trim()) return;
+
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const res = await fetch(`${API_URL}/storefront/${subdomain}/discounts/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: couponCode.trim(),
+          orderTotal: totalPrice,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'كود الخصم غير صحيح');
+      }
+      setAppliedCoupon({
+        code: data.data.code,
+        type: data.data.type,
+        value: data.data.value,
+        discountAmount: data.data.discountAmount || 0,
+      });
+      setCouponCode('');
+    } catch (err: any) {
+      setCouponError(err.message || 'حدث خطأ أثناء تطبيق كود الخصم');
+      setAppliedCoupon(null);
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
+  function handleRemoveCoupon() {
+    setAppliedCoupon(null);
+    setCouponError('');
+  }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -106,7 +155,8 @@ export default function CheckoutClient({ subdomain, shippingConfig }: Props) {
         subtotal: totalPrice,
         tax: 0,
         shippingCost,
-        discount: 0,
+        discount: discountAmount,
+        discountCode: appliedCoupon ? appliedCoupon.code : undefined,
         total: orderTotal,
         paymentMethod,
         customerNotes: form.notes,
@@ -345,11 +395,59 @@ export default function CheckoutClient({ subdomain, shippingConfig }: Props) {
               ))}
             </div>
 
+            {/* Coupon Section */}
+            <div className="px-6 py-4 border-t border-[var(--border)] bg-slate-50/50">
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between bg-green-50 text-green-800 px-4 py-3 rounded-[var(--radius)] border border-green-200">
+                  <div className="flex items-center gap-2 text-sm font-bold">
+                    <span className="bg-green-600 text-white px-2 py-0.5 rounded text-[10px] uppercase font-black">{appliedCoupon.code}</span>
+                    <span>تم تطبيق الخصم ({appliedCoupon.type === 'percentage' ? `${appliedCoupon.value}%` : appliedCoupon.type === 'free_shipping' ? 'شحن مجاني' : `${appliedCoupon.value} ج.م`})</span>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={handleRemoveCoupon}
+                    className="text-red-500 hover:text-red-700 p-1 text-xs font-bold transition-colors"
+                  >
+                    حذف
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="كود الخصم (مثال: SAVE10)"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      className="flex-1 px-3 py-2 rounded-lg text-sm bg-white border border-[var(--border)] text-[var(--text)] uppercase placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-[var(--primary)] font-medium"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={couponLoading || !couponCode.trim()}
+                      className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-[var(--primary)] hover:opacity-90 transition-opacity disabled:opacity-50"
+                    >
+                      {couponLoading ? 'جاري...' : 'تطبيق'}
+                    </button>
+                  </div>
+                  {couponError && (
+                    <p className="text-xs font-bold text-red-600 pr-1">⚠️ {couponError}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="px-6 py-5 space-y-4 border-t border-[var(--border)] bg-[var(--background)]">
               <div className="flex justify-between text-sm font-medium text-[var(--text-muted)]">
                 <span>المجموع الفرعي</span>
                 <span>{totalPrice.toLocaleString('en-US')} {currency}</span>
               </div>
+              {appliedCoupon && appliedCoupon.type !== 'free_shipping' && (
+                <div className="flex justify-between text-sm font-bold text-green-600 animate-in fade-in duration-200">
+                  <span>خصم كود ({appliedCoupon.code})</span>
+                  <span>-{appliedCoupon.discountAmount.toLocaleString('en-US')} {currency}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm font-medium text-[var(--text-muted)]">
                 <span className="flex items-center gap-1"><Truck className="w-4 h-4" /> رسوم الشحن</span>
                 {shippingCost === 0 ? (

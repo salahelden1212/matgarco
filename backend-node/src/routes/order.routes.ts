@@ -67,6 +67,7 @@ const createOrderSchema = z.object({
     shippingCost: z.number().min(0).optional(),
     tax: z.number().min(0).optional(),
     discount: z.number().min(0).optional(),
+    discountCode: z.string().optional(),
     customerNotes: z.string().optional(),
   }),
 });

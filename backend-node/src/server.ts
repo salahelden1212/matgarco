@@ -1,13 +1,13 @@
 import dotenv from 'dotenv';
+// Load environment variables
+dotenv.config();
+
 import app from './app';
 import logger from './utils/logger';
 import { connectDatabase } from './config/database';
 import { seedDefaultAccounts } from './utils/seedDefaultAccounts';
 import { queueService } from './services/queue.service';
 import { registerWorkers } from './services/queueWorkers';
-
-// Load environment variables
-dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 

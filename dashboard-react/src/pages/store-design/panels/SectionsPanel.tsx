@@ -152,7 +152,12 @@ interface Props {
 }
 
 export default function SectionsPanel({ draft, onChange }: Props) {
-  const sections: any[] = draft?.sections || [];
+  const [activePage, setActivePage] = useState('home');
+
+  const sections: any[] = activePage === 'home'
+    ? (draft?.sections || draft?.pages?.home?.sections || [])
+    : (draft?.pages?.[activePage]?.sections || []);
+
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
 
@@ -161,6 +166,35 @@ export default function SectionsPanel({ draft, onChange }: Props) {
   sectionsRef.current = sections;
 
   const sorted = [...sections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  const localOnChange = useCallback((update: Record<string, any>) => {
+    if (update.sections) {
+      if (activePage === 'home') {
+        onChange({ 
+          sections: update.sections,
+          pages: {
+            ...draft?.pages,
+            home: {
+              ...draft?.pages?.home,
+              sections: update.sections
+            }
+          }
+        });
+      } else {
+        onChange({
+          pages: {
+            ...draft?.pages,
+            [activePage]: {
+              ...draft?.pages?.[activePage],
+              sections: update.sections
+            }
+          }
+        });
+      }
+    } else {
+      onChange(update);
+    }
+  }, [onChange, draft, activePage]);
 
   /* ── Add Section ─────────────────────────── */
   const addSection = (type: string) => {
@@ -172,8 +206,7 @@ export default function SectionsPanel({ draft, onChange }: Props) {
       settings: {},
     };
     
-    // In our theme system, legacy uses "config" while new uses "settings", we will safely use settings and fallback config
-    onChange({ sections: [...sectionsRef.current, newSection] });
+    localOnChange({ sections: [...sectionsRef.current, newSection] });
     setShowAddMenu(false);
     setExpandedId(newSection.id);
   };
@@ -181,7 +214,7 @@ export default function SectionsPanel({ draft, onChange }: Props) {
   /* ── Delete Section ──────────────────────── */
   const deleteSection = (id: string) => {
     const updated = sectionsRef.current.filter((s) => s.id !== id).map((s, i) => ({ ...s, order: i }));
-    onChange({ sections: updated });
+    localOnChange({ sections: updated });
     if (expandedId === id) setExpandedId(null);
   };
 
@@ -192,7 +225,7 @@ export default function SectionsPanel({ draft, onChange }: Props) {
     if (swap < 0 || swap >= items.length) return;
     [items[index], items[swap]] = [items[swap], items[index]];
     const updated = items.map((s, i) => ({ ...s, order: i + 1 }));
-    onChange({ sections: updated });
+    localOnChange({ sections: updated });
   };
 
   /* ── Toggle enabled ──────────────────── */
@@ -200,7 +233,7 @@ export default function SectionsPanel({ draft, onChange }: Props) {
     const updated = sectionsRef.current.map((s) =>
       s.id === sectionId ? { ...s, enabled: !s.enabled } : s
     );
-    onChange({ sections: updated });
+    localOnChange({ sections: updated });
   };
 
   /* ── Update config field ─────────────── */
@@ -208,8 +241,8 @@ export default function SectionsPanel({ draft, onChange }: Props) {
     const updated = sectionsRef.current.map((s) =>
       s.id === sectionId ? { ...s, settings: { ...(s.settings || s.config), [key]: value } } : s
     );
-    onChange({ sections: updated });
-  }, [onChange]);
+    localOnChange({ sections: updated });
+  }, [localOnChange]);
 
   /* ── Toggle a badge ──────────────────── */
   const toggleBadge = (sectionId: string, badgeKey: string) => {
@@ -224,9 +257,31 @@ export default function SectionsPanel({ draft, onChange }: Props) {
 
   return (
     <div className="space-y-4 pb-20 relative">
-      <div>
-        <h3 className="font-bold text-sm text-[var(--text)]">أقسام الصفحة الرئيسية</h3>
-        <p className="text-xs text-[var(--text-muted)] mt-1">رتّب الأقسام، أضف أقساماً جديدة، وعدّل المحتوى</p>
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <label className="text-xs font-extrabold text-slate-500">اختر الصفحة لتعديل أقسامها</label>
+          <select
+            value={activePage}
+            onChange={(e) => {
+              setActivePage(e.target.value);
+              setExpandedId(null);
+            }}
+            className="w-full px-3 py-2 border border-slate-250 bg-white rounded-xl text-xs font-bold outline-none focus:border-slate-800 transition-colors"
+          >
+            <option value="home">الصفحة الرئيسية</option>
+            <option value="about">من نحن</option>
+            <option value="contact">اتصل بنا</option>
+            <option value="faq">الأسئلة الشائعة</option>
+            <option value="shipping">سياسة الشحن</option>
+            <option value="returns">سياسة الاسترجاع</option>
+            <option value="privacy">سياسة الخصوصية</option>
+          </select>
+        </div>
+
+        <div>
+          <h3 className="font-bold text-sm text-[var(--text)]">أقسام الصفحة</h3>
+          <p className="text-xs text-[var(--text-muted)] mt-1">رتّب الأقسام، أضف أقساماً جديدة، وعدّل المحتوى</p>
+        </div>
       </div>
 
       <div className="space-y-2">

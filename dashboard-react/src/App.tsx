@@ -7,6 +7,7 @@ import { RequirePermission } from './components/RequirePermission';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import EmailVerification from './pages/auth/EmailVerification';
 import AuthCallback from './pages/auth/AuthCallback';
 import NotFound from './pages/NotFound';
@@ -47,6 +48,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<EmailVerification />} />
           <Route path="/auth-callback" element={<AuthCallback />} />
 

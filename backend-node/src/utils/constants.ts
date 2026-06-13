@@ -91,6 +91,8 @@ export const AI_CREDIT_COSTS = {
   seo_optimization: 2,
   category_suggestion: 1,
   image_alt_text: 1,
+  tags_generation: 1,
+  branding_suggestion: 1,
 } as const;
 
 // Image Upload Limits

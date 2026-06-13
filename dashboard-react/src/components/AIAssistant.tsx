@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { aiAPI } from '../lib/api';
-import { Sparkles, X, Send, Loader2, Minimize2 } from 'lucide-react';
+import { X, Send, Loader2, Minimize2, Bot } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -15,7 +15,7 @@ export const AIAssistant: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'مرحباً! أنا مساعد متجكو الذكي. كيف يمكنني مساعدتك اليوم؟ يمكنني مساعدتك في إدارة متجرك، تحسين المنتجات، زيادة المبيعات، والإجابة على أي سؤال.',
+      content: 'مرحباً! أنا **Quantus AI** 🧠، مساعدك الذكي في متجاركو. اسألني عن إدارة متجرك، تحسين مبيعاتك، أو أي استفسار آخر.',
       timestamp: new Date(),
     },
   ]);
@@ -87,14 +87,21 @@ export const AIAssistant: React.FC = () => {
     }
   };
 
+  const suggestionPrompts = [
+    'كيف أزيد مبيعات متجري؟',
+    'اقترح تحسينات لمتجري',
+    'شرح خطط الاشتراك',
+    'كيف أضيف منتج جديد؟',
+  ];
+
   if (!isOpen) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all hover:scale-105"
+        className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-5 py-3.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all border border-indigo-400/30"
       >
-        <Sparkles className="w-5 h-5" />
-        <span className="font-medium">مساعد متجركو</span>
+        <Bot className="w-5 h-5" />
+        <span className="font-bold">Quantus AI</span>
       </button>
     );
   }
@@ -103,11 +110,11 @@ export const AIAssistant: React.FC = () => {
     return (
       <div
         onClick={() => setIsMinimized(false)}
-        className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-full shadow-lg cursor-pointer hover:bg-blue-700"
+        className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-5 py-3.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-full shadow-xl cursor-pointer hover:shadow-2xl hover:scale-105 transition-all border border-indigo-400/30"
       >
-        <Sparkles className="w-5 h-5" />
-        <span className="font-medium">مساعد متجركو</span>
-        <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
+        <Bot className="w-5 h-5" />
+        <span className="font-bold">Quantus AI</span>
+        <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">
           {messages.length - 1}
         </span>
       </div>
@@ -115,12 +122,17 @@ export const AIAssistant: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-6 left-6 z-50 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden" style={{ height: '32rem' }}>
+    <div className="fixed bottom-6 left-6 z-50 w-96 bg-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-indigo-500/30 flex flex-col overflow-hidden" style={{ height: '34rem' }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5" />
-          <span className="font-semibold">مساعد متجركو الذكي</span>
+      <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-indigo-600 to-blue-600">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+            <Bot className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-bold text-sm">Quantus AI</h3>
+            <p className="text-[10px] text-indigo-200">مساعد متجاركو الذكي</p>
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -139,17 +151,22 @@ export const AIAssistant: React.FC = () => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50" dir="rtl">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-900/60" dir="rtl">
         {messages.map((msg, idx) => (
           <div
             key={idx}
             className={`flex ${msg.role === 'user' ? 'justify-start' : 'justify-end'}`}
           >
+            {msg.role === 'assistant' && (
+              <div className="flex-shrink-0 w-7 h-7 mt-1 ml-2 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                <Bot className="w-4 h-4 text-indigo-400" />
+              </div>
+            )}
             <div
-              className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+              className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                 msg.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-sm'
-                  : 'bg-white text-gray-800 border border-gray-200 rounded-bl-sm'
+                  ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-br-sm'
+                  : 'bg-gray-800/80 text-gray-100 border border-gray-700/50 rounded-bl-sm'
               }`}
             >
               {msg.content}
@@ -158,30 +175,50 @@ export const AIAssistant: React.FC = () => {
         ))}
         {chatMutation.isPending && (
           <div className="flex justify-end">
-            <div className="bg-white border border-gray-200 px-4 py-2.5 rounded-2xl rounded-bl-sm">
-              <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+            <div className="flex items-center gap-2 bg-gray-800/80 border border-gray-700/50 px-4 py-3 rounded-2xl rounded-bl-sm">
+              <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+              <span className="text-sm text-gray-400">Quantus AI تفكر...</span>
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Suggestions */}
+      {messages.length <= 1 && (
+        <div className="px-4 pb-2 bg-gray-900/60" dir="rtl">
+          <div className="flex flex-wrap gap-2">
+            {suggestionPrompts.map((prompt, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  setInput(prompt);
+                }}
+                className="text-xs px-3 py-1.5 rounded-full bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700 hover:text-white transition-colors"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Input */}
-      <div className="px-4 py-3 bg-white border-t border-gray-200">
+      <div className="px-4 py-3 bg-gray-900 border-t border-gray-800">
         <div className="flex items-center gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyPress}
-            placeholder="اكتب رسالتك هنا..."
-            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            placeholder="اسأل Quantus AI..."
+            className="flex-1 px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
             dir="rtl"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || chatMutation.isPending}
-            className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-500 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             <Send className="w-4 h-4" />
           </button>

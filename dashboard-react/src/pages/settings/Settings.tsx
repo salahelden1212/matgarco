@@ -133,6 +133,23 @@ export const Settings: React.FC = () => {
   const [newCityName, setNewCityName] = useState('');
   const [newCityRate, setNewCityRate] = useState<number>(50);
 
+  // Email/SMTP settings state
+  const [emailForm, setEmailForm] = useState({
+    enabled: false,
+    provider: 'default' as 'default' | 'smtp',
+    smtpHost: '',
+    smtpPort: 587,
+    smtpUser: '',
+    smtpPass: '',
+    fromName: '',
+    fromEmail: '',
+    testEmail: '',
+    templates: {
+      orderConfirmation: '',
+      orderStatusChanged: '',
+    },
+  });
+
   // Fetch merchant
   const { data: merchantData, isLoading } = useQuery({
     queryKey: ['merchant', user?.merchantId],
@@ -185,6 +202,24 @@ export const Settings: React.FC = () => {
           estimatedDelivery: merchant.shippingConfig?.estimatedDelivery || '3-5 أيام عمل',
         });
       }
+      // Email config
+      if (merchant.emailSettings) {
+        setEmailForm({
+          enabled: merchant.emailSettings.enabled ?? false,
+          provider: merchant.emailSettings.provider || 'default',
+          smtpHost: merchant.emailSettings.smtpHost || '',
+          smtpPort: merchant.emailSettings.smtpPort || 587,
+          smtpUser: merchant.emailSettings.smtpUser || '',
+          smtpPass: merchant.emailSettings.smtpPass || '',
+          fromName: merchant.emailSettings.fromName || '',
+          fromEmail: merchant.emailSettings.fromEmail || '',
+          testEmail: '',
+          templates: {
+            orderConfirmation: merchant.emailSettings.templates?.orderConfirmation || '',
+            orderStatusChanged: merchant.emailSettings.templates?.orderStatusChanged || '',
+          },
+        });
+      }
     }
     if (user) {
       setAccountForm((prev) => ({
@@ -210,6 +245,9 @@ export const Settings: React.FC = () => {
       } else if ('address' in variables) {
         setSavedTab('address');
         toast.success('تم حفظ العنوان ✅');
+      } else if ('emailSettings' in variables) {
+        setSavedTab('email');
+        toast.success('تم حفظ إعدادات البريد الإلكتروني ✅');
       }
       setTimeout(() => setSavedTab(null), 3000);
     },
@@ -362,6 +400,43 @@ export const Settings: React.FC = () => {
     } catch {
       toast.error('فشل حفظ إعدادات الشحن');
     }
+  };
+
+  // Test SMTP mutation
+  const testSmtpMutation = useMutation({
+    mutationFn: (data: any) => merchantAPI.testSmtp(user!.merchantId!, data),
+    onSuccess: (res) => {
+      if (res.data?.success) {
+        toast.success('تم اختبار الاتصال وإرسال رسالة تجريبية بنجاح ✅');
+      } else {
+        toast.error(res.data?.message || 'فشل اختبار الاتصال بالخادم');
+      }
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message || err?.response?.data?.error?.message || 'فشل اختبار الاتصال بالخادم';
+      toast.error(msg);
+    },
+  });
+
+  const handleTestSmtp = () => {
+    if (!emailForm.testEmail.trim()) {
+      toast.error('يرجى إدخال البريد الإلكتروني لتجربة الإرسال');
+      return;
+    }
+    testSmtpMutation.mutate({
+      host: emailForm.smtpHost,
+      port: emailForm.smtpPort,
+      user: emailForm.smtpUser,
+      pass: emailForm.smtpPass,
+      fromName: emailForm.fromName,
+      fromEmail: emailForm.fromEmail,
+      testEmail: emailForm.testEmail,
+    });
+  };
+
+  const handleSaveEmail = () => {
+    const { testEmail, ...emailSettings } = emailForm;
+    updateMutation.mutate({ emailSettings });
   };
 
   const addCityRate = () => {
@@ -1039,7 +1114,7 @@ export const Settings: React.FC = () => {
 
               <div className="flex justify-end pt-4 border-t border-gray-100">
                 <button
-                  onClick={handleSave}
+                  onClick={handleSaveEmail}
                   disabled={updateMutation.isPending}
                   className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium shadow-sm hover:shadow"
                 >

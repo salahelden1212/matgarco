@@ -30,7 +30,7 @@ const generateTokens = (userId: string) => {
 
 export const googleCallback = async (req: Request, res: Response): Promise<void> => {
   try {
-    const user = req.user as any;
+    const user = (req as any).user;
 
     if (!user) {
       res.status(401).json({ error: 'Authentication failed' });
@@ -58,7 +58,7 @@ export const googleCallback = async (req: Request, res: Response): Promise<void>
 
     // Redirect to client with tokens
     const redirectUrl =
-      process.env.FRONTEND_URL ||
+      process.env.DASHBOARD_URL ||
       'http://localhost:3002';
     const onboarding = merchant ? '/dashboard' : '/onboarding';
 
@@ -67,13 +67,13 @@ export const googleCallback = async (req: Request, res: Response): Promise<void>
     );
   } catch (error) {
     console.error('Google OAuth callback error:', error);
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3002'}/login?error=authentication_failed`);
+    res.redirect(`${process.env.DASHBOARD_URL || 'http://localhost:3002'}/login?error=authentication_failed`);
   }
 };
 
 export const appleCallback = async (req: Request, res: Response): Promise<void> => {
   try {
-    const user = req.user as any;
+    const user = (req as any).user;
 
     if (!user) {
       res.status(401).json({ error: 'Authentication failed' });
@@ -101,7 +101,7 @@ export const appleCallback = async (req: Request, res: Response): Promise<void> 
 
     // Redirect to client with tokens
     const redirectUrl =
-      process.env.FRONTEND_URL ||
+      process.env.DASHBOARD_URL ||
       'http://localhost:3002';
     const onboarding = merchant ? '/dashboard' : '/onboarding';
 
@@ -110,7 +110,7 @@ export const appleCallback = async (req: Request, res: Response): Promise<void> 
     );
   } catch (error) {
     console.error('Apple OAuth callback error:', error);
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3002'}/login?error=authentication_failed`);
+    res.redirect(`${process.env.DASHBOARD_URL || 'http://localhost:3002'}/login?error=authentication_failed`);
   }
 };
 

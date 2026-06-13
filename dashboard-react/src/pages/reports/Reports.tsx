@@ -167,6 +167,10 @@ export const Reports: React.FC = () => {
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [aiInsights, setAiInsights] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [productRecs, setProductRecs] = useState('');
+  const [recsLoading, setRecsLoading] = useState(false);
+  const [custInsights, setCustInsights] = useState('');
+  const [custLoading, setCustLoading] = useState(false);
 
   // Fetch a large batch of orders for aggregation
   const { data: ordersRes, isLoading: ordersLoading } = useQuery({
@@ -281,10 +285,34 @@ export const Reports: React.FC = () => {
     try {
       const response = await aiAPI.getAnalyticsInsights({});
       setAiInsights(response.data?.data?.insights || '');
-    } catch (error) {
+    } catch {
       setAiInsights('حدث خطأ أثناء تحليل البيانات. يرجى المحاولة مرة أخرى.');
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const fetchProductRecommendations = async () => {
+    setRecsLoading(true);
+    try {
+      const response = await aiAPI.getProductRecommendations();
+      setProductRecs(response.data?.data?.recommendations || '');
+    } catch {
+      setProductRecs('حدث خطأ أثناء توليد التوصيات.');
+    } finally {
+      setRecsLoading(false);
+    }
+  };
+
+  const fetchCustomerInsights = async () => {
+    setCustLoading(true);
+    try {
+      const response = await aiAPI.getCustomerInsights();
+      setCustInsights(response.data?.data?.insights || '');
+    } catch {
+      setCustInsights('حدث خطأ أثناء تحليل العملاء.');
+    } finally {
+      setCustLoading(false);
     }
   };
 
@@ -777,6 +805,86 @@ export const Reports: React.FC = () => {
                 </div>
               </div>
             ) : null}
+          </div>
+        )}
+      </div>
+
+      {/* Product Recommendations */}
+      <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-100 p-2.5 rounded-xl">
+              <Package className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <h2 className="font-bold text-gray-900 text-lg">توصيات المنتجات</h2>
+              <p className="text-sm text-gray-500">تحليل ذكي للمنتجات واقتراحات للتحسين</p>
+            </div>
+          </div>
+          <button
+            onClick={fetchProductRecommendations}
+            disabled={recsLoading}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-colors font-medium text-sm"
+          >
+            {recsLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>جاري التحليل...</span>
+              </>
+            ) : (
+              <>
+                <Lightbulb className="w-4 h-4" />
+                <span>توصيات</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {productRecs && (
+          <div className="bg-white rounded-xl border border-emerald-100 p-5">
+            <div className="whitespace-pre-wrap text-gray-700 leading-relaxed text-sm" dir="rtl">
+              {productRecs}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Customer Insights */}
+      <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-100 p-2.5 rounded-xl">
+              <Users className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <h2 className="font-bold text-gray-900 text-lg">تحليل العملاء</h2>
+              <p className="text-sm text-gray-500">رؤى ذكية حول سلوك عملائك وتقسيمهم</p>
+            </div>
+          </div>
+          <button
+            onClick={fetchCustomerInsights}
+            disabled={custLoading}
+            className="flex items-center gap-2 px-4 py-2.5 bg-amber-600 text-white rounded-xl hover:bg-amber-700 disabled:opacity-50 transition-colors font-medium text-sm"
+          >
+            {custLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>جاري التحليل...</span>
+              </>
+            ) : (
+              <>
+                <Lightbulb className="w-4 h-4" />
+                <span>تحليل العملاء</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {custInsights && (
+          <div className="bg-white rounded-xl border border-amber-100 p-5">
+            <div className="whitespace-pre-wrap text-gray-700 leading-relaxed text-sm" dir="rtl">
+              {custInsights}
+            </div>
           </div>
         )}
       </div>

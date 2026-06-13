@@ -14,8 +14,8 @@ import {
 const router = Router();
 
 // All routes require authentication and tenant isolation
-router.use(authenticate);
-router.use(tenantIsolation);
+router.use(authenticate as any);
+router.use(tenantIsolation as any);
 
 /**
  * @route   POST /api/upload/single

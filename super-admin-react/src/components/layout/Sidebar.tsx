@@ -14,7 +14,6 @@ import {
   LogOut,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 
 const menuItems = [
@@ -30,11 +29,12 @@ const menuItems = [
 ];
 
 interface SidebarProps {
+  collapsed: boolean;
+  onToggle: () => void;
   onCloseMobile?: () => void;
 }
 
-export function Sidebar({ onCloseMobile }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false);
+export function Sidebar({ collapsed, onToggle, onCloseMobile }: SidebarProps) {
   const { logout } = useAuthStore();
 
   return (
@@ -50,9 +50,7 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
     >
       <div className="h-[68px] flex items-center justify-center border-b border-slate-700/50 shrink-0 px-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-600/30 shrink-0">
-            <span className="text-white text-xl font-black">M</span>
-          </div>
+          <img src="/logo.png" alt="Matgarco" className="w-9 h-9 object-contain shrink-0" />
           {!collapsed && (
             <div className="flex flex-col">
               <span className="text-white font-extrabold text-lg leading-tight">Matgarco</span>
@@ -119,7 +117,7 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
 
       <div className="p-2 border-t border-slate-700/50 shrink-0 space-y-1">
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={onToggle}
           className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-slate-500 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all"
         >
           {collapsed ? (

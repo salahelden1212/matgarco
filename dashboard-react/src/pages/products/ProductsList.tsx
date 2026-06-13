@@ -221,7 +221,7 @@ export const ProductsList: React.FC = () => {
     });
   };
 
-  const exportProducts = (format: 'csv' | 'excel' = 'csv') => {
+  const exportProducts = (_format: 'csv' | 'excel' = 'csv') => {
     const rows = products.map((p: any) => ({
       الاسم: p.name,
       SKU: p.sku || '',

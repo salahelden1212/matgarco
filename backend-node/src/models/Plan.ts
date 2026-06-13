@@ -35,7 +35,7 @@ const planSchema = new Schema(
     limits: {
       maxProducts: { type: Number, default: 100 },
       maxStaffUsers: { type: Number, default: 1 },
-      aiCreditsPerMonth: { type: Number, default: 10 }
+      aiCreditsPerMonth: { type: Number, default: 5 }
     },
     features: [{ type: String }],
     isActive: { type: Boolean, default: true },

@@ -17,7 +17,7 @@ import StoreTheme from '../models/StoreTheme';
 import Theme from '../models/Theme';
 import Merchant from '../models/Merchant';
 import User from '../models/User';
-import { AppError } from '../middleware/error.middleware';
+import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { AuthRequest } from '../types';
 import { normalizeThemePages, normalizeThemeSection } from '../utils/themeNormalization';
 
@@ -117,6 +117,42 @@ const DEFAULT_PAGES = {
       },
     ],
   },
+  about: {
+    enabled: true,
+    title: 'من نحن',
+    content: '<h3>من نحن</h3><p>مرحباً بك في متجرنا! نحن نوفر أفضل المنتجات بأعلى جودة...</p>',
+    sections: [],
+  },
+  contact: {
+    enabled: true,
+    title: 'اتصل بنا',
+    content: '<h3>اتصل بنا</h3><p>يمكنك التواصل معنا عبر البريد الإلكتروني أو الهاتف...</p>',
+    sections: [],
+  },
+  faq: {
+    enabled: true,
+    title: 'الأسئلة الشائعة',
+    content: '<h3>الأسئلة الشائعة</h3><p>هنا تجد إجابات للأسئلة الأكثر شيوعاً...</p>',
+    sections: [],
+  },
+  shipping: {
+    enabled: true,
+    title: 'سياسة الشحن',
+    content: '<h3>سياسة الشحن</h3><p>نوفر الشحن السريع لجميع المناطق خلال 2-5 أيام عمل...</p>',
+    sections: [],
+  },
+  returns: {
+    enabled: true,
+    title: 'سياسة الاسترجاع',
+    content: '<h3>سياسة الاسترجاع</h3><p>يمكنك استرجاع أو استبدال المنتجات خلال 14 يوماً من الاستلام...</p>',
+    sections: [],
+  },
+  privacy: {
+    enabled: true,
+    title: 'سياسة الخصوصية',
+    content: '<h3>سياسة الخصوصية</h3><p>نحن ملتزمون بحماية خصوصيتك وأمان بياناتك...</p>',
+    sections: [],
+  },
 };
 
 function normalizeSection(section: any): any {
@@ -213,7 +249,7 @@ async function ensureStoreTheme(merchantId: string) {
  * @route   GET /api/theme
  * @access  Private (Merchant)
  */
-export const getTheme = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getTheme = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
   const merchantId = await resolveMerchantId(req);
 
   const storeTheme = await ensureStoreTheme(merchantId);
@@ -236,8 +272,8 @@ export const getTheme = async (req: AuthRequest, res: Response): Promise<void> =
     header: { style: 'split', showSearch: true, showCart: true, showWishlist: true },
     productCard: { style: 'classic', showRating: true, showBadges: true, showQuickAdd: true },
     footer: { style: 'full', showSocial: true, showNewsletter: true },
-    seo: {},
-    social: {},
+    seo: (storeTheme.globalSettings as any)?.seo || {},
+    social: (storeTheme.globalSettings as any)?.social || {},
     store: {
       logo: '',
       tagline: '',
@@ -256,7 +292,7 @@ export const getTheme = async (req: AuthRequest, res: Response): Promise<void> =
       hasUnpublishedChanges: false,
     },
   });
-};
+});
 
 // ─── PATCH /api/theme/draft ───────────────────────────────────────────────────
 /**
@@ -264,7 +300,7 @@ export const getTheme = async (req: AuthRequest, res: Response): Promise<void> =
  * @route   PATCH /api/theme/draft
  * @access  Private (Merchant)
  */
-export const saveDraft = async (req: AuthRequest, res: Response): Promise<void> => {
+export const saveDraft = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
   const merchantId = await resolveMerchantId(req);
 
   const storeTheme = await ensureStoreTheme(merchantId);
@@ -327,6 +363,16 @@ export const saveDraft = async (req: AuthRequest, res: Response): Promise<void> 
     }
   }
 
+  // Handle SEO settings
+  if (update.seo) {
+    newGlobalSettings.seo = { ...(newGlobalSettings.seo || {}), ...update.seo };
+  }
+
+  // Handle social settings
+  if (update.social) {
+    newGlobalSettings.social = { ...(newGlobalSettings.social || {}), ...update.social };
+  }
+
   // Handle store settings (legacy)
   if (update.store) {
     newGlobalSettings.layout = {
@@ -341,20 +387,23 @@ export const saveDraft = async (req: AuthRequest, res: Response): Promise<void> 
   await storeTheme.save();
 
   // Return in legacy format for dashboard compatibility
+  const gs = storeTheme.globalSettings as any;
   const draft = {
     globalSettings: storeTheme.globalSettings,
     pages: storeTheme.pages,
-    colors: (storeTheme.globalSettings as any)?.colors || {},
+    colors: gs?.colors || {},
     fonts: {
-      heading: (storeTheme.globalSettings as any)?.typography?.headingFont || 'Cairo',
-      body:    (storeTheme.globalSettings as any)?.typography?.fontFamily || 'Cairo',
-      size:    (storeTheme.globalSettings as any)?.typography?.fontSize || 'md',
+      heading: gs?.typography?.headingFont || 'Cairo',
+      body:    gs?.typography?.fontFamily || 'Cairo',
+      size:    gs?.typography?.fontSize || 'md',
     },
     sections: (storeTheme.pages as any)?.home?.sections || [],
+    seo: gs?.seo || {},
+    social: gs?.social || {},
   };
 
   res.json({ success: true, data: { draft, hasUnpublishedChanges: true } });
-};
+});
 
 // ─── POST /api/theme/publish ──────────────────────────────────────────────────
 /**
@@ -362,7 +411,7 @@ export const saveDraft = async (req: AuthRequest, res: Response): Promise<void> 
  * @route   POST /api/theme/publish
  * @access  Private (Merchant)
  */
-export const publishTheme = async (req: AuthRequest, res: Response): Promise<void> => {
+export const publishTheme = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
   const merchantId = await resolveMerchantId(req);
 
   // In the new system, StoreTheme IS the live data. No separate publish step.
@@ -371,7 +420,7 @@ export const publishTheme = async (req: AuthRequest, res: Response): Promise<voi
   if (!storeTheme) throw new AppError('Theme not found', 404);
 
   res.json({ success: true, message: 'تم نشر التصميم بنجاح', data: { published: storeTheme } });
-};
+});
 
 // ─── POST /api/theme/reset-draft ─────────────────────────────────────────────
 /**
@@ -379,7 +428,7 @@ export const publishTheme = async (req: AuthRequest, res: Response): Promise<voi
  * @route   POST /api/theme/reset-draft
  * @access  Private (Merchant)
  */
-export const resetDraft = async (req: AuthRequest, res: Response): Promise<void> => {
+export const resetDraft = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
   const merchantId = await resolveMerchantId(req);
 
   const storeTheme = await StoreTheme.findOne({ merchantId, isActive: true }).populate('themeId');
@@ -401,7 +450,7 @@ export const resetDraft = async (req: AuthRequest, res: Response): Promise<void>
   };
 
   res.json({ success: true, message: 'تم تجاهل التغييرات', data: { draft } });
-};
+});
 
 // ─── POST /api/theme/apply-template ──────────────────────────────────────────
 /**
@@ -409,7 +458,7 @@ export const resetDraft = async (req: AuthRequest, res: Response): Promise<void>
  * @route   POST /api/theme/apply-template
  * @access  Private (Merchant)
  */
-export const applyTemplate = async (req: AuthRequest, res: Response): Promise<void> => {
+export const applyTemplate = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
   const merchantId = await resolveMerchantId(req);
 
   const { templateId } = req.body;
@@ -440,7 +489,7 @@ export const applyTemplate = async (req: AuthRequest, res: Response): Promise<vo
   };
 
   res.json({ success: true, data: { draft } });
-};
+});
 
 // ─── PUBLIC: GET /api/theme/storefront/:subdomain ─────────────────────────────
 /**
@@ -448,7 +497,7 @@ export const applyTemplate = async (req: AuthRequest, res: Response): Promise<vo
  * @route   GET /api/theme/storefront/:subdomain
  * @access  Public
  */
-export const getPublishedTheme = async (req: Request, res: Response): Promise<void> => {
+export const getPublishedTheme = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { subdomain } = req.params;
 
   const merchant = await Merchant.findOne({ subdomain }).lean();
@@ -494,7 +543,7 @@ export const getPublishedTheme = async (req: Request, res: Response): Promise<vo
       },
     },
   });
-};
+});
 
 // ─── PUBLIC: GET /api/theme/storefront/:subdomain/preview ─────────────────────
 /**
@@ -502,7 +551,7 @@ export const getPublishedTheme = async (req: Request, res: Response): Promise<vo
  * @route   GET /api/theme/storefront/:subdomain/preview
  * @access  Public
  */
-export const getPreviewTheme = async (req: Request, res: Response): Promise<void> => {
+export const getPreviewTheme = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { subdomain } = req.params;
 
   const merchant = await Merchant.findOne({ subdomain }).lean();
@@ -545,4 +594,4 @@ export const getPreviewTheme = async (req: Request, res: Response): Promise<void
       },
     },
   });
-};
+});

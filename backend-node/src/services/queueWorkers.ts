@@ -19,7 +19,7 @@ export function registerWorkers() {
   queueService.registerWorker(JobType.DEDUCT_AI_CREDITS, async (job) => {
     const { merchantId, amount, service } = job.data;
     const Merchant = require('../models/Merchant').default;
-    await Merchant.findByIdAndUpdate(merchantId, { $inc: { 'aiCredits.used': amount } });
+    await Merchant.findByIdAndUpdate(merchantId, { $inc: { 'limits.aiCreditsUsed': amount } });
   });
 
   // Subscription renewal worker

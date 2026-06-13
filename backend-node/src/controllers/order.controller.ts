@@ -118,6 +118,7 @@ export const createOrder = asyncHandler(
       shippingCost = 0,
       tax = 0,
       discount = 0,
+      discountCode,
     } = req.body;
 
     // Resolve merchantId from subdomain if not provided directly
@@ -303,6 +304,19 @@ export const createOrder = asyncHandler(
     customer.stats.averageOrderValue = customer.stats.totalSpent / customer.stats.totalOrders;
     customer.stats.lastOrderDate = new Date();
     await customer.save();
+
+    // If discount code was used, increment used count
+    if (discountCode) {
+      try {
+        const Discount = (await import('../models/Discount')).default;
+        await Discount.findOneAndUpdate(
+          { merchantId, code: discountCode.toUpperCase(), isActive: true },
+          { $inc: { usedCount: 1 } }
+        );
+      } catch (err) {
+        console.error('Failed to increment discount code used count:', err);
+      }
+    }
 
     // Update merchant stats
     await Merchant.findByIdAndUpdate(merchantId, {

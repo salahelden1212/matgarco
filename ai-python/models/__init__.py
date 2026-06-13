@@ -127,3 +127,42 @@ class ActionSuggestion(BaseModel):
 class ActionSuggestionResponse(BaseModel):
     success: bool
     suggestions: list[ActionSuggestion]
+
+
+class TagsRequest(BaseModel):
+    productName: str = Field(..., min_length=1, description="Product name")
+    category: Optional[str] = Field("", description="Product category")
+    features: Optional[list[str]] = Field(default_factory=list, description="Product features")
+    language: Optional[str] = Field("ar", description="Output language")
+
+
+class TagsData(BaseModel):
+    tags: list[str]
+    seo_keywords: list[str] = Field(default_factory=list, alias="seoKeywords")
+    categories: list[str]
+
+
+class TagsResponse(BaseModel):
+    success: bool
+    data: TagsData
+
+
+class BrandingRequest(BaseModel):
+    businessName: str = Field(..., min_length=1, description="Business/store name")
+    businessType: Optional[str] = Field("", description="Business type (retail/wholesale/services)")
+    industry: Optional[str] = Field("", description="Industry/sector")
+    description: Optional[str] = Field("", description="Business description")
+    language: Optional[str] = Field("ar", description="Output language")
+
+
+class BrandingData(BaseModel):
+    colors: dict = Field(default_factory=dict)
+    fonts: dict = Field(default_factory=dict)
+    visual_style: str = Field("", alias="visualStyle")
+    brand_voice: str = Field("", alias="brandVoice")
+    logo_description: str = Field("", alias="logoDescription")
+
+
+class BrandingResponse(BaseModel):
+    success: bool
+    data: BrandingData

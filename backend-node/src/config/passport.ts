@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as AppleStrategy } from 'passport-apple';
@@ -42,7 +43,7 @@ if (process.env.APPLE_TEAM_ID && process.env.APPLE_KEY_ID && process.env.APPLE_C
 }
 
 // Serialize user
-passport.serializeUser((user: any, done) => {
+passport.serializeUser((user: any, done: (err: any, id?: any) => void) => {
   done(null, user._id);
 });
 

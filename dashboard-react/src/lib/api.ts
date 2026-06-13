@@ -7,6 +7,7 @@ export const authAPI = {
     password: string;
     firstName: string;
     lastName: string;
+    phone?: string;
     role?: string;
   }) => axios.post('/auth/register', data),
 
@@ -27,7 +28,7 @@ export const authAPI = {
     axios.post('/auth/forgot-password', { email }),
 
   resetPassword: (token: string, password: string) =>
-    axios.post('/auth/reset-password', { token, password }),
+    axios.post('/auth/reset-password', { token, newPassword: password }),
 
   verifyEmail: (token: string) => axios.post('/auth/verify-email', { token }),
 };
@@ -86,13 +87,8 @@ export const productAPI = {
     language?: string;
   }) => axios.post('/products/generate-description', data),
 
-  generateDescriptionDraft: (data: {
-    productName: string;
-    category?: string;
-    price?: number;
-    tags?: string[];
-    language?: string;
-  }) => axios.post('/products/generate-description-draft', data),
+  generateDescriptionForProduct: (id: string) =>
+    axios.post(`/products/${id}/generate-description`),
 };
 
 // Order API
@@ -229,14 +225,6 @@ export const subscriptionAPI = {
 
 // AI API
 export const aiAPI = {
-  generateDescription: (data: {
-    productName: string;
-    category?: string;
-    price?: number;
-    tags?: string[];
-    language?: string;
-  }) => axios.post('/products/generate-description', data),
-
   generateSEO: (data: {
     productName: string;
     description?: string;
@@ -262,6 +250,53 @@ export const aiAPI = {
 
   suggestActions: () =>
     axios.post('/ai/assistant/suggest-actions'),
+
+  suggestCategories: (data: {
+    productName: string;
+    description?: string;
+    language?: string;
+  }) => axios.post('/ai/suggest-categories', data),
+
+  generateAltText: (data: {
+    productName: string;
+    imageContext?: string;
+    language?: string;
+  }) => axios.post('/ai/generate-alt-text', data),
+
+  generateMarketingCopy: (data: {
+    productName: string;
+    description?: string;
+    audience?: string;
+    language?: string;
+  }) => axios.post('/ai/generate-marketing-copy', data),
+
+  predictSales: (data?: { language?: string }) =>
+    axios.post('/ai/predict-sales', data || {}),
+
+  generateTags: (data: {
+    productName: string;
+    category?: string;
+    features?: string[];
+    language?: string;
+  }) => axios.post('/ai/generate-tags', data),
+
+  suggestBranding: (data: {
+    businessName: string;
+    businessType?: string;
+    industry?: string;
+    description?: string;
+    language?: string;
+  }) => axios.post('/ai/suggest-branding', data),
+
+  generateStoreSEO: (data: {
+    storeName: string;
+    description?: string;
+    industry?: string;
+    language?: string;
+  }) => axios.post('/ai/generate-store-seo', data),
+
+  getUsage: () =>
+    axios.get('/ai/usage'),
 };
 
 // Review API
@@ -314,5 +349,5 @@ export const discountAPI = {
     isActive: boolean;
   }>) => axios.patch(`/discounts/${id}`, data),
   delete: (id: string) => axios.delete(`/discounts/${id}`),
-  validate: (code: string) => axios.post('/discounts/validate', { code }),
+  validate: (code: string, orderTotal?: number) => axios.post('/discounts/validate', { code, orderTotal }),
 };

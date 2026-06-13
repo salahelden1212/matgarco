@@ -12,7 +12,8 @@ import { AuthRequest } from '../types';
 export const getWishlist = asyncHandler(async (req: AuthRequest, res: Response) => {
   const customerId = req.user?.customerId;
   if (!customerId) {
-    return res.status(200).json({ success: true, data: { items: [] } });
+    res.status(200).json({ success: true, data: { items: [] } });
+    return;
   }
 
   const customer = await Customer.findById(customerId)
@@ -64,11 +65,12 @@ export const addToWishlist = asyncHandler(async (req: AuthRequest, res: Response
 
   // Check if already in wishlist
   if (customer.wishlist.includes(productId)) {
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       message: 'Product already in wishlist',
       data: { items: customer.wishlist },
     });
+    return;
   }
 
   // Add to wishlist
@@ -135,18 +137,20 @@ export const checkWishlist = asyncHandler(async (req: AuthRequest, res: Response
   const { productId } = req.params;
 
   if (!customerId) {
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: { isInWishlist: false },
     });
+    return;
   }
 
   const customer = await Customer.findById(customerId);
   if (!customer) {
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: { isInWishlist: false },
     });
+    return;
   }
 
   const isInWishlist = customer.wishlist.some((id: any) => id.toString() === productId);

@@ -6,14 +6,12 @@ import {
   Truck,
   CreditCard,
   MapPin,
-  ChevronDown,
   ChevronUp,
   Tag,
   Plus,
   Check,
   Clock,
   Package,
-  ArrowRight,
   ShieldCheck,
   Info,
 } from 'lucide-react';
@@ -59,7 +57,7 @@ export const CheckoutPage: React.FC = () => {
   // New address form
   const [newAddress, setNewAddress] = useState({
     label: '',
-    fullName: user?.name || '',
+    fullName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
     phone: '',
     address: '',
     city: '',
@@ -146,10 +144,11 @@ export const CheckoutPage: React.FC = () => {
       return;
     }
 
+    const { label, ...addressDetails } = newAddress;
     const address: ShippingAddress = {
       id: Date.now().toString(),
-      label: newAddress.label || 'عنوان جديد',
-      ...newAddress,
+      label: label || 'عنوان جديد',
+      ...addressDetails,
       isDefault: savedAddresses.length === 0,
     };
 

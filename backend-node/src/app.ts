@@ -113,8 +113,10 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined', { stream: morganStream }));
 }
 
-// Apply global rate limiter to all /api routes
-app.use('/api', globalLimiter);
+// Apply global rate limiter to all /api routes (skipped in development)
+if (process.env.NODE_ENV !== 'development') {
+  app.use('/api', globalLimiter);
+}
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -138,8 +140,8 @@ app.get('/api', (req, res) => {
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // Mount routes
-app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/auth/oauth', oauthRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/merchants', merchantRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);

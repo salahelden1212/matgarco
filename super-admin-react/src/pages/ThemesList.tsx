@@ -1,11 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Palette, Plus, Loader2, AlertCircle, Zap, Store, Tag, Eye, Trash2, Clock, X, Save, Package, Settings2, History, Users as UsersIcon, Globe, Shirt, Monitor, UtensilsCrossed, Smartphone, Wrench, Copy, Search } from 'lucide-react';
+import { Palette, Plus, Loader2, AlertCircle, Store, Clock, Save, Package, Settings2, History, Users as UsersIcon, Globe, Shirt, Monitor, UtensilsCrossed, Smartphone, Wrench, Copy, Search } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import api from '../lib/api';
 import { toast } from 'sonner';
 import { Modal, Button, Skeleton, Card, Badge } from '../components/ui';
 import { PageHeader } from '../components/layout/PageHeader';
+
+function showToast(message: string, type: 'success' | 'error' | 'info' = 'success') {
+  if (type === 'success') {
+    toast.success(message);
+  } else if (type === 'error') {
+    toast.error(message);
+  } else {
+    toast(message);
+  }
+}
 
 const CATEGORY_LABELS: Record<string, string> = {
   general: 'عام',
@@ -194,9 +204,7 @@ export default function ThemesList() {
           <ThemeCard
             key={theme._id}
             theme={theme}
-            onStatusChange={s => handleStatusChange(theme._id, s)}
             onPlansChange={(p, c) => handlePlansChange(theme._id, p, c)}
-            onCategoryChange={c => handleCategoryChange(theme._id, c)}
             onOpenDetail={() => openDetail(theme)}
             onDelete={() => handleDeleteTheme(theme._id)}
             onClone={() => handleCloneTheme(theme._id, theme.name)}
@@ -229,9 +237,9 @@ export default function ThemesList() {
 }
 
 /* ─── Theme Card ─────────────────────────────────────────────────────────────── */
-function ThemeCard({ theme, onStatusChange, onPlansChange, onCategoryChange, onOpenDetail, onDelete, onClone }: {
-  theme: any; onStatusChange: (s: string) => void; onPlansChange: (p: string, c: boolean) => void;
-  onCategoryChange: (c: string) => void; onOpenDetail: () => void; onDelete: () => void; onClone: () => void;
+function ThemeCard({ theme, onPlansChange, onOpenDetail, onDelete, onClone }: {
+  theme: any; onPlansChange: (p: string, c: boolean) => void;
+  onOpenDetail: () => void; onDelete: () => void; onClone: () => void;
 }) {
   const [showHover, setShowHover] = useState(false);
 

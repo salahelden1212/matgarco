@@ -12,10 +12,10 @@ import { authenticate, optionalAuth } from '../middleware/auth.middleware';
 const router = Router();
 
 // Public routes (with optional auth)
-router.get('/check/:productId', optionalAuth, checkWishlist);
+router.get('/check/:productId', optionalAuth as any, checkWishlist);
 
 // Protected routes (require authentication)
-router.use(authenticate);
+router.use(authenticate as any);
 router.get('/', getWishlist);
 router.post('/add', addToWishlist);
 router.delete('/remove/:productId', removeFromWishlist);

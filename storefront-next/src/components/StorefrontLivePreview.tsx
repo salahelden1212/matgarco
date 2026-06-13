@@ -18,7 +18,13 @@ export default function StorefrontLivePreview() {
         // 1. Instantly update CSS variables for 60fps design tweaks (colors, typography)
         const cssString = buildCSSVariables({ 
           // reconstruct enough of the theme object for the CSS generator
-          globalSettings: payload.globalSettings || {},
+          globalSettings: payload.globalSettings || {
+            colors: payload.colors,
+            typography: payload.typography,
+            layout: payload.layout || payload.store
+          },
+          colors: payload.colors,
+          fonts: payload.typography || payload.fonts,
           store: payload.store || {}
         } as any);
 

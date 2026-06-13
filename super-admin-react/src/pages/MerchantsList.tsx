@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, MoreVertical, ShieldAlert, CheckCircle2, XCircle, Store, Eye, Loader2, AlertCircle, Ban, Power, Send, CheckSquare, Square, ChevronDown, Filter } from 'lucide-react';
+import { Search, MoreVertical, ShieldAlert, CheckCircle2, XCircle, Store, Eye, Loader2, AlertCircle, Ban, Power, Send, CheckSquare, Square, Filter } from 'lucide-react';
 import api from '../lib/api';
-import { Button, Badge, Input, Card, EmptyState, Pagination, SkeletonTable } from '../components/ui';
-import { PageHeader } from '../components/layout/PageHeader';
+import { toast } from 'sonner';
 
 interface Merchant {
   _id: string;
@@ -16,19 +15,6 @@ interface Merchant {
   isActive: boolean;
   createdAt: string;
 }
-
-const PLAN_LABELS: Record<string, string> = {
-  free_trial: 'تجربة مجانية',
-  starter: 'Starter',
-  professional: 'Professional',
-  business: 'Business',
-};
-
-const STATUS_LABELS: Record<string, { label: string; variant: 'success' | 'danger' | 'default' }> = {
-  active: { label: 'نشط', variant: 'success' },
-  suspended: { label: 'موقوف', variant: 'danger' },
-  cancelled: { label: 'ملغى', variant: 'default' },
-};
 
 export default function MerchantsList() {
   const [merchants, setMerchants] = useState<Merchant[]>([]);

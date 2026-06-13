@@ -156,11 +156,12 @@ export const getStorefrontTheme = asyncHandler(async (req: Request, res: Respons
   // Check cache first
   const cached = await getStorefrontCache(cacheKey);
   if (cached && !req.query.nocache) {
-    return res.json({
+    res.json({
       success: true,
       data: cached,
       cached: true,
     });
+    return;
   }
 
   const merchant = await Merchant.findOne({ subdomain: subdomain.toLowerCase(), isActive: true }).lean();
@@ -235,3 +236,55 @@ export const getStorefrontThemePreview = asyncHandler(async (req: Request, res: 
     }
   });
 });
+
+/**
+ * @desc    Validate a storefront discount code
+ * @route   POST /api/storefront/:subdomain/discounts/validate
+ * @access  Public
+ */
+export const validateStorefrontDiscount = asyncHandler(async (req: Request, res: Response) => {
+  const { subdomain } = req.params;
+  const { code, orderTotal } = req.body;
+  if (!code) throw new AppError('Discount code is required', 400);
+
+  const merchant = await Merchant.findOne({ subdomain: subdomain.toLowerCase(), isActive: true }).lean();
+  if (!merchant) throw new AppError('Store not found', 404);
+  const merchantId = (merchant as any)._id;
+
+  const Discount = (await import('../models/Discount')).default;
+  const discount = await Discount.findOne({ merchantId, code: code.toUpperCase(), isActive: true });
+  if (!discount) return res.status(200).json({ success: false, message: 'كود الخصم غير صالح' });
+
+  const now = new Date();
+  if (discount.startDate && new Date(discount.startDate) > now) {
+    return res.status(200).json({ success: false, message: 'كود الخصم لم يبدأ تفعيله بعد' });
+  }
+  if (discount.endDate && new Date(discount.endDate) < now) {
+    return res.status(200).json({ success: false, message: 'انتهت صلاحية كود الخصم' });
+  }
+  if (discount.maxUses && discount.usedCount >= discount.maxUses) {
+    return res.status(200).json({ success: false, message: 'تم تجاوز الحد الأقصى لاستخدام كود الخصم' });
+  }
+  if (discount.minOrderValue && orderTotal < discount.minOrderValue) {
+    return res.status(200).json({ success: false, message: `الحد الأدنى للطلب لاستخدام هذا الخصم هو ${discount.minOrderValue} ج.م` });
+  }
+
+  let discountAmount = 0;
+  if (discount.type === 'percentage') {
+    discountAmount = Math.round(orderTotal * discount.value / 100);
+  } else if (discount.type === 'fixed') {
+    discountAmount = discount.value;
+  }
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      code: discount.code,
+      type: discount.type,
+      value: discount.value,
+      discountAmount,
+      newTotal: Math.max(0, orderTotal - discountAmount),
+    },
+  });
+});
+

@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
+from middleware import verify_api_key, rate_limit_middleware
 from routes import (
     health_router,
     description_router,
@@ -10,6 +11,13 @@ from routes import (
     chat_router,
     analytics_router,
     assistant_router,
+    category_router,
+    image_alt_router,
+    marketing_router,
+    predictions_router,
+    tags_router,
+    branding_router,
+    store_seo_router,
 )
 
 
@@ -18,7 +26,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="Matgarco AI Service",
-        description="Scalable AI service powered by Qwen (DashScope)",
+        description="Scalable AI service powered by OpenRouter (DeepSeek / multi-model)",
         version="1.0.0",
     )
 
@@ -30,13 +38,22 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.middleware("http")(rate_limit_middleware)
+
     app.include_router(health_router)
-    app.include_router(description_router)
-    app.include_router(seo_router)
-    app.include_router(translation_router)
-    app.include_router(chat_router)
-    app.include_router(analytics_router)
-    app.include_router(assistant_router)
+    app.include_router(description_router, dependencies=[Depends(verify_api_key)])
+    app.include_router(seo_router, dependencies=[Depends(verify_api_key)])
+    app.include_router(translation_router, dependencies=[Depends(verify_api_key)])
+    app.include_router(chat_router, dependencies=[Depends(verify_api_key)])
+    app.include_router(analytics_router, dependencies=[Depends(verify_api_key)])
+    app.include_router(assistant_router, dependencies=[Depends(verify_api_key)])
+    app.include_router(category_router, dependencies=[Depends(verify_api_key)])
+    app.include_router(image_alt_router, dependencies=[Depends(verify_api_key)])
+    app.include_router(marketing_router, dependencies=[Depends(verify_api_key)])
+    app.include_router(predictions_router, dependencies=[Depends(verify_api_key)])
+    app.include_router(tags_router, dependencies=[Depends(verify_api_key)])
+    app.include_router(branding_router, dependencies=[Depends(verify_api_key)])
+    app.include_router(store_seo_router, dependencies=[Depends(verify_api_key)])
 
     return app
 

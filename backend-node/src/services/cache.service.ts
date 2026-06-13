@@ -21,6 +21,9 @@ class CacheService {
           enableOfflineQueue: false,
           lazyConnect: true,
         });
+        this.client.on('error', (err) => {
+          // Prevent unhandled error event crashes
+        });
         await this.client.connect();
       } catch {
         this.useMemory = true;

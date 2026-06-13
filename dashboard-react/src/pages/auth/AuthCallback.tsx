@@ -28,7 +28,8 @@ export default function AuthCallback() {
         }
 
         // Get current user data
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/me`, {
+        const apiBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
+        const response = await fetch(`${apiBase}/api/auth/me`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

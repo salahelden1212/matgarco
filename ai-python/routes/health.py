@@ -13,7 +13,7 @@ async def health_check():
         status="ok",
         service="Matgarco AI Service",
         version="1.0.0",
-        model=settings.QWEN_MODEL,
+        model=settings.LLM_MODEL,
     )
 
 
@@ -42,5 +42,12 @@ async def root():
             "cache-stats": "GET /cache-stats",
             "assistant-chat": "POST /api/assistant/chat",
             "suggest-actions": "POST /api/assistant/suggest-actions",
+            "suggest-categories": "POST /api/suggest-categories",
+            "generate-alt-text": "POST /api/generate-alt-text",
+            "generate-marketing-copy": "POST /api/generate-marketing-copy",
+            "predict-sales": "POST /api/predict-sales",
+            "generate-tags": "POST /api/generate-tags",
+            "suggest-branding": "POST /api/suggest-branding",
+            "generate-store-seo": "POST /api/generate-store-seo",
         },
     }

@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { TrendingUp, Users, Store, DollarSign, Loader2, AlertCircle, ShoppingCart, Zap, Clock, Trophy, TrendingDown, Download, RefreshCw, Calendar } from 'lucide-react';
+import { TrendingUp, Users, Store, DollarSign, Loader2, AlertCircle, ShoppingCart, Zap, Clock, Trophy, TrendingDown, Download, Calendar } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import api from '../lib/api';
-import { Card, StatCard, SkeletonKpiCards, SkeletonChart } from '../components/ui';
+import { Card, SkeletonKpiCards, SkeletonChart } from '../components/ui';
 import { PageHeader } from '../components/layout/PageHeader';
 
 const PLAN_COLORS: Record<string, string> = {

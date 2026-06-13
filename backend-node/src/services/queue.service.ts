@@ -8,6 +8,10 @@ const connection = new IORedis(REDIS_URL, {
   enableOfflineQueue: false,
 });
 
+connection.on('error', (err) => {
+  // Prevent unhandled error event crashes when Redis is offline
+});
+
 export enum JobType {
   SEND_EMAIL = 'send-email',
   PROCESS_PAYOUT = 'process-payout',
@@ -36,7 +40,10 @@ class QueueService {
     this.initialized = true;
 
     for (const jobType of Object.values(JobType)) {
-      const queue = new Queue(jobType, { connection, defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 2000 } } });
+      const queue = new Queue(jobType, { connection: connection as any, defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 2000 } } });
+      queue.on('error', (err) => {
+        // Prevent unhandled error event crashes when Redis is offline
+      });
       this.queues.set(jobType, queue);
     }
   }
@@ -63,8 +70,11 @@ class QueueService {
           throw err;
         }
       },
-      { connection, concurrency },
+      { connection: connection as any, concurrency },
     );
+    worker.on('error', (err) => {
+      // Prevent unhandled error event crashes when Redis is offline
+    });
     this.workers.set(type, worker as any);
 
     worker.on('failed', (job, err) => {

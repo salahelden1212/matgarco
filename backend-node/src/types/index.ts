@@ -30,17 +30,24 @@ export type ProductStatus = 'draft' | 'active' | 'archived';
 // Template types
 export type TemplateType = 'modern' | 'minimal' | 'luxury';
 
+declare global {
+  namespace Express {
+    interface User {
+      userId: string;
+      email: string;
+      role: UserRole;
+      name?: string;
+      merchantId?: string;
+      customerId?: string;
+      permissions?: Record<string, boolean>;
+      staffRole?: string;
+    }
+  }
+}
+
 // Extend Express Request type
 export interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    email: string;
-    role: UserRole;
-    merchantId?: string;
-    customerId?: string;
-    permissions?: Record<string, boolean>;
-    staffRole?: string;
-  };
+  user?: Express.User;
 }
 
 // JWT Payload

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowRight, Store, ShieldAlert, CheckCircle2, XCircle, Users, CreditCard,
-  Package, Activity, Loader2, AlertCircle, Eye, Send, ChevronDown,
+  Package, Activity, Loader2, AlertCircle, Eye, Send,
   Clock, ShoppingBag, Settings2, BarChart2, Ban, Power
 } from 'lucide-react';
 import api from '../lib/api';
@@ -25,7 +25,6 @@ export default function MerchantDetails() {
   const [tab, setTab] = useState<Tab>('overview');
   const [activityLog, setActivityLog] = useState<any[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
-  const [showPlanDropdown, setShowPlanDropdown] = useState(false);
   const [planChanging, setPlanChanging] = useState(false);
   const [showNotify, setShowNotify] = useState(false);
   const [notifyMsg, setNotifyMsg] = useState('');
@@ -86,7 +85,6 @@ export default function MerchantDetails() {
       const res = await api.patch(`/super-admin/merchants/${id}/plan`, { plan });
       setMerchant(res.data.data);
       toast.success('تم تغيير الباقة بنجاح');
-      setShowPlanDropdown(false);
     } catch { toast.error('فشل تغيير الباقة'); }
     finally { setPlanChanging(false); }
   };

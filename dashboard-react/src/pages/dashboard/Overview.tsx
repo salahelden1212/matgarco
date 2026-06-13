@@ -21,6 +21,7 @@ import {
   Loader2,
   Store,
   ExternalLink,
+  Brain,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -96,6 +97,12 @@ export default function Overview() {
     queryFn: () => productAPI.getAll({ limit: 5, status: 'active' }),
   });
   const activeProducts: any[] = productsData?.data?.data?.products || [];
+
+  const { data: aiUsageData } = useQuery({
+    queryKey: ['ai-usage'],
+    queryFn: () => aiAPI.getUsage(),
+  });
+  const aiUsage = aiUsageData?.data?.data;
 
   const revenueChartData = useMemo(() => {
     const days: Record<string, { day: string; إيراد: number; طلبات: number }> = {};
@@ -206,7 +213,7 @@ export default function Overview() {
       </div>
 
       {/* Today Snapshot */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white rounded-2xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
             <div className="bg-emerald-50 p-2.5 rounded-xl">
@@ -257,6 +264,37 @@ export default function Overview() {
           </div>
           <p className="text-2xl font-bold text-gray-900">{merchant?.stats?.totalProducts || 0}</p>
           <p className="text-sm text-gray-500 mt-0.5">إجمالي المنتجات</p>
+        </div>
+
+        {/* AI Credits */}
+        <div className="bg-white rounded-2xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-3">
+            <div className="bg-indigo-50 p-2.5 rounded-xl">
+              <Brain className="h-5 w-5 text-indigo-600" />
+            </div>
+            {aiUsage && !aiUsage.isUnlimited && (
+              <span className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
+                aiUsage.usagePercent >= 80 ? 'text-red-600 bg-red-50' : aiUsage.usagePercent >= 50 ? 'text-amber-600 bg-amber-50' : 'text-green-600 bg-green-50'
+              }`}>
+                {aiUsage.usagePercent}%
+              </span>
+            )}
+          </div>
+          {aiUsage ? (
+            <>
+              <p className="text-2xl font-bold text-gray-900">
+                {aiUsage.isUnlimited ? 'غير محدود' : `${aiUsage.creditsRemaining}`}
+              </p>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {aiUsage.isUnlimited ? 'رصيد AI' : `رصيد AI من ${aiUsage.creditsPerMonth}`}
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="h-8 w-16 bg-gray-200 rounded animate-pulse mb-1" />
+              <div className="h-4 w-20 bg-gray-100 rounded animate-pulse" />
+            </>
+          )}
         </div>
       </div>
 

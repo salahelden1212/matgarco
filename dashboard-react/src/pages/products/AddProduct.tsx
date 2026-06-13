@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { X, Save, Loader2, Plus, Sparkles } from 'lucide-react';
-import { productAPI } from '../../lib/api';
+import { productAPI, aiAPI } from '../../lib/api';
 import { ImageUpload } from '../../components/ImageUpload';
 
 interface ProductFormData {
@@ -39,6 +39,8 @@ export const AddProduct: React.FC = () => {
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState<any>({});
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [tagsLoading, setTagsLoading] = useState(false);
 
   // Create product mutation
   const createMutation = useMutation({
@@ -62,7 +64,7 @@ export const AddProduct: React.FC = () => {
   // Generate description mutation
   const generateDescriptionMutation = useMutation({
     mutationFn: () =>
-      productAPI.generateDescriptionDraft({
+      productAPI.generateDescription({
         productName: formData.name,
         category: formData.category,
         price: formData.price,
@@ -97,6 +99,70 @@ export const AddProduct: React.FC = () => {
     }
     setIsGeneratingDescription(true);
     generateDescriptionMutation.mutate();
+  };
+
+  const suggestCategories = async () => {
+    if (!formData.name.trim()) {
+      toast.error('يرجى إدخال اسم المنتج أولاً');
+      return;
+    }
+    setCategoryLoading(true);
+    try {
+      const response = await aiAPI.suggestCategories({
+        productName: formData.name,
+        description: formData.description,
+      });
+      const data = response.data?.data;
+      if (data) {
+        setFormData({
+          ...formData,
+          category: data.category || formData.category,
+          tags: data.tags || formData.tags,
+        });
+        if (data.tags?.length) {
+          toast.success(`تم اقتراح التصنيف: ${data.category} و ${data.tags.length} وسم`);
+        } else {
+          toast.success(`تم اقتراح التصنيف: ${data.category}`);
+        }
+      }
+    } catch {
+      toast.error('فشل في توليد التصنيفات');
+    } finally {
+      setCategoryLoading(false);
+    }
+  };
+
+  const generateTagsAI = async () => {
+    if (!formData.name.trim()) {
+      toast.error('يرجى إدخال اسم المنتج أولاً');
+      return;
+    }
+    setTagsLoading(true);
+    try {
+      const response = await aiAPI.generateTags({
+        productName: formData.name,
+        category: formData.category,
+        features: [],
+        language: 'ar',
+      });
+      const data = response.data?.data;
+      if (data) {
+        const allTags = [...(data.tags || []), ...(data.seo_keywords || [])];
+        const uniqueTags = [...new Set(allTags)];
+        if (uniqueTags.length) {
+          setFormData({
+            ...formData,
+            tags: uniqueTags,
+            category: data.categories?.[0] || formData.category,
+          });
+          toast.success(`تم توليد ${uniqueTags.length} وسم بنجاح ✨`);
+        }
+      }
+    } catch {
+      toast.error('فشل في توليد الوسوم');
+    } finally {
+      setTagsLoading(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent, isDraft: boolean = false) => {
@@ -434,15 +500,26 @@ export const AddProduct: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 الفئة
               </label>
-              <input
-                type="text"
-                value={formData.category || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, category: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="مثال: إلكترونيات"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={formData.category || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="مثال: إلكترونيات"
+                />
+                <button
+                  type="button"
+                  onClick={suggestCategories}
+                  disabled={!formData.name || categoryLoading}
+                  className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  title="توليد الفئة والوسوم بالذكاء الاصطناعي"
+                >
+                  {categoryLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
 
             <div>
@@ -464,6 +541,15 @@ export const AddProduct: React.FC = () => {
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   <Plus className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={generateTagsAI}
+                  disabled={!formData.name || tagsLoading}
+                  className="px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  title="توليد الوسوم بالذكاء الاصطناعي"
+                >
+                  {tagsLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
                 </button>
               </div>
 

@@ -41,9 +41,7 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-3xl font-black mb-4 shadow-lg shadow-indigo-600/20">
-            M
-          </div>
+          <img src="/logo.png" alt="Matgarco" className="w-16 h-16 object-contain mb-4" />
           <h1 className="text-2xl font-bold text-slate-900">Matgarco Admin</h1>
           <p className="text-slate-500 mt-1 text-sm">تسجيل الدخول للإدارة العليا</p>
         </div>

@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/authStore';
 import {
   Loader2, Globe, RotateCcw, Smartphone, Monitor, Tablet, ExternalLink,
   Store, LayoutTemplate, Palette, Type, Layers, SearchCode, Share2,
-  RefreshCw, Signal, Wifi, Battery, Lock,
+  RefreshCw, Signal, Wifi, Battery, Lock, FileText,
 } from 'lucide-react';
 import TemplatePanel from './panels/TemplatePanel';
 import ColorsPanel from './panels/ColorsPanel';
@@ -17,6 +17,7 @@ import SectionsPanel from './panels/SectionsPanel';
 import SeoPanel from './panels/SeoPanel';
 import SocialPanel from './panels/SocialPanel';
 import StoreInfoPanel from './panels/StoreInfoPanel';
+import PagesPanel from './panels/PagesPanel';
 
 // Shallow-merge draft: for each key in update, if both sides are plain objects, merge one level deep
 function shallowMergeDraft(draft: Record<string, any>, update: Record<string, any>): Record<string, any> {
@@ -37,6 +38,7 @@ const TABS = [
   { id: 'template',   label: 'القالب',   Icon: LayoutTemplate },
   { id: 'colors',     label: 'الألوان',  Icon: Palette        },
   { id: 'typography', label: 'الخط',     Icon: Type           },
+  { id: 'pages',      label: 'الصفحات',  Icon: FileText       },
   { id: 'sections',   label: 'الأقسام', Icon: Layers         },
   { id: 'seo',        label: 'SEO',      Icon: SearchCode     },
   { id: 'social',     label: 'التواصل', Icon: Share2         },
@@ -192,6 +194,7 @@ export default function StoreDesignPage() {
           {activeTab === 'template'   && <TemplatePanel draft={draft} onChange={handleChange} subdomain={subdomain} onRefresh={refreshPreview} />}
           {activeTab === 'colors'     && <ColorsPanel draft={draft} onChange={handleChange} />}
           {activeTab === 'typography' && <TypographyPanel draft={draft} onChange={handleChange} />}
+          {activeTab === 'pages'      && <PagesPanel draft={draft} onChange={handleChange} />}
           {activeTab === 'sections'   && <SectionsPanel draft={draft} onChange={handleChange} />}
           {activeTab === 'seo'        && <SeoPanel draft={draft} onChange={handleChange} />}
           {activeTab === 'social'     && <SocialPanel draft={draft} onChange={handleChange} />}

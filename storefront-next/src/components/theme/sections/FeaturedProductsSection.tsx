@@ -1,40 +1,45 @@
 import React from 'react';
 import Link from 'next/link';
 import { ProductCard } from '../ProductCard';
+import { ArrowLeft } from 'lucide-react';
 
 export default function FeaturedProductsSection({ settings, storeData }: { settings: Record<string, any>, storeData?: any }) {
   const {
     title = 'منتجات مميزة',
     subtitle = 'اكتشف أحدث المنتجات المضافة لمتجرنا',
     viewAllText = 'عرض الكل',
-    viewAllLink = '/store',
-    layout = 'grid', // grid, carousel
+    viewAllLink = '/products',
     limit = 8,
   } = settings;
 
   const products = storeData?.products || [];
   const displayProducts = products.slice(0, limit);
+  
+  const subdomain = storeData?.merchant?.subdomain;
+  const base = subdomain ? `/store/${subdomain}` : '';
+  const finalLink = viewAllLink.startsWith('/') ? `${base}${viewAllLink}` : `${base}/${viewAllLink}`;
 
   return (
-    <section className="py-16 bg-[var(--background)]">
+    <section className="py-16 bg-white">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-10">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-10 pb-4 border-b border-slate-50">
           <div className="max-w-2xl">
-            <h2 className="text-3xl font-bold text-[var(--text)] mb-2">{title}</h2>
-            {subtitle && <p className="text-[var(--text-muted)] text-lg">{subtitle}</p>}
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-2">{title}</h2>
+            {subtitle && <p className="text-slate-500 text-sm md:text-base font-medium">{subtitle}</p>}
           </div>
           {viewAllText && (
             <Link 
-              href={viewAllLink}
-              className="mt-4 md:mt-0 text-[var(--primary)] font-medium hover:underline flex items-center gap-1"
+              href={finalLink}
+              className="mt-4 sm:mt-0 text-slate-900 font-extrabold hover:text-slate-750 flex items-center gap-1.5 transition-colors text-sm"
             >
-              {viewAllText}
+              <span>{viewAllText}</span>
+              <ArrowLeft className="w-4 h-4" />
             </Link>
           )}
         </div>
 
         {displayProducts.length === 0 ? (
-          <div className="py-12 text-center text-[var(--text-muted)] bg-[var(--surface)] rounded-[var(--radius)]">
+          <div className="py-16 text-center text-slate-400 bg-slate-50 border border-slate-100 rounded-2xl font-bold">
             لا توجد منتجات مميزة لعرضها حالياً
           </div>
         ) : (

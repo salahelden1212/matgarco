@@ -90,15 +90,15 @@ class QwenClient:
 
     async def _attempt_request(self, payload: dict, headers: dict) -> str:
         client = self._get_client()
-        response = await client.post(settings.QWEN_API_URL, json=payload, headers=headers)
+        response = await client.post(settings.LLM_API_URL, json=payload, headers=headers)
 
         if response.status_code != 200:
-            raise Exception(f"Qwen API error ({response.status_code}): {response.text}")
+            raise Exception(f"LLM API error ({response.status_code}): {response.text}")
 
         data = response.json()
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
         if not content:
-            raise Exception("Empty response from Qwen API")
+            raise Exception("Empty response from LLM API")
 
         return content.strip()
 
@@ -123,15 +123,17 @@ class QwenClient:
             return fallback
 
         payload = {
-            "model": model or settings.QWEN_MODEL,
+            "model": model or settings.LLM_MODEL,
             "messages": messages,
             "max_tokens": max_tokens,
             "temperature": temperature,
         }
 
         headers = {
-            "Authorization": f"Bearer {settings.QWEN_API_KEY}",
+            "Authorization": f"Bearer {settings.LLM_API_KEY}",
             "Content-Type": "application/json",
+            "HTTP-Referer": settings.LLM_REFERER,
+            "X-Title": settings.LLM_TITLE,
         }
 
         last_error = None
