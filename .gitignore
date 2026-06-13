@@ -48,3 +48,6 @@ coverage/
 .cache/
 temp/
 uploads/
+
+# Backend split (standalone repository)
+backend-node/
