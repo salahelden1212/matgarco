@@ -101,13 +101,15 @@ export function ProductCard({ product, priority }: { product: any; priority?: bo
   return (
     <div className="group relative bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
       {/* Image Area */}
-      <Link href={`/products/${product.slug}`} className="relative aspect-[4/5] overflow-hidden bg-slate-50 block">
-        <SmartImage
-          src={optimizedUrl}
-          alt={product.name}
-          className="w-full h-full object-cover transform group-hover:scale-108 transition-transform duration-500 ease-out"
-          {...(priority ? { fetchpriority: 'high', loading: 'eager' } : { loading: 'lazy' })}
-        />
+      <div className="relative aspect-[4/5] overflow-hidden bg-slate-50 block">
+        <Link href={`/products/${product.slug}`} className="absolute inset-0 z-10 block w-full h-full">
+          <SmartImage
+            src={optimizedUrl}
+            alt={product.name}
+            className="w-full h-full object-cover transform group-hover:scale-108 transition-transform duration-500 ease-out"
+            {...(priority ? { fetchpriority: 'high', loading: 'eager' } : { loading: 'lazy' })}
+          />
+        </Link>
         
         {/* Wishlist Button */}
         <button
@@ -116,26 +118,26 @@ export function ProductCard({ product, priority }: { product: any; priority?: bo
         >
           <Heart className={`w-4 h-4 transition-transform duration-300 active:scale-120 ${inWishlist ? 'fill-rose-500 text-rose-500' : ''}`} />
         </button>
-
+ 
         {/* Discount Badge */}
         {hasDiscount && (
-          <span className="absolute top-3 right-3 bg-rose-500 text-white text-[10px] md:text-xs font-black px-2.5 py-1 rounded-full shadow-sm">
+          <span className="absolute top-3 right-3 bg-rose-500 text-white text-[10px] md:text-xs font-black px-2.5 py-1 rounded-full shadow-sm z-20">
             خصم {Math.round((1 - product.price / comparePrice) * 100)}%
           </span>
         )}
-
+ 
         {/* Out of Stock Overlay */}
         {isOutOfStock && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] flex items-center justify-center z-10">
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] flex items-center justify-center z-20">
             <span className="bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
               نفذت الكمية
             </span>
           </div>
         )}
-
+ 
         {/* Hover Actions Menu */}
         {!isOutOfStock && (
-          <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/50 to-transparent translate-y-10 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300 hidden md:flex gap-2">
+          <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/50 to-transparent translate-y-10 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300 hidden md:flex gap-2 z-20">
             <button
               onClick={handleQuickAdd}
               disabled={adding}
@@ -159,7 +161,7 @@ export function ProductCard({ product, priority }: { product: any; priority?: bo
             </Link>
           </div>
         )}
-      </Link>
+      </div>
 
       {/* Info Area */}
       <div className="p-4 flex flex-col flex-grow">

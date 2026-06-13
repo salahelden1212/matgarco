@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import User from '../models/User';
 import Merchant from '../models/Merchant';
-import jwt from 'jsonwebtoken';
+import { generateAccessToken, generateRefreshToken } from '../services/jwt.service';
 
 interface OAuth2Payload {
   id: string;
@@ -12,18 +12,16 @@ interface OAuth2Payload {
 }
 
 // Generate JWT tokens
-const generateTokens = (userId: string) => {
-  const accessToken = jwt.sign(
-    { userId },
-    process.env.JWT_SECRET || 'your-secret-key',
-    { expiresIn: '15m' }
-  );
+const generateTokens = (user: any) => {
+  const payload = {
+    userId: user._id.toString(),
+    email: user.email,
+    role: user.role,
+    merchantId: user.merchantId?.toString(),
+  };
 
-  const refreshToken = jwt.sign(
-    { userId },
-    process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',
-    { expiresIn: '7d' }
-  );
+  const accessToken = generateAccessToken(payload);
+  const refreshToken = generateRefreshToken(payload);
 
   return { accessToken, refreshToken };
 };
@@ -38,7 +36,7 @@ export const googleCallback = async (req: Request, res: Response): Promise<void>
     }
 
     // Generate tokens
-    const { accessToken, refreshToken } = generateTokens(user._id);
+    const { accessToken, refreshToken } = generateTokens(user);
 
     // Save refresh token to database
     user.refreshToken = refreshToken;
@@ -81,7 +79,7 @@ export const appleCallback = async (req: Request, res: Response): Promise<void> 
     }
 
     // Generate tokens
-    const { accessToken, refreshToken } = generateTokens(user._id);
+    const { accessToken, refreshToken } = generateTokens(user);
 
     // Save refresh token to database
     user.refreshToken = refreshToken;

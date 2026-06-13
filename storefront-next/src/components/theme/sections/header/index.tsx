@@ -102,14 +102,14 @@ export default function HeaderSection({ variant = 'split', settings = {}, storeD
           title="السلة" 
           className="p-2.5 hover:bg-slate-100 rounded-full transition-all duration-200 relative inline-flex items-center text-slate-700 hover:text-slate-950"
         >
-          <div className="relative">
+          <span className="relative block">
             <ShoppingBag className="w-5 h-5" />
             {cart.totalItems > 0 && (
               <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] font-bold flex items-center justify-center border-2 border-white animate-in scale-in duration-200">
                 {cart.totalItems > 99 ? '99+' : cart.totalItems}
               </span>
             )}
-          </div>
+          </span>
         </Link>
       )}
     </div>

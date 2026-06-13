@@ -275,18 +275,7 @@ export default async function ProductsPage({ params, searchParams }: Props) {
               </div>
             )}
           </div>
-
         </div>
-      </div>
-    </StorePageShell>
-  );
-}ver:bg-slate-800 shadow-md transition-colors"
-              >
-                التالي
-              </Link>
-            )}
-          </div>
-        )}
       </div>
     </StorePageShell>
   );

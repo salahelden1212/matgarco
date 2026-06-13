@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { 
   Laptop, 
   Shirt, 
@@ -163,19 +164,21 @@ export default function CategoriesGridSection({ settings, variant = 'grid', stor
         <div className={containerClass}>
           {categories.map((cat: { name: string; Icon: React.ComponentType<any> }, i: number) => {
             const IconComponent = cat.Icon;
+            const subdomain = storeData?.merchant?.subdomain;
+            const base = subdomain ? `/store/${subdomain}` : '';
             return (
-              <a
+              <Link
                 key={i}
-                href={`/products?category=${encodeURIComponent(cat.name)}`}
+                href={`${base}/products?category=${encodeURIComponent(cat.name)}`}
                 className={`group flex flex-col items-center justify-center p-6 rounded-2xl bg-white shadow-sm border border-slate-150 hover:border-slate-300 hover:shadow-md hover:-translate-y-1 transition-all duration-300 text-center cursor-pointer ${itemClass}`}
               >
-                <div className="w-14 h-14 rounded-full bg-slate-50 text-slate-600 group-hover:bg-slate-900 group-hover:text-white flex items-center justify-center mb-3 transition-colors duration-300 shadow-inner">
+                <span className="block w-14 h-14 rounded-full bg-slate-50 text-slate-600 group-hover:bg-slate-900 group-hover:text-white flex items-center justify-center mb-3 transition-colors duration-300 shadow-inner">
                   <IconComponent className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" />
-                </div>
+                </span>
                 <span className="text-sm font-bold text-slate-700 group-hover:text-slate-950 transition-colors">
                   {cat.name}
                 </span>
-              </a>
+              </Link>
             );
           })}
         </div>

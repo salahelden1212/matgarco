@@ -123,17 +123,17 @@ export async function fetchMerchantBySubdomain(subdomain: string) {
 }
 
 // ─── Categories (public) ───────────────────────────────────────────────────────
-export async function fetchCategories(subdomain: string) {
+export async function fetchCategories(subdomain: string): Promise<string[]> {
   try {
     const res = await fetch(
       `${API_URL}/storefront/${subdomain}/categories`,
       { next: { revalidate: 120 } }
     );
-    if (!res.ok) return null;
+    if (!res.ok) return [];
     const json = await res.json();
-    return json.data ?? null;
+    return json.data?.categories ?? [];
   } catch {
-    return null;
+    return [];
   }
 }
 
