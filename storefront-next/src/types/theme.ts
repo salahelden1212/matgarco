@@ -21,6 +21,11 @@ export interface ThemeData {
     colors?: Record<string, string>;
     typography?: Record<string, string>;
     layout?: Record<string, string>;
+    seo?: {
+      title?: string;
+      description?: string;
+      ogImage?: string;
+    };
   };
   pages?: Record<string, { sections: ThemeSection[] }>;
 
@@ -110,6 +115,8 @@ export interface StorefrontThemeResponse {
     language?: string;
     email?: string;
     phone?: string;
+    seoDescription?: string;
+    ogImage?: string;
   };
   isPreview?: boolean;
 }
