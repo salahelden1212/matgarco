@@ -1,0 +1,232 @@
+import { Request, Response } from 'express';
+import { AuthRequest } from '../types';
+import Order from '../models/Order';
+import Merchant from '../models/Merchant';
+import { createPaymobIntention, verifyPaymobHmac } from '../services/payment.service';
+
+/**
+ * @desc    Creates a Paymob payment intention for an order
+ * @route   POST /api/payments/create-intention
+ * @access  Public
+ */
+export const createIntention = async (req: Request, res: Response) => {
+  const {
+    orderId,
+    // OR build from cart directly
+    subdomain,
+    customerInfo,
+    shippingAddress,
+    items,
+    total,
+  } = req.body;
+
+  let order: any = null;
+  let merchantId: string;
+
+  // If orderId provided, look up existing order
+  if (orderId) {
+    order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    merchantId = order.merchantId.toString();
+  } else {
+    // Cart-based mode: find merchant by subdomain
+    const merchant = await Merchant.findOne({ subdomain });
+    if (!merchant) return res.status(404).json({ success: false, message: 'Store not found' });
+    merchantId = merchant._id.toString();
+  }
+
+  const merchant = await Merchant.findById(merchantId).select('+paymobConfig.secretKey');
+  if (!merchant) return res.status(404).json({ success: false, message: 'Merchant not found' });
+
+  const usesMerchantPaymob = merchant.subscriptionPlan === 'business' && !!(merchant as any).paymobConfig?.secretKey;
+  let merchantKeys: { secretKey: string; publicKey: string } | undefined;
+  
+  if (usesMerchantPaymob) {
+    merchantKeys = {
+      secretKey: (merchant as any).paymobConfig.secretKey,
+      publicKey: (merchant as any).paymobConfig.publicKey,
+    };
+  }
+
+  // Build intention payload
+  const intentionItems = order
+    ? order.items.map((i: any) => ({
+        name: i.productName,
+        amount: Math.round(i.price * 100),
+        quantity: i.quantity,
+      }))
+    : (items || []).map((i: any) => ({
+        name: i.productName || i.name,
+        amount: Math.round(i.price * 100),
+        quantity: i.quantity,
+      }));
+
+  const amountCents = order
+    ? Math.round(order.total * 100)
+    : Math.round((total || 0) * 100);
+
+  const billing = order ? order.customerInfo : customerInfo;
+  const shipping = order ? order.shippingAddress : shippingAddress;
+
+  const result = await createPaymobIntention({
+    amount: amountCents,
+    currency: 'EGP',
+    merchantOrderId: order ? order._id.toString() : `cart-${Date.now()}`,
+    billingData: {
+      firstName: billing?.firstName || 'N/A',
+      lastName: billing?.lastName || 'N/A',
+      phone: billing?.phone || '01000000000',
+      email: billing?.email || 'noemail@matgarco.com',
+      street: shipping?.street || 'N/A',
+      city: shipping?.city || 'Cairo',
+      country: 'EG',
+      state: shipping?.state,
+    },
+    items: intentionItems,
+  }, merchantKeys);
+
+  // Save paymob_intention_id on order if exists
+  if (order) {
+    await Order.findByIdAndUpdate(order._id, {
+      paymentMethod: 'card',
+      paymentStatus: 'pending',
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      clientSecret: result.clientSecret,
+      intentionId: result.intentionId,
+      paymentUrl: result.paymentUrl,
+      publicKey: merchantKeys?.publicKey || process.env.PAYMOB_PUBLIC_KEY,
+    },
+  });
+};
+
+/**
+ * @desc    Paymob webhook handler for payment results (Transaction Processed Callback)
+ * @route   POST /api/payments/webhook
+ * @access  Public
+ */
+export const handleWebhook = async (req: Request, res: Response) => {
+  const hmac = (req.query.hmac as string) || '';
+
+  // C7 FIX: Always verify HMAC - never skip verification
+  if (!hmac) {
+    return res.status(401).json({ success: false, message: 'HMAC signature required' });
+  }
+
+  if (!verifyPaymobHmac(req.body?.obj || req.body, hmac)) {
+    return res.status(401).json({ success: false, message: 'Invalid HMAC signature' });
+  }
+
+  // Transaction data is nested under req.body.obj for v2
+  const transaction = req.body?.obj || req.body;
+  const isSuccess = transaction?.success === true || transaction?.success === 'true';
+  const merchantOrderId = transaction?.order?.merchant_order_id || transaction?.extras?.merchant_order_id;
+  const transactionId = transaction?.id?.toString();
+
+  if (merchantOrderId) {
+    const paymentStatus = isSuccess ? 'paid' : 'failed';
+    await Order.findByIdAndUpdate(merchantOrderId, {
+      paymentStatus,
+      paymentTransactionId: transactionId,
+      $push: {
+        timeline: {
+          status: `payment_${paymentStatus}`,
+          timestamp: new Date(),
+          note: `Paymob transaction ${transactionId}: ${isSuccess ? 'Paid' : 'Failed'}`,
+        },
+      },
+    });
+  }
+
+  // Always return 200 to Paymob to prevent retries
+  return res.status(200).json({ success: true, received: true });
+};
+
+/**
+ * @desc    Check payment status for an order
+ * @route   GET /api/payments/status/:orderId
+ * @access  Private/Merchant
+ */
+export const getPaymentStatus = async (req: AuthRequest, res: Response) => {
+  const { orderId } = req.params;
+  const order = await Order.findById(orderId).select('paymentStatus paymentTransactionId paymentMethod total orderNumber');
+  if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+  return res.status(200).json({ success: true, data: order });
+};
+
+/**
+ * @desc    Test Paymob API key validity for a merchant
+ * @route   POST /api/payments/test-keys
+ * @access  Private/Merchant
+ */
+export const testPaymobKeys = async (req: AuthRequest, res: Response) => {
+  const { secretKey, publicKey } = req.body;
+  
+  if (!secretKey || !publicKey) {
+    return res.status(400).json({ success: false, message: 'secretKey and publicKey are required' });
+  }
+
+  try {
+    // Attempt to authenticate with Paymob using the provided secret key
+    const axios = (await import('axios')).default;
+    const response = await axios.get('https://accept.paymob.com/v1/intention/', {
+      headers: { Authorization: `Token ${secretKey}` },
+      validateStatus: (s) => s < 500, // Accept 400/401 too
+    });
+
+    // Paymob returns 200 or 401. 401 means invalid key.
+    if (response.status === 401) {
+      return res.status(200).json({ success: false, message: 'المفتاح غير صحيح — تحقق من Secret Key' });
+    }
+
+    // Save keys to merchant if valid
+    if (req.user?.merchantId) {
+      await Merchant.findByIdAndUpdate(req.user.merchantId, {
+        'paymobConfig.secretKey': secretKey,
+        'paymobConfig.publicKey': publicKey,
+        'paymentSettings.onlineCardEnabled': true,
+      });
+    }
+
+    return res.status(200).json({ success: true, message: 'المفاتيح صحيحة وتم حفظها بنجاح!' });
+  } catch (err: any) {
+    return res.status(200).json({ success: false, message: 'فشل الاتصال ب**Paymob** — تحقق من المفاتيح' });
+  }
+};
+
+/**
+ * @desc    Update merchant payment & shipping settings
+ * @route   PATCH /api/payments/settings
+ * @access  Private/Merchant
+ */
+export const updatePaymentSettings = async (req: AuthRequest, res: Response) => {
+  const { paymentSettings } = req.body;
+  const merchant = await Merchant.findByIdAndUpdate(
+    req.user?.merchantId,
+    { paymentSettings },
+    { new: true, runValidators: true }
+  ).select('paymentSettings paymobConfig shippingConfig');
+  if (!merchant) return res.status(404).json({ success: false, message: 'Merchant not found' });
+  return res.status(200).json({ success: true, data: merchant });
+};
+
+/**
+ * @desc    Update merchant shipping config
+ * @route   PATCH /api/payments/shipping
+ * @access  Private/Merchant
+ */
+export const updateShippingConfig = async (req: AuthRequest, res: Response) => {
+  const { shippingConfig } = req.body;
+  const merchant = await Merchant.findByIdAndUpdate(
+    req.user?.merchantId,
+    { shippingConfig },
+    { new: true, runValidators: true }
+  ).select('shippingConfig');
+  if (!merchant) return res.status(404).json({ success: false, message: 'Merchant not found' });
+  return res.status(200).json({ success: true, data: merchant });
+};
+
