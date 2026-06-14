@@ -30,7 +30,7 @@ export default async function GenericStorePage({ params, searchParams }: Props) 
   if (!themeRes) return notFound();
 
   // Load page data (e.g., 'about' or 'contact')
-  const pageData = themeRes.theme?.pages?.[page] || {};
+  const pageData: Record<string, any> = themeRes.theme?.pages?.[page] || {};
   
   // If explicitly disabled by merchant, return 404
   if (pageData.enabled === false) {

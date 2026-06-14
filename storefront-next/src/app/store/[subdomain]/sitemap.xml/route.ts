@@ -5,7 +5,7 @@ export async function GET(_req: Request, { params }: { params: { subdomain: stri
   const { subdomain } = params;
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${subdomain}.matgarco.com`;
 
-  const staticPages = [
+  const staticPages: { loc: string; priority: string; freq: string; lastmod?: string }[] = [
     { loc: baseUrl, priority: '1.0', freq: 'daily' },
     { loc: `${baseUrl}/products`, priority: '0.8', freq: 'weekly' },
     { loc: `${baseUrl}/categories`, priority: '0.7', freq: 'weekly' },
@@ -27,12 +27,12 @@ export async function GET(_req: Request, { params }: { params: { subdomain: stri
     }
   } catch {}
 
-  let categoryUrls: { loc: string; priority: string; freq: string }[] = [];
+  let categoryUrls: { loc: string; priority: string; freq: string; lastmod?: string }[] = [];
   try {
-    const categoriesData = await fetchCategories(subdomain);
-    if (categoriesData?.categories) {
-      categoryUrls = categoriesData.categories.map((c: any) => ({
-        loc: `${baseUrl}/products?category=${encodeURIComponent(c.name)}`,
+    const categories = await fetchCategories(subdomain);
+    if (categories && categories.length > 0) {
+      categoryUrls = categories.map((cat: string) => ({
+        loc: `${baseUrl}/products?category=${encodeURIComponent(cat)}`,
         priority: '0.6',
         freq: 'weekly',
       }));

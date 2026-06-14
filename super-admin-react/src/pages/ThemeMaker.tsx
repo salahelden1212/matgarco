@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Palette, LayoutPanelLeft, Type, Save, Smartphone, Monitor, ChevronRight, Loader2, AlertCircle, RotateCcw, CheckCircle2, Circle } from 'lucide-react';
+import { Palette, LayoutPanelLeft, Type, Save, Smartphone, Monitor, ChevronRight, Loader2, AlertCircle, RotateCcw, CheckCircle2, Circle, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
@@ -214,30 +214,35 @@ export default function ThemeMaker() {
         
         {/* Header */}
         <header className="h-[56px] border-b flex items-center justify-between px-4 bg-slate-50 shrink-0">
-          <div className="flex items-center gap-3">
-            <Link to="/themes" className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <Link to="/themes" className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors shrink-0">
               <ChevronRight size={18} />
             </Link>
-            <div>
-              <h2 className="font-black text-sm text-slate-900 leading-tight truncate w-44">{themeData.name}</h2>
-              <div className="text-[10px] font-bold text-slate-400 truncate w-44">v{themeData.version} · {themeData.category}</div>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-black text-sm text-slate-900 leading-tight truncate">{themeData.name}</h2>
+              <div className="text-[10px] font-bold text-slate-400 truncate">v{themeData.version} · {themeData.category}</div>
             </div>
           </div>
           
-          <div className="flex items-center gap-1">
-            <select
-              value={themeData.status || 'draft'}
-              onChange={(e) => handleThemeChange({ status: e.target.value })}
-              className="h-7 px-2 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 outline-none"
-            >
-              <option value="draft">مسودة</option>
-              <option value="maintenance">صيانة</option>
-              <option value="active">نشط</option>
-            </select>
-            <button onClick={refreshIframe} className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors" title="تحديث المعاينة">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="relative">
+              <select
+                value={themeData.status || 'draft'}
+                onChange={(e) => handleThemeChange({ status: e.target.value })}
+                className="h-8 pl-6 pr-2.5 rounded-xl border border-slate-250 bg-white text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-colors cursor-pointer appearance-none"
+              >
+                <option value="draft">مسودة</option>
+                <option value="maintenance">صيانة</option>
+                <option value="active">نشط</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-slate-400">
+                <ChevronDown size={12} />
+              </div>
+            </div>
+            <button onClick={refreshIframe} className="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors shadow-sm" title="تحديث المعاينة">
               <RotateCcw size={14} />
             </button>
-            <button onClick={() => saveMutation.mutate({ globalSettings: gs, pages: themeData.pages, status: themeData.status })} disabled={isSaving} className="text-xs font-bold text-white bg-matgarco-500 hover:bg-matgarco-600 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors disabled:opacity-50">
+            <button onClick={() => saveMutation.mutate({ globalSettings: gs, pages: themeData.pages, status: themeData.status })} disabled={isSaving} className="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-2 rounded-xl flex items-center gap-1 transition-all shadow-md shadow-indigo-600/10 active:scale-95 disabled:opacity-50">
               {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} حفظ
             </button>
           </div>
@@ -295,18 +300,21 @@ export default function ThemeMaker() {
                 {COLOR_FIELDS.map(cf => (
                   <div key={cf.key} className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-500 block">{cf.label}</label>
-                    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1 pr-2">
-                      <input
-                        type="color"
-                        value={colors[cf.key] || cf.default}
-                        onChange={e => setColor(cf.key, e.target.value)}
-                        className="w-8 h-8 rounded cursor-pointer border-0 p-0 overflow-hidden shrink-0"
-                      />
+                    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl p-1 pr-2 shadow-xs">
+                      <div className="relative w-8 h-8 rounded-lg border border-slate-250 overflow-hidden shrink-0 flex items-center justify-center bg-white shadow-xs hover:border-slate-350 transition-colors cursor-pointer">
+                        <input
+                          type="color"
+                          value={colors[cf.key] || cf.default}
+                          onChange={e => setColor(cf.key, e.target.value)}
+                          className="absolute inset-0 w-full h-full p-0 border-0 cursor-pointer opacity-0 scale-150"
+                        />
+                        <div className="w-4.5 h-4.5 rounded-full border border-slate-300 shadow-xs" style={{ backgroundColor: colors[cf.key] || cf.default }} />
+                      </div>
                       <input
                         type="text"
                         value={colors[cf.key] || cf.default}
                         onChange={e => setColor(cf.key, e.target.value)}
-                        className="flex-1 bg-transparent text-[11px] font-mono text-slate-600 outline-none w-0"
+                        className="flex-1 bg-transparent text-[11px] font-mono text-slate-600 outline-none w-0 pl-1 font-bold"
                       />
                     </div>
                   </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getProductMainImage, optimizeCloudinaryUrl } from '@/lib/images';
 import { ShoppingBag, Eye, Star, Check, Heart } from 'lucide-react';
